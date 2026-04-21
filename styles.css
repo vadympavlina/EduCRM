@@ -712,3 +712,52 @@ input[type="month"].form-control { width: auto; font-family: var(--font-mono); f
 
 /* ── EARNINGS VALUE ── */
 .earnings-value { font-family: var(--font-mono); font-weight: 600; color: var(--green); }
+
+/* ... (весь ваш попередній CSS) ... */
+
+/* ── SCHEDULE DAYS SELECTOR ── */
+.days-selector { 
+  display: flex; 
+  gap: 8px; 
+  flex-wrap: wrap; 
+  margin-top: 8px;
+}
+.day-label { 
+  position: relative; 
+  cursor: pointer; 
+}
+.day-checkbox { 
+  position: absolute; 
+  opacity: 0; 
+  width: 0; 
+  height: 0; 
+}
+.day-pill {
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center;
+  width: 42px; 
+  height: 42px; 
+  border-radius: 12px;
+  background: var(--bg3); 
+  color: var(--text2);
+  font-weight: 600; 
+  font-size: 13px; 
+  transition: 0.2s;
+  border: 1px solid var(--border); 
+  user-select: none;
+}
+.day-label:hover .day-pill { 
+  background: var(--bg4); 
+}
+.day-checkbox:checked + .day-pill {
+  background: #fee2e2; 
+  color: #b91c1c; 
+  border-color: #f87171;
+}
+
+/* Стиль для заблокованих зон в самому календарі */
+.fc-event-background {
+  opacity: 0.8 !important;
+  background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.2) 5px, rgba(255,255,255,0.2) 10px) !important;
+}
