@@ -9,7 +9,7 @@ const TELEGRAM = {
   CHAT_ID:   '-1003992712563'      
 };
 
-// Функція для завантаження конфігурації
+// Функція для завантаження конфігурації з Firebase
 function loadConfig() {
   return db.ref('settings/telegramToken').once('value').then(snap => {
     if (snap.exists()) {
@@ -27,6 +27,7 @@ let currentEmail = localStorage.getItem('crm_user_email') || '';
 let events    = {};   
 let teachers  = {};   
 let pricing   = { default: { baseReward: 50, contractBonus: 100 }, overrides: {} };
+let blockedTimes = {}; // Сховище заблокованих зон
 let calendarInstance = null;
 let confirmCallback  = null;
 
@@ -45,19 +46,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function startApp() {
   try {
-    await loadConfig();
+    await loadConfig(); // Завантажуємо токен перед стартом
   } catch (error) {
-    console.error("Помилка завантаження токена (перевірте правила Firebase):", error);
+    console.error("Помилка завантаження токена:", error);
   }
 
   listenTeachers();
   listenPricing();
   listenEvents();
+  listenBlockedTimes(); // Слухаємо заблоковані зони
 
   setTimeout(initCalendar, 200);
 
   const now = new Date();
-
   const monthSel = document.getElementById('stats-month');
   if (monthSel) {
     monthSel.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -188,6 +189,7 @@ function navigateTo(page) {
   if (page === 'pricing')        renderPricing();
   if (page === 'teachers')       renderTeachers();
   if (page === 'confirmed-list') renderConfirmedList();
+  if (page === 'schedule')       renderBlockedTimes(); //
   if (page === 'calendar')       setTimeout(() => calendarInstance && calendarInstance.render(), 50);
 }
 
@@ -273,7 +275,7 @@ function initCalendar() {
     firstDay: 1, 
     height:                '100%',
     allDaySlot:            false,
-    slotMinTime:           '07:00:00',
+    slotMinTime:           '08:00:00',
     slotMaxTime:           '22:00:00',
     nowIndicator:          true,
     selectable:            true,
@@ -288,6 +290,7 @@ function initCalendar() {
     },
 
     eventClick(info) {
+      if (info.event.display === 'background') return; 
       openEventModal(info.event.id);
     },
 
@@ -324,21 +327,13 @@ function initCalendar() {
 
 function refreshCalendar() {
   if (!calendarInstance) return;
+  calendarInstance.removeAllEvents();
 
-  calendarInstance.getEvents().forEach(fcEv => {
-    if (!events[fcEv.id]) fcEv.remove();
-  });
-
+  // 1. Події
   Object.values(events).forEach(ev => {
-    const existing = calendarInstance.getEventById(ev.id);
     const start = parseDateTime(ev.date, ev.startTime || '09:00');
     const end   = parseDateTime(ev.date, ev.endTime   || '10:00');
-    const title = ev.title + (teacherName(ev.assignedPersonId)
-      ? ' · ' + teacherName(ev.assignedPersonId) : '');
-
-    if (existing) {
-      existing.remove();
-    }
+    const title = ev.title + (teacherName(ev.assignedPersonId) ? ' · ' + teacherName(ev.assignedPersonId) : '');
 
     calendarInstance.addEvent({
       id:         ev.id,
@@ -346,6 +341,22 @@ function refreshCalendar() {
       start,
       end,
       classNames: [`status-${ev.status}`]
+    });
+  });
+
+  // 2. Блокування робочих зон (Background Events)
+  Object.entries(blockedTimes).forEach(([id, b]) => {
+    calendarInstance.addEvent({
+      id: 'block_' + id,
+      groupId: 'blocked_zone',
+      title: b.title || 'Зайнято',
+      startTime: b.start,
+      endTime: b.end,
+      daysOfWeek: b.days,
+      endRecur: b.until ? b.until : null,
+      display: 'background',
+      color: '#fee2e2',
+      overlap: false // Забороняє накладання
     });
   });
 }
@@ -396,8 +407,6 @@ function openEventModal(eventId) {
       <span class="badge badge-${ev.status}">${statusLabel(ev.status)}</span>
       ${ev.createdBy   ? `<span class="meta-by">Створив: ${ev.createdBy}</span>`   : ''}
       ${ev.confirmedBy ? `<span class="meta-by">Підтвердив: ${ev.confirmedBy}</span>` : ''}
-      ${ev.cancelledBy ? `<span class="meta-by">Скасував: ${ev.cancelledBy}</span>` : ''}
-      ${ev.completedBy ? `<span class="meta-by">Завершив: ${ev.completedBy}</span>` : ''}
     </div>`;
   document.getElementById('event-status-section').innerHTML = statusHTML;
 
@@ -464,7 +473,7 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
     data.createdAt = new Date().toISOString();
     const newRef = db.ref('events').push();
     await newRef.set(data);
-    sendTelegram('СТВОРЕНО', { ...data, id: newRef.key });
+    sendTelegram('СТВОРЕНО', { ...data, id: newRef.key }); //
     showToast('Подію створено', 'success');
   } else {
     await db.ref('events/' + id).update(data);
@@ -512,18 +521,13 @@ function completeEvent(id) {
 function deleteEvent(id) {
   showConfirm('Видалити цю подію назавжди?', async () => {
     const ev = events[id];
-    
     if (ev && ev.telegramMessageId) {
       fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/deleteMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: TELEGRAM.CHAT_ID,
-          message_id: ev.telegramMessageId
-        })
+        body: JSON.stringify({ chat_id: TELEGRAM.CHAT_ID, message_id: ev.telegramMessageId })
       }).catch(() => {}); 
     }
-
     await db.ref('events/' + id).remove();
     showToast('Подію видалено', 'info');
     closeModal('event-modal');
@@ -543,13 +547,11 @@ function renderConfirmedList() {
   }).sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
 
   tbody.innerHTML = '';
-  
   if (list.length === 0) {
     tbody.parentElement.parentElement.style.display = 'none';
     emptyState.style.display = 'flex';
     return;
   }
-
   tbody.parentElement.parentElement.style.display = 'block';
   emptyState.style.display = 'none';
 
@@ -610,7 +612,6 @@ function toggleContract(id, checked) {
   db.ref('events/' + id).update({ contractSigned: checked }).then(() => renderCompleted());
 }
 
-// Популяція селекту вчителів на сторінці статистики
 function populateStatsTeacherSelect() {
   const sel = document.getElementById('stats-teacher');
   if(!sel) return;
@@ -618,9 +619,7 @@ function populateStatsTeacherSelect() {
   sel.innerHTML = '<option value="">Всі вчителі</option>';
   Object.values(teachers).forEach(t => {
     const opt = document.createElement('option');
-    opt.value = t.id;
-    opt.textContent = t.name;
-    sel.appendChild(opt);
+    opt.value = t.id; opt.textContent = t.name; sel.appendChild(opt);
   });
   sel.value = currentVal; 
 }
@@ -637,20 +636,13 @@ function renderStats() {
   });
 
   const byTeacher = {};
-
   completed.forEach(ev => {
     const tid = ev.assignedPersonId || '__none__';
     if (!byTeacher[tid]) byTeacher[tid] = { count: 0, contracts: 0, earnings: 0 };
     const p = getPricing(ev.assignedPersonId);
-    
     byTeacher[tid].count++;
-
-    const earnings = ev.contractSigned ? p.baseReward + p.contractBonus : p.baseReward;
-    if (ev.contractSigned) {
-      byTeacher[tid].contracts++;
-    }
-    
-    byTeacher[tid].earnings += earnings;
+    if (ev.contractSigned) byTeacher[tid].contracts++;
+    byTeacher[tid].earnings += ev.contractSigned ? p.baseReward + p.contractBonus : p.baseReward;
   });
 
   const tbody = document.getElementById('stats-tbody');
@@ -661,58 +653,75 @@ function renderStats() {
     tr.innerHTML = `<td>${name}</td><td>${data.count}</td><td>${data.contracts}</td><td class="earnings-value">₴${data.earnings}</td>`;
     tbody.appendChild(tr);
   });
-
-  // Очищаємо футер, щоб рядок "Разом" більше не з'являвся
   const tfoot = document.getElementById('stats-tfoot');
-  if (tfoot) {
-    tfoot.innerHTML = '';
-  }
+  if (tfoot) tfoot.innerHTML = ''; 
 }
 
-// Функція для друку таблиці статистики
 function printStats() {
   const selectedMonth = document.getElementById('stats-month').value || 'Всі місяці';
   const teacherSelect = document.getElementById('stats-teacher');
   const selectedTeacherName = teacherSelect.options[teacherSelect.selectedIndex].text;
-  
-  // Копіюємо таблицю
   const tableHTML = document.querySelector('#stats-page table').outerHTML;
-
-  // Відкриваємо нове вікно і вставляємо туди таблицю зі стилями
   const printWindow = window.open('', '_blank');
   printWindow.document.write(`
-    <html>
-    <head>
-      <title>Статистика - EduCRM</title>
-      <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; color: #111827; }
-        h1 { font-size: 24px; margin-bottom: 5px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;}
-        p { color: #4b5563; font-size: 15px; margin-bottom: 25px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #d1d5db; padding: 12px; text-align: left; font-size: 14px; }
-        th { background-color: #f5f6fa; text-transform: uppercase; font-size: 12px; color: #6b7280; }
-        tfoot { background-color: #f3f4f6; }
-        .earnings-value { color: #059669; font-weight: bold; }
-        @media print {
-          body { padding: 0; }
-          button { display: none; }
-        }
-      </style>
-    </head>
-    <body>
-      <h1>Звіт: Статистика подій</h1>
-      <p><strong>Місяць:</strong> ${selectedMonth} &nbsp;|&nbsp; <strong>Вчитель:</strong> ${selectedTeacherName}</p>
-      ${tableHTML}
-      <script>
-        // Чекаємо мить для застосування стилів і викликаємо діалог друку
-        window.onload = function() { 
-          setTimeout(() => { window.print(); window.close(); }, 250); 
-        }
-      </script>
-    </body>
-    </html>
-  `);
+    <html><head><title>Звіт - EduCRM</title><style>
+    body { font-family: sans-serif; padding: 20px; color: #111; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+    .earnings-value { color: #059669; font-weight: bold; }
+    </style></head><body>
+    <h2>Звіт: Статистика подій</h2><p>Місяць: ${selectedMonth} | Вчитель: ${selectedTeacherName}</p>
+    ${tableHTML}<script>window.onload = function() { setTimeout(() => { window.print(); window.close(); }, 250); }</script></body></html>`);
   printWindow.document.close();
+}
+
+// ── BLOCKED TIMES LOGIC ───────────────────────────────────────
+function listenBlockedTimes() {
+  db.ref('settings/blockedTimes').on('value', snap => {
+    blockedTimes = snap.val() || {};
+    refreshCalendar();
+    renderBlockedTimes();
+  });
+}
+
+function saveBlockedTime() {
+  const title = document.getElementById('block-title').value.trim();
+  const until = document.getElementById('block-until').value; 
+  const start = document.getElementById('block-start').value; 
+  const end = document.getElementById('block-end').value; 
+  const days = [];
+  document.querySelectorAll('.day-checkbox:checked').forEach(cb => { days.push(parseInt(cb.value)); });
+
+  if (days.length === 0 || !start || !end) { showToast('Оберіть дні та час', 'error'); return; }
+
+  const data = { title, until, start, end, days };
+  db.ref('settings/blockedTimes').push(data).then(() => {
+    showToast('Блокування додано', 'success');
+    document.getElementById('block-title').value = '';
+    document.getElementById('block-until').value = '';
+    document.getElementById('block-start').value = '';
+    document.getElementById('block-end').value = '';
+    document.querySelectorAll('.day-checkbox').forEach(cb => cb.checked = false);
+  });
+}
+
+function deleteBlockedTime(id) {
+  if(confirm('Видалити це обмеження?')) {
+    db.ref('settings/blockedTimes/' + id).remove().then(() => showToast('Видалено', 'info'));
+  }
+}
+
+function renderBlockedTimes() {
+  const tbody = document.getElementById('blocked-times-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  const dayNames = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+  Object.entries(blockedTimes).forEach(([id, b]) => {
+    const tr = document.createElement('tr');
+    const daysStr = b.days.map(d => dayNames[d]).join(', ');
+    tr.innerHTML = `<td><strong>${b.title || 'Зайнято'}</strong></td><td>${daysStr}</td><td>${b.start} – ${b.end}</td><td>${b.until || '∞'}</td><td><button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteBlockedTime('${id}')">Видалити</button></td>`;
+    tbody.appendChild(tr);
+  });
 }
 
 // ── PRICING & TEACHERS ───────────────────────────────────────
@@ -760,17 +769,10 @@ function removeOverride(tid) {
 function renderTeachers() {
   const list = document.getElementById('teachers-list');
   list.innerHTML = '';
-  const arr = Object.values(teachers);
-  if (arr.length === 0) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-state-text">Вчителів ще немає</div></div>`; return;
-  }
-  arr.forEach(t => {
+  Object.values(teachers).forEach(t => {
     const item = document.createElement('div'); item.className = 'teacher-item';
     item.innerHTML = `<div class="teacher-avatar">${t.name.charAt(0).toUpperCase()}</div><div class="teacher-name">${t.name}</div>
-      <div class="teacher-actions">
-        <button class="btn btn-ghost btn-sm" onclick="editTeacher('${t.id}','${escStr(t.name)}')">Ред.</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteTeacher('${t.id}','${escStr(t.name)}')">Вид.</button>
-      </div>`;
+      <div class="teacher-actions"><button class="btn btn-ghost btn-sm" onclick="editTeacher('${t.id}','${escStr(t.name)}')">Ред.</button><button class="btn btn-danger btn-sm" onclick="deleteTeacher('${t.id}','${escStr(t.name)}')">Вид.</button></div>`;
     list.appendChild(item);
   });
 }
@@ -795,32 +797,21 @@ document.getElementById('teacher-save-btn').addEventListener('click', async () =
   const id = document.getElementById('teacher-id').value;
   const name = document.getElementById('teacher-name-input').value.trim();
   if (!name) return;
-  if (id) {
-    await db.ref('people/' + id).update({ name });
-    showToast('Оновлено', 'success');
-  } else {
-    await db.ref('people').push({ name });
-    showToast('Додано', 'success');
-  }
+  if (id) { await db.ref('people/' + id).update({ name }); showToast('Оновлено', 'success'); }
+  else { await db.ref('people').push({ name }); showToast('Додано', 'success'); }
   closeModal('teacher-modal');
 });
 
-document.getElementById('teacher-cancel-btn').addEventListener('click', () => closeModal('teacher-modal'));
-
 function deleteTeacher(id, name) {
-  showConfirm(`Видалити вчителя "${name}"?`, async () => {
-    await db.ref('people/' + id).remove(); 
-    showToast('Видалено', 'info');
-  });
+  showConfirm(`Видалити вчителя "${name}"?`, async () => { await db.ref('people/' + id).remove(); showToast('Видалено', 'info'); });
 }
 
 // ── HELPERS ──────────────────────────────────────────────────
 function populateOverrideSelect() {
   const sel = document.getElementById('override-teacher-select');
-  sel.innerHTML = '<option value="">— Додати налаштування для вчителя —</option>';
-  Object.values(teachers).forEach(t => {
-    const opt = document.createElement('option'); opt.value = t.id; opt.textContent = t.name; sel.appendChild(opt);
-  });
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— Оберіть вчителя —</option>';
+  Object.values(teachers).forEach(t => { const opt = document.createElement('option'); opt.value = t.id; opt.textContent = t.name; sel.appendChild(opt); });
 }
 
 function teacherName(id) { return id ? (teachers[id]?.name || '') : ''; }
@@ -828,7 +819,6 @@ function getPricing(tid) { return (tid && pricing.overrides[tid]) ? pricing.over
 function formatDate(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
 function formatTime(d) { return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
 function pad(n) { return String(n).padStart(2, '0'); }
-function debounce(fn, delay) { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); }; }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function escStr(s) { return s.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
 
@@ -838,11 +828,7 @@ function showConfirm(message, onConfirm) {
   confirmCallback = onConfirm;
 }
 
-document.getElementById('confirm-ok').addEventListener('click', () => {
-  document.getElementById('confirm-dialog').classList.remove('open');
-  if (confirmCallback) confirmCallback(); confirmCallback = null;
-});
-
+document.getElementById('confirm-ok').addEventListener('click', () => { document.getElementById('confirm-dialog').classList.remove('open'); if (confirmCallback) confirmCallback(); confirmCallback = null; });
 document.getElementById('confirm-cancel').addEventListener('click', () => closeModal('confirm-dialog'));
 
 function showToast(message, type = 'info') {
@@ -854,49 +840,24 @@ function showToast(message, type = 'info') {
 
 async function sendTelegram(status, ev) {
   if (!TELEGRAM.BOT_TOKEN) return;
-
-  const escapeHTML = (str) => {
-    if (!str) return '';
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  };
-
+  const escapeHTML = (str) => { if (!str) return ''; return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
   const tName = teacherName(ev.assignedPersonId) || 'Не призначено';
-
-  const safeTitle = escapeHTML(ev.title);
-  const safeTeacher = escapeHTML(tName);
-  const safeUser = escapeHTML(currentUser);
-
+  const safeTitle = escapeHTML(ev.title), safeTeacher = escapeHTML(tName), safeUser = escapeHTML(currentUser);
   let statusIcon = 'ℹ️';
   if (status === 'СТВОРЕНО') statusIcon = '🆕';
-  if (status === 'ПІДТВЕРДЖЕНО') statusIcon = '✅';
-  if (status === 'СКАСОВАНО') statusIcon = '❌';
+  else if (status === 'ПІДТВЕРДЖЕНО') statusIcon = '✅';
+  else if (status === 'СКАСОВАНО') statusIcon = '❌';
 
   const text = `${statusIcon} <b>${status}</b>\n\n📌 <b>Подія:</b> ${safeTitle}\n🗓 <b>Час:</b> ${ev.date} (з ${ev.startTime} до ${ev.endTime})\n🧑‍🏫 <b>Вчитель:</b> ${safeTeacher}\n\n👤 <i>Менеджер: ${safeUser}</i>`;
 
   if (ev.telegramMessageId) {
-    try {
-      await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/deleteMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: TELEGRAM.CHAT_ID, message_id: ev.telegramMessageId })
-      });
-    } catch (err) {}
+    try { await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/deleteMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: TELEGRAM.CHAT_ID, message_id: ev.telegramMessageId }) }); } catch (err) {}
   }
 
   try {
-    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: TELEGRAM.CHAT_ID, text: text, parse_mode: 'HTML' })
-    });
-    
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: TELEGRAM.CHAT_ID, text: text, parse_mode: 'HTML' }) });
     const data = await response.json();
-
-    if (data.ok && data.result && data.result.message_id) {
-      if (ev.id) {
-        await db.ref('events/' + ev.id).update({ telegramMessageId: data.result.message_id });
-      }
-    }
+    if (data.ok && data.result && data.result.message_id) { if (ev.id) await db.ref('events/' + ev.id).update({ telegramMessageId: data.result.message_id }); }
   } catch (err) {}
 }
 
@@ -912,3 +873,5 @@ window.completeEvent = completeEvent;
 window.cancelEvent = cancelEvent;
 window.renderConfirmedList = renderConfirmedList;
 window.printStats = printStats;
+window.saveBlockedTime = saveBlockedTime;
+window.deleteBlockedTime = deleteBlockedTime;
