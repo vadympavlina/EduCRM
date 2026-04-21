@@ -427,6 +427,8 @@ function deleteEvent(id) {
   });
 }
 
+document.getElementById('event-cancel-btn').addEventListener('click', () => closeModal('event-modal'));
+
 // ── CONFIRMED LIST ───────────────────────────────────────────
 function renderConfirmedList() {
   const tbody = document.getElementById('confirmed-list-tbody');
@@ -465,7 +467,7 @@ function renderConfirmedList() {
   });
 }
 
-// ── COMPLETED & STATS (Спрощено для місця) ───────────────────
+// ── COMPLETED & STATS ────────────────────────────────────────
 function renderCompleted() {
   const list = Object.values(events).filter(e => e.status === 'completed')
     .sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0));
@@ -589,18 +591,47 @@ function renderTeachers() {
   });
 }
 
+// КНОПКА "ДОДАТИ ВЧИТЕЛЯ"
+document.getElementById('btn-add-teacher').addEventListener('click', () => {
+  document.getElementById('teacher-modal-title').textContent = 'Додати вчителя';
+  document.getElementById('teacher-id').value = '';
+  document.getElementById('teacher-name-input').value = '';
+  document.getElementById('teacher-modal').classList.add('open');
+  setTimeout(() => document.getElementById('teacher-name-input').focus(), 100);
+});
+
+// ФУНКЦІЯ РЕДАГУВАННЯ ВЧИТЕЛЯ
+function editTeacher(id, name) {
+  document.getElementById('teacher-modal-title').textContent = 'Редагувати вчителя';
+  document.getElementById('teacher-id').value = id;
+  document.getElementById('teacher-name-input').value = name;
+  document.getElementById('teacher-modal').classList.add('open');
+  setTimeout(() => document.getElementById('teacher-name-input').focus(), 100);
+}
+
+// ЗБЕРЕЖЕННЯ ВЧИТЕЛЯ
 document.getElementById('teacher-save-btn').addEventListener('click', async () => {
   const id = document.getElementById('teacher-id').value;
   const name = document.getElementById('teacher-name-input').value.trim();
   if (!name) return;
-  if (id) await db.ref('people/' + id).update({ name });
-  else await db.ref('people').push({ name });
+  if (id) {
+    await db.ref('people/' + id).update({ name });
+    showToast('Оновлено', 'success');
+  } else {
+    await db.ref('people').push({ name });
+    showToast('Додано', 'success');
+  }
   closeModal('teacher-modal');
 });
 
+// КНОПКА СКАСУВАННЯ ВЧИТЕЛЯ
+document.getElementById('teacher-cancel-btn').addEventListener('click', () => closeModal('teacher-modal'));
+
+// ФУНКЦІЯ ВИДАЛЕННЯ ВЧИТЕЛЯ
 function deleteTeacher(id, name) {
   showConfirm(`Видалити вчителя "${name}"?`, async () => {
-    await db.ref('people/' + id).remove(); showToast('Видалено', 'info');
+    await db.ref('people/' + id).remove(); 
+    showToast('Видалено', 'info');
   });
 }
 
