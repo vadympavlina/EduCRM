@@ -4,11 +4,22 @@
 // ============================================================
 
 // ── TELEGRAM CONFIG ──────────────────────────────────────────
+// Тепер константа порожня
 const TELEGRAM = {
-  BOT_TOKEN: '8635267324:AAEvvbpNItZRZpnLiJptm-BvlxoSCLu8y-s',   // від @BotFather
-  CHAT_ID:   '-1003992712563'      // ID чату або групи
+  BOT_TOKEN: '', 
+  CHAT_ID: '-1003992712563'
 };
-
+// Функція для завантаження конфігурації
+function loadConfig() {
+  return db.ref('settings/telegramToken').once('value').then(snap => {
+    if (snap.exists()) {
+      TELEGRAM.BOT_TOKEN = snap.val();
+      console.log('Конфігурація Telegram завантажена');
+    } else {
+      console.error('Токен не знайдено в Firebase!');
+    }
+  });
+}
 // ── STATE ────────────────────────────────────────────────────
 let currentUser  = localStorage.getItem('crm_user_name')  || '';
 let currentEmail = localStorage.getItem('crm_user_email') || '';
@@ -31,7 +42,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setupHamburger();
 });
 
-function startApp() {
+async function startApp() {
+  await loadConfig();
   listenTeachers();
   listenPricing();
   listenEvents();
