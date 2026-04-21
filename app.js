@@ -284,6 +284,25 @@ function initCalendar() {
     selectMirror:          true,
     locale:                'uk',
 
+    // ЦЯ ФУНКЦІЯ ЗАБОРОНЯЄ ВИДІЛЯТИ ЧАС, ЯКИЙ ПЕРЕКРИВАЄТЬСЯ З БЛОКУВАННЯМ
+    selectAllow: function(selectInfo) {
+      const blocked = Object.values(blockedTimes).some(b => {
+        const dayMatches = b.days.includes(selectInfo.start.getDay());
+        if (!dayMatches) return false;
+
+        const selStart = selectInfo.start.getHours() * 60 + selectInfo.start.getMinutes();
+        const selEnd = selectInfo.end.getHours() * 60 + selectInfo.end.getMinutes();
+        
+        const [bStartH, bStartM] = b.start.split(':').map(Number);
+        const [bEndH, bEndM] = b.end.split(':').map(Number);
+        const blockStart = bStartH * 60 + bStartM;
+        const blockEnd = bEndH * 60 + bEndM;
+
+        return selStart < blockEnd && selEnd > blockStart;
+      });
+      return !blocked;
+    },
+
     select(info) {
       openCreateModal(info.startStr, info.endStr);
       calendarInstance.unselect();
@@ -344,7 +363,7 @@ function refreshCalendar() {
     });
   });
 
-  // 2. Малювання БЛОКУВАНЬ (те, що забороняє кліки)
+  // 2. Блокування робочих зон (Background Events)
   Object.entries(blockedTimes).forEach(([id, b]) => {
     calendarInstance.addEvent({
       id: 'block_' + id,
@@ -354,10 +373,9 @@ function refreshCalendar() {
       endTime: b.end,
       daysOfWeek: b.days,
       endRecur: b.until ? b.until : null,
-      
-      display: 'background', // ОБОВ'ЯЗКОВО для роботи обмежень
-      color: '#fee2e2',      // Колір фону
-      overlap: false         // КРИТИЧНО: забороняє створювати/ставити події зверху
+      display: 'background',
+      color: '#fee2e2',
+      overlap: false 
     });
   });
 }
