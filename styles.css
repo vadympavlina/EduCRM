@@ -715,49 +715,50 @@ input[type="month"].form-control { width: auto; font-family: var(--font-mono); f
 
 /* ... (весь ваш попередній CSS) ... */
 
-/* ── SCHEDULE DAYS SELECTOR ── */
-.days-selector { 
-  display: flex; 
-  gap: 8px; 
-  flex-wrap: wrap; 
-  margin-top: 8px;
-}
-.day-label { 
-  position: relative; 
-  cursor: pointer; 
-}
-.day-checkbox { 
-  position: absolute; 
-  opacity: 0; 
-  width: 0; 
-  height: 0; 
-}
-.day-pill {
-  display: inline-flex; 
-  align-items: center; 
-  justify-content: center;
-  width: 42px; 
-  height: 42px; 
-  border-radius: 12px;
-  background: var(--bg3); 
-  color: var(--text2);
-  font-weight: 600; 
-  font-size: 13px; 
-  transition: 0.2s;
-  border: 1px solid var(--border); 
-  user-select: none;
-}
-.day-label:hover .day-pill { 
-  background: var(--bg4); 
-}
-.day-checkbox:checked + .day-pill {
-  background: #fee2e2; 
-  color: #b91c1c; 
-  border-color: #f87171;
+/* ── ОФОРМЛЕННЯ ЗАЙНЯТИХ ЗОН ── */
+.fc-bg-event {
+    opacity: 1 !important; /* Робимо зону насиченою */
+    background: repeating-linear-gradient(
+        45deg,
+        #fee2e2,
+        #fee2e2 10px,
+        #fecaca 10px,
+        #fecaca 20px
+    ) !important; /* Діагональна штриховка для помітності */
+    border: 1px solid #f87171 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Стиль для заблокованих зон в самому календарі */
-.fc-event-background {
-  opacity: 0.8 !important;
-  background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.2) 5px, rgba(255,255,255,0.2) 10px) !important;
+/* Робимо текст всередині фонової події видимим */
+.fc-bg-event .fc-event-title {
+    color: #991b1b !important; /* Темно-червоний текст */
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px;
+    text-align: center;
+    display: block !important;
+}
+
+/* Додаємо іконку заборони перед текстом через pseudo-element */
+.fc-bg-event .fc-event-title::before {
+    content: '🚫 ';
+    font-size: 14px;
+}
+
+/* Стилі для кнопок днів тижня (якщо ще не додали) */
+.days-selector { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.day-label { cursor: pointer; }
+.day-checkbox { position: absolute; opacity: 0; width: 0; height: 0; }
+.day-pill {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--bg3); color: var(--text2); font-weight: 600;
+  border: 2px solid transparent; transition: 0.2s;
+}
+.day-checkbox:checked + .day-pill {
+  background: #dc2626; color: white; border-color: #991b1b;
 }
