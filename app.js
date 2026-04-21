@@ -43,7 +43,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function startApp() {
-  await loadConfig();
+  // Додаємо try...catch, щоб помилка не ламала весь додаток
+  try {
+    await loadConfig();
+  } catch (error) {
+    console.error("Помилка завантаження токена (перевірте правила Firebase):", error);
+  }
+
+  // Тепер ці функції гарантовано запустяться в будь-якому випадку!
   listenTeachers();
   listenPricing();
   listenEvents();
