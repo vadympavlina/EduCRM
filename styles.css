@@ -15,7 +15,7 @@
   --green: #10b981;
   --red: #ef4444;
   --blue: #3b82f6;
-  --radius: 12px; /* М'які заокруглення */
+  --radius: 12px;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --font-main: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -35,13 +35,14 @@ body { background: var(--bg); color: var(--text); display: flex; height: 100vh; 
 .sidebar-user { display: flex; align-items: center; gap: 12px; padding-bottom: 24px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
 .user-avatar { width: 40px; height: 40px; background: var(--accent); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; }
 .user-name { font-weight: 600; font-size: 14px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.btn-change-name { background: none; border: none; cursor: pointer; font-size: 14px; opacity: 0.6; transition: 0.2s; }
-.btn-change-name:hover { opacity: 1; }
+.btn-change-name { background: none; border: none; cursor: pointer; color: var(--text3); transition: 0.2s; padding: 4px; border-radius: 4px;}
+.btn-change-name:hover { color: var(--text); background: var(--bg3); }
 
 .nav-item { padding: 12px 16px; margin-bottom: 8px; border-radius: var(--radius); cursor: pointer; color: var(--text2); display: flex; gap: 12px; align-items: center; font-weight: 500; transition: all 0.2s; }
 .nav-item:hover { background: var(--bg3); color: var(--text); }
 .nav-item.active { background: var(--accent); color: white; box-shadow: var(--shadow-md); }
-.nav-icon { font-size: 18px; }
+.nav-icon { display: flex; align-items: center; justify-content: center; opacity: 0.8; }
+.nav-item.active .nav-icon { opacity: 1; }
 
 /* ── PAGES ── */
 .page { display: none; flex-direction: column; height: 100%; animation: fadeIn 0.3s ease-out; }
@@ -49,8 +50,8 @@ body { background: var(--bg); color: var(--text); display: flex; height: 100vh; 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; gap: 16px; }
-.page-header h2 { font-size: 24px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
-.page-content { flex: 1; background: var(--bg2); border-radius: var(--radius); border: 1px solid var(--border); padding: 24px; overflow-y: auto; box-shadow: var(--shadow-sm); }
+.page-header h2 { font-size: 24px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; margin: 0; }
+.page-content { flex: 1; background: var(--bg2); border-radius: var(--radius); border: 1px solid var(--border); padding: 24px; overflow-y: auto; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; }
 
 /* ── BUTTONS ── */
 .btn { padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
@@ -81,14 +82,14 @@ body { background: var(--bg); color: var(--text); display: flex; height: 100vh; 
 .modal-close:hover { background: var(--border2); color: var(--text); }
 .modal-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
 
-/* ── TABLES ── */
+/* ── TABLES (Scoped to not break Calendar) ── */
 .table-wrap { width: 100%; overflow-x: auto; }
-table { width: 100%; border-collapse: separate; border-spacing: 0; }
-th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
-th { color: var(--text3); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; background: var(--bg3); }
-th:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
-th:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
-tr:hover td { background: var(--bg); }
+.table-wrap table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.table-wrap th, .table-wrap td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
+.table-wrap th { color: var(--text3); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; background: var(--bg3); }
+.table-wrap th:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+.table-wrap th:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+.table-wrap tr:hover td { background: var(--bg); } /* Тепер це працює ТІЛЬКИ для таблиць, а не календаря */
 
 /* ── TOASTS ── */
 #toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 12px; z-index: 2000; }
@@ -128,14 +129,17 @@ tr:hover td { background: var(--bg); }
 
 /* ── EMPTY STATES ── */
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; text-align: center; color: var(--text3); }
-.empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+.empty-state-icon { color: var(--text3); margin-bottom: 16px; opacity: 0.5; }
 .empty-state-text { font-size: 16px; font-weight: 500; }
 
-/* ── FULLCALENDAR OVERRIDES ── */
-.fc .fc-button-primary { background-color: var(--accent) !important; border-color: var(--accent) !important; text-transform: capitalize; border-radius: 6px !important; }
+/* ── FULLCALENDAR OVERRIDES (Fixed) ── */
+#calendar { display: flex; flex-direction: column; flex: 1; min-height: 500px; }
+.fc { font-family: var(--font-main); }
+.fc .fc-toolbar { align-items: center !important; margin-bottom: 20px !important; flex-wrap: wrap; gap: 12px; }
+.fc .fc-toolbar-title { font-size: 20px !important; font-weight: 700; color: var(--text); }
+.fc .fc-button-primary { background-color: var(--accent) !important; border-color: var(--accent) !important; text-transform: capitalize; border-radius: 6px !important; padding: 6px 12px !important; font-size: 14px !important; }
 .fc .fc-button-primary:not(:disabled):active, .fc .fc-button-primary:not(:disabled).fc-button-active { background-color: var(--accent-hover) !important; border-color: var(--accent-hover) !important; }
-.fc-theme-standard td, .fc-theme-standard th, .fc-theme-standard .fc-scrollgrid { border-color: var(--border) !important; }
-.fc .fc-toolbar-title { font-size: 1.2em !important; font-weight: 700; }
+.fc-theme-standard td, .fc-theme-standard th, .fc-theme-standard .fc-scrollgrid { border-color: var(--border) !important; background-color: transparent !important; }
 .fc-event { border-radius: 4px; border: none !important; padding: 2px 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); cursor: pointer; }
 .status-pending { background-color: #eab308 !important; }
 .status-confirmed { background-color: #3b82f6 !important; }
