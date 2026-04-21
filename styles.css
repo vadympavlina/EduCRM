@@ -1,0 +1,45 @@
+
+/* ── MINI STAT (header) ── */
+.mini-stat {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 12px;
+  text-align: center;
+  min-width: 70px;
+}
+.mini-stat-label {
+  font-size: 9px;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.mini-stat-value {
+  font-family: var(--font-head);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+/* ── META BY ── */
+.meta-by {
+  font-size: 11px;
+  color: var(--text3);
+}
+
+/* ── HAMBURGER BTN ── */
+.hamburger-btn {
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--radius);
+  display: none;
+  line-height: 1;
+}
+
+@media (max-width: 768px) {
+  .hamburger-btn { display: block; }
+}

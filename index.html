@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>EduCRM — Управління подіями</title>
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- FullCalendar CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+  <!-- Firebase Compat CDN (без ES modules — працює на GitHub Pages) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <!-- Firebase Config -->
+  <script src="firebase.js"></script>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ═══════════════════════════
+       SIDEBAR
+  ═══════════════════════════ -->
+  <aside id="sidebar">
+    <div class="sidebar-logo">
+      <h1>EduCRM</h1>
+      <p>Event Management</p>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="user-avatar">
+        <span id="user-avatar-letter">?</span>
+      </div>
+      <span class="user-name" id="user-name-display">—</span>
+      <button class="btn-change-name" id="btn-change-name" title="Змінити ім'я">✏️</button>
+    </div>
+
+    <nav>
+      <div class="nav-item active" data-page="calendar">
+        <span class="nav-icon">📅</span><span>Календар</span>
+      </div>
+      <div class="nav-item" data-page="completed">
+        <span class="nav-icon">✅</span><span>Завершені</span>
+      </div>
+      <div class="nav-item" data-page="stats">
+        <span class="nav-icon">📊</span><span>Статистика</span>
+      </div>
+      <div class="nav-item" data-page="pricing">
+        <span class="nav-icon">💰</span><span>Ціноутворення</span>
+      </div>
+      <div class="nav-item" data-page="teachers">
+        <span class="nav-icon">👥</span><span>Вчителі</span>
+      </div>
+    </nav>
+  </aside>
+
+  <div id="sidebar-overlay"></div>
+
+  <!-- ═══════════════════════════
+       MAIN
+  ═══════════════════════════ -->
+  <main id="main">
+
+    <!-- PAGE 1: CALENDAR -->
+    <div class="page active" id="calendar-page">
+      <div class="page-header">
+        <button class="hamburger-btn" id="hamburger">☰</button>
+        <h2>Календар</h2>
+        <button class="btn btn-primary btn-sm" onclick="openCreateModal()">+ Нова подія</button>
+      </div>
+      <div class="page-content">
+        <div id="calendar"></div>
+      </div>
+    </div>
+
+    <!-- PAGE 2: COMPLETED -->
+    <div class="page" id="completed-page">
+      <div class="page-header">
+        <button class="hamburger-btn">☰</button>
+        <h2>Завершені події</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div class="mini-stat">
+            <div class="mini-stat-label">Подій</div>
+            <div class="mini-stat-value" id="completed-total">0</div>
+          </div>
+          <div class="mini-stat">
+            <div class="mini-stat-label">Заробіток</div>
+            <div class="mini-stat-value" id="completed-earnings" style="color:var(--green)">$0</div>
+          </div>
+          <div class="mini-stat">
+            <div class="mini-stat-label">Договори</div>
+            <div class="mini-stat-value" id="completed-contracts" style="color:var(--blue)">0</div>
+          </div>
+        </div>
+      </div>
+      <div class="page-content">
+        <div class="empty-state" id="completed-empty">
+          <div class="empty-state-icon">✅</div>
+          <div class="empty-state-text">Завершених подій ще немає</div>
+        </div>
+        <div id="completed-table-wrap" class="table-wrap mobile-cards" style="display:none">
+          <table>
+            <thead>
+              <tr>
+                <th>Назва</th><th>Дата</th><th>Час</th><th>Вчитель</th>
+                <th>Телефон</th><th>Договір</th><th>Заробіток</th><th>Завершив</th>
+              </tr>
+            </thead>
+            <tbody id="completed-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 3: STATISTICS -->
+    <div class="page" id="stats-page">
+      <div class="page-header">
+        <button class="hamburger-btn">☰</button>
+        <h2>Статистика</h2>
+        <input type="month" id="stats-month" class="form-control" style="width:auto">
+      </div>
+      <div class="page-content">
+        <div class="table-wrap mobile-cards">
+          <table>
+            <thead>
+              <tr><th>Вчитель</th><th>Подій</th><th>Договорів</th><th>Заробіток</th></tr>
+            </thead>
+            <tbody id="stats-tbody"></tbody>
+            <tfoot id="stats-tfoot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 4: PRICING -->
+    <div class="page" id="pricing-page">
+      <div class="page-header">
+        <button class="hamburger-btn">☰</button>
+        <h2>Ціноутворення</h2>
+      </div>
+      <div class="page-content">
+
+        <div class="pricing-section">
+          <div class="pricing-section-title">Стандартні налаштування</div>
+          <div class="pricing-row">
+            <span class="pricing-teacher-name">Всі вчителі</span>
+            <div class="pricing-input-group">
+              <label>Базова винагорода $</label>
+              <input class="pricing-input" type="number" min="0" id="pricing-default-base" value="50">
+            </div>
+            <div class="pricing-input-group">
+              <label>Бонус за договір $</label>
+              <input class="pricing-input" type="number" min="0" id="pricing-default-bonus" value="100">
+            </div>
+            <button class="btn btn-primary btn-sm" id="pricing-save-default">Зберегти</button>
+          </div>
+        </div>
+
+        <div class="pricing-section">
+          <div class="pricing-section-title">Індивідуальні налаштування</div>
+          <div id="pricing-overrides"></div>
+
+          <div class="pricing-row" style="border:1px dashed var(--border2);background:transparent;margin-top:12px">
+            <select class="form-control" id="override-teacher-select" style="width:auto;flex:1">
+              <option value="">— Додати налаштування для вчителя —</option>
+            </select>
+            <div class="pricing-input-group">
+              <label>Базова $</label>
+              <input class="pricing-input" type="number" min="0" id="override-base" value="50">
+            </div>
+            <div class="pricing-input-group">
+              <label>Бонус $</label>
+              <input class="pricing-input" type="number" min="0" id="override-bonus" value="100">
+            </div>
+            <button class="btn btn-success btn-sm" id="btn-add-override">+ Додати</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PAGE 5: TEACHERS -->
+    <div class="page" id="teachers-page">
+      <div class="page-header">
+        <button class="hamburger-btn">☰</button>
+        <h2>Вчителі</h2>
+        <button class="btn btn-primary btn-sm" id="btn-add-teacher">+ Додати</button>
+      </div>
+      <div class="page-content">
+        <div class="teacher-list" id="teachers-list">
+          <div class="page-loading">
+            <div class="spinner"></div>
+            <span>Завантаження…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══════════════════════════════
+     MODALS
+═══════════════════════════════ -->
+
+<!-- NAME MODAL -->
+<div class="modal-overlay" id="name-modal">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <span class="modal-title">Вітаємо 👋</span>
+      <button class="modal-close">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--text2);font-size:13px;margin-bottom:16px;line-height:1.6">
+        Введи своє ім'я. Воно буде відображатись при створенні та зміні подій.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Твоє ім'я</label>
+        <input type="text" class="form-control" id="name-input" placeholder="наприклад: Олексій Петренко">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" style="width:100%" id="name-save-btn">Увійти →</button>
+    </div>
+  </div>
+</div>
+
+<!-- EVENT MODAL -->
+<div class="modal-overlay" id="event-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="event-modal-title">Нова подія</span>
+      <button class="modal-close" onclick="closeModal('event-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="event-id">
+      <form id="event-form" onsubmit="return false">
+
+        <div id="event-status-section"></div>
+
+        <div class="form-group">
+          <label class="form-label">Назва *</label>
+          <input type="text" class="form-control" id="event-title" placeholder="напр. Урок математики — Іван">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Опис</label>
+          <textarea class="form-control" id="event-description" placeholder="Нотатки, теми, деталі…"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Телефон</label>
+          <input type="tel" class="form-control" id="event-phone" placeholder="+380 XX XXX XX XX">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Дата *</label>
+            <input type="date" class="form-control" id="event-date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Вчитель</label>
+            <select class="form-control" id="event-teacher"></select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Початок *</label>
+            <input type="time" class="form-control" id="event-start">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Кінець *</label>
+            <input type="time" class="form-control" id="event-end">
+          </div>
+        </div>
+
+        <div id="event-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="event-cancel-btn">Скасувати</button>
+      <button class="btn btn-primary" id="event-save-btn">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEACHER MODAL -->
+<div class="modal-overlay" id="teacher-modal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <span class="modal-title" id="teacher-modal-title">Додати вчителя</span>
+      <button class="modal-close" onclick="closeModal('teacher-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="teacher-id">
+      <div class="form-group">
+        <label class="form-label">Повне ім'я *</label>
+        <input type="text" class="form-control" id="teacher-name-input" placeholder="напр. Анна Іваненко">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="teacher-cancel-btn">Скасувати</button>
+      <button class="btn btn-primary" id="teacher-save-btn">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="modal-overlay" id="confirm-dialog">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <span class="modal-title">Підтвердження</span>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-message" id="confirm-message" style="color:var(--text2);line-height:1.6"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="confirm-cancel">Назад</button>
+      <button class="btn btn-danger" id="confirm-ok">Підтвердити</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-container"></div>
+
+<!-- APP SCRIPT (звичайний, не module) -->
+<script src="app.js"></script>
+
+<!-- Expose closeModal globally -->
+<script>
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+</script>
+
+</body>
+</html>
