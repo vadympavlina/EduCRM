@@ -344,19 +344,20 @@ function refreshCalendar() {
     });
   });
 
-  // 2. Блокування робочих зон (Background Events)
+  // 2. Малювання БЛОКУВАНЬ (те, що забороняє кліки)
   Object.entries(blockedTimes).forEach(([id, b]) => {
     calendarInstance.addEvent({
       id: 'block_' + id,
       groupId: 'blocked_zone',
-      title: b.title || 'Зайнято',
+      title: b.title || 'ЗАЙНЯТО',
       startTime: b.start,
       endTime: b.end,
       daysOfWeek: b.days,
       endRecur: b.until ? b.until : null,
-      display: 'background',
-      color: '#fee2e2',
-      overlap: false 
+      
+      display: 'background', // ОБОВ'ЯЗКОВО для роботи обмежень
+      color: '#fee2e2',      // Колір фону
+      overlap: false         // КРИТИЧНО: забороняє створювати/ставити події зверху
     });
   });
 }
