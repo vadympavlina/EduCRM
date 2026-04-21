@@ -1,5 +1,5 @@
 // ============================================================
-//  APP.JS — Internal Event Management CRM
+//  APP.JS — Internal Event Management CRM (Realtime Database Version)
 //  Vanilla JS, no ES modules — works on GitHub Pages
 // ============================================================
 
@@ -113,16 +113,16 @@ function closeSidebar() {
   document.getElementById('sidebar-overlay').classList.remove('open');
 }
 
-// ── FIREBASE LISTENERS ───────────────────────────────────────
+// ── FIREBASE LISTENERS (REALTIME DATABASE) ───────────────────
 function listenEvents() {
-  db.collection('events').onSnapshot(snap => {
-    snap.docChanges().forEach(change => {
-      if (change.type === 'removed') {
-        delete events[change.doc.id];
-      } else {
-        events[change.doc.id] = { id: change.doc.id, ...change.doc.data() };
-      }
+  db.ref('events').on('value', snap => {
+    const data = snap.val() || {};
+    events = {}; // Очищуємо та перезаписуємо новими даними
+    
+    Object.keys(data).forEach(key => {
+      events[key] = { id: key, ...data[key] };
     });
+
     refreshCalendar();
     const activePage = document.querySelector('.page.active')?.id;
     if (activePage === 'completed-page') renderCompleted();
@@ -131,11 +131,14 @@ function listenEvents() {
 }
 
 function listenTeachers() {
-  db.collection('people').onSnapshot(snap => {
-    snap.docChanges().forEach(change => {
-      if (change.type === 'removed') delete teachers[change.doc.id];
-      else teachers[change.doc.id] = { id: change.doc.id, ...change.doc.data() };
+  db.ref('people').on('value', snap => {
+    const data = snap.val() || {};
+    teachers = {};
+    
+    Object.keys(data).forEach(key => {
+      teachers[key] = { id: key, ...data[key] };
     });
+
     const activePage = document.querySelector('.page.active')?.id;
     if (activePage === 'teachers-page') renderTeachers();
     if (activePage === 'pricing-page')  renderPricing();
@@ -144,9 +147,10 @@ function listenTeachers() {
 }
 
 function listenPricing() {
-  db.collection('pricing').doc('config').onSnapshot(snap => {
-    if (snap.exists) {
-      pricing = snap.data();
+  db.ref('pricing/config').on('value', snap => {
+    const data = snap.val();
+    if (data) {
+      pricing = data;
       if (!pricing.default)   pricing.default   = { baseReward: 50, contractBonus: 100 };
       if (!pricing.overrides) pricing.overrides = {};
     }
@@ -194,7 +198,8 @@ function initCalendar() {
       if (!ev) { info.revert(); return; }
       const start = info.event.start;
       const end   = info.event.end || new Date(start.getTime() + 3600000);
-      db.collection('events').doc(ev.id).update({
+      
+      db.ref('events/' + ev.id).update({
         date:      formatDate(start),
         startTime: formatTime(start),
         endTime:   formatTime(end)
@@ -206,7 +211,8 @@ function initCalendar() {
     eventResize(info) {
       const ev = events[info.event.id];
       if (!ev) { info.revert(); return; }
-      db.collection('events').doc(ev.id).update({
+      
+      db.ref('events/' + ev.id).update({
         endTime: formatTime(info.event.end)
       })
       .then(() => showToast('Час змінено', 'success'))
@@ -366,11 +372,15 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
     data.status    = 'pending';
     data.createdBy = currentUser;
     data.createdAt = new Date().toISOString();
-    const ref = await db.collection('events').add(data);
-    sendTelegram('СТВОРЕНО', { ...data, id: ref.id });
+    
+    // Створення нового запису в Realtime Database
+    const newRef = db.ref('events').push();
+    await newRef.set(data);
+    
+    sendTelegram('СТВОРЕНО', { ...data, id: newRef.key });
     showToast('Подію створено ✓', 'success');
   } else {
-    await db.collection('events').doc(id).update(data);
+    await db.ref('events/' + id).update(data);
     showToast('Подію оновлено ✓', 'success');
   }
   closeModal('event-modal');
@@ -379,7 +389,7 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
 async function confirmEvent(id) {
   const ev = events[id];
   if (!ev) return;
-  await db.collection('events').doc(id).update({ status: 'confirmed', confirmedBy: currentUser });
+  await db.ref('events/' + id).update({ status: 'confirmed', confirmedBy: currentUser });
   sendTelegram('ПІДТВЕРДЖЕНО', ev);
   showToast('Подію підтверджено ✓', 'success');
   closeModal('event-modal');
@@ -388,7 +398,7 @@ async function confirmEvent(id) {
 function cancelEvent(id) {
   showConfirm('Скасувати цю подію?', async () => {
     const ev = events[id];
-    await db.collection('events').doc(id).update({ status: 'cancelled', cancelledBy: currentUser });
+    await db.ref('events/' + id).update({ status: 'cancelled', cancelledBy: currentUser });
     sendTelegram('СКАСОВАНО', ev);
     showToast('Подію скасовано', 'info');
     closeModal('event-modal');
@@ -403,7 +413,7 @@ function completeEvent(id) {
     return;
   }
   showConfirm('Позначити подію як завершену?', async () => {
-    await db.collection('events').doc(id).update({
+    await db.ref('events/' + id).update({
       status:         'completed',
       completedBy:    currentUser,
       completedAt:    new Date().toISOString(),
@@ -416,7 +426,7 @@ function completeEvent(id) {
 
 function deleteEvent(id) {
   showConfirm('Видалити цю подію назавжди?', async () => {
-    await db.collection('events').doc(id).delete();
+    await db.ref('events/' + id).remove();
     showToast('Подію видалено', 'info');
     closeModal('event-modal');
   });
@@ -471,7 +481,7 @@ function renderCompleted() {
 }
 
 function toggleContract(id, checked) {
-  db.collection('events').doc(id).update({ contractSigned: checked })
+  db.ref('events/' + id).update({ contractSigned: checked })
     .then(() => renderCompleted());
 }
 
@@ -559,7 +569,7 @@ function renderPricing() {
 document.getElementById('pricing-save-default').addEventListener('click', () => {
   const base  = parseInt(document.getElementById('pricing-default-base').value)  || 0;
   const bonus = parseInt(document.getElementById('pricing-default-bonus').value) || 0;
-  db.collection('pricing').doc('config').set({ ...pricing, default: { baseReward: base, contractBonus: bonus } })
+  db.ref('pricing/config').set({ ...pricing, default: { baseReward: base, contractBonus: bonus } })
     .then(() => showToast('Збережено ✓', 'success'));
 });
 
@@ -569,19 +579,19 @@ document.getElementById('btn-add-override').addEventListener('click', () => {
   const bonus = parseInt(document.getElementById('override-bonus').value) || 100;
   if (!tid) { showToast('Оберіть вчителя', 'error'); return; }
   const newPricing = { ...pricing, overrides: { ...pricing.overrides, [tid]: { baseReward: base, contractBonus: bonus } } };
-  db.collection('pricing').doc('config').set(newPricing)
+  db.ref('pricing/config').set(newPricing)
     .then(() => { showToast('Додано ✓', 'success'); document.getElementById('override-teacher-select').value = ''; });
 });
 
 function updateOverride(tid, field, value) {
   const newPricing = { ...pricing, overrides: { ...pricing.overrides, [tid]: { ...pricing.overrides[tid], [field]: parseInt(value) || 0 } } };
-  db.collection('pricing').doc('config').set(newPricing);
+  db.ref('pricing/config').set(newPricing);
 }
 
 function removeOverride(tid) {
   const newOverrides = { ...pricing.overrides };
   delete newOverrides[tid];
-  db.collection('pricing').doc('config').set({ ...pricing, overrides: newOverrides })
+  db.ref('pricing/config').set({ ...pricing, overrides: newOverrides })
     .then(() => showToast('Видалено', 'info'));
 }
 
@@ -647,10 +657,10 @@ document.getElementById('teacher-save-btn').addEventListener('click', async () =
   if (!name) { showToast("Ім'я обов'язкове", 'error'); return; }
 
   if (id) {
-    await db.collection('people').doc(id).update({ name });
+    await db.ref('people/' + id).update({ name });
     showToast('Оновлено ✓', 'success');
   } else {
-    await db.collection('people').add({ name });
+    await db.ref('people').push({ name });
     showToast('Додано ✓', 'success');
   }
   closeModal('teacher-modal');
@@ -664,7 +674,7 @@ function deleteTeacher(id, name) {
     ? `"${name}" призначений до подій. Все одно видалити?`
     : `Видалити вчителя "${name}"?`;
   showConfirm(msg, async () => {
-    await db.collection('people').doc(id).delete();
+    await db.ref('people/' + id).remove();
     showToast('Видалено', 'info');
   });
 }
