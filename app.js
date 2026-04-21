@@ -189,7 +189,7 @@ function navigateTo(page) {
   if (page === 'pricing')        renderPricing();
   if (page === 'teachers')       renderTeachers();
   if (page === 'confirmed-list') renderConfirmedList();
-  if (page === 'schedule')       renderBlockedTimes(); //
+  if (page === 'schedule')       renderBlockedTimes(); 
   if (page === 'calendar')       setTimeout(() => calendarInstance && calendarInstance.render(), 50);
 }
 
@@ -322,7 +322,7 @@ function initCalendar() {
   });
 
   calendarInstance.render();
-  refreshCalendar(); // Фікс Race Condition
+  refreshCalendar(); 
 }
 
 function refreshCalendar() {
@@ -356,7 +356,7 @@ function refreshCalendar() {
       endRecur: b.until ? b.until : null,
       display: 'background',
       color: '#fee2e2',
-      overlap: false // Забороняє накладання
+      overlap: false 
     });
   });
 }
@@ -473,7 +473,7 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
     data.createdAt = new Date().toISOString();
     const newRef = db.ref('events').push();
     await newRef.set(data);
-    sendTelegram('СТВОРЕНО', { ...data, id: newRef.key }); //
+    sendTelegram('СТВОРЕНО', { ...data, id: newRef.key }); 
     showToast('Подію створено', 'success');
   } else {
     await db.ref('events/' + id).update(data);
