@@ -772,8 +772,17 @@ function showToast(message, type = 'info') {
 }
 
 async function sendTelegram(status, ev) {
-  if (!TELEGRAM.BOT_TOKEN || TELEGRAM.BOT_TOKEN === 'YOUR_BOT_TOKEN') return;
+  // --- ДОДАЙТЕ ЦІ ДВА РЯДКИ ДЛЯ ПЕРЕВІРКИ ---
+  console.log('1. Функція sendTelegram ЗАПУСТИЛАСЯ! Статус:', status);
+  console.log('2. Дані події:', ev);
+  // -------------------------------------------
 
+  if (!TELEGRAM.BOT_TOKEN || TELEGRAM.BOT_TOKEN === 'YOUR_BOT_TOKEN') {
+    console.warn('Увага: Токен бота відсутній або він стандартний!');
+    return;
+  }
+
+  // ... далі йде ваш код (escapeHTML і т.д.) ...
   // 1. Функція для безпечного тексту (щоб Telegram не ламався від символів <, >, &)
   const escapeHTML = (str) => {
     if (!str) return '';
