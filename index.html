@@ -18,7 +18,6 @@
 
 <div id="app">
 
-  <!-- SIDEBAR -->
   <aside id="sidebar">
     <div class="sidebar-logo">
       <div class="sidebar-logo-icon">
@@ -119,10 +118,8 @@
 
   <div id="sidebar-overlay"></div>
 
-  <!-- MAIN -->
   <main id="main">
 
-    <!-- CALENDAR PAGE -->
     <div class="page active" id="calendar-page">
       <div class="page-header">
         <div class="page-header-left">
@@ -139,7 +136,6 @@
       </div>
     </div>
 
-    <!-- CONFIRMED LIST PAGE -->
     <div class="page" id="confirmed-list-page">
       <div class="page-header">
         <div class="page-header-left">
@@ -174,7 +170,6 @@
       </div>
     </div>
 
-    <!-- COMPLETED PAGE -->
     <div class="page" id="completed-page">
       <div class="page-header">
         <div class="page-header-left">
@@ -218,14 +213,21 @@
       </div>
     </div>
 
-    <!-- STATS PAGE -->
     <div class="page" id="stats-page">
       <div class="page-header">
         <div class="page-header-left">
           <button class="hamburger-btn">☰</button>
           <h2>Статистика</h2>
         </div>
-        <input type="month" id="stats-month" class="form-control" style="width:auto">
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <select id="stats-teacher" class="form-control" style="width:auto">
+            <option value="">Всі вчителі</option>
+          </select>
+          <input type="month" id="stats-month" class="form-control" style="width:auto">
+          <button class="btn btn-ghost btn-sm" onclick="printStats()" style="color: var(--text); border-color: var(--border2);">
+            🖨 Друк
+          </button>
+        </div>
       </div>
       <div class="page-content">
         <div class="table-wrap mobile-cards">
@@ -234,13 +236,13 @@
               <tr><th>Вчитель</th><th>Подій</th><th>Договорів</th><th>Заробіток</th></tr>
             </thead>
             <tbody id="stats-tbody"></tbody>
-            <tfoot id="stats-tfoot"></tfoot>
+            <tfoot id="stats-tfoot" style="background: var(--bg3); border-top: 2px solid var(--border);">
+              </tfoot>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- PRICING PAGE -->
     <div class="page" id="pricing-page">
       <div class="page-header">
         <div class="page-header-left">
@@ -286,7 +288,6 @@
       </div>
     </div>
 
-    <!-- TEACHERS PAGE -->
     <div class="page" id="teachers-page">
       <div class="page-header">
         <div class="page-header-left">
@@ -306,7 +307,6 @@
   </main>
 </div>
 
-<!-- ── LOGIN MODAL ── -->
 <div class="modal-overlay" id="name-modal">
   <div class="modal login-modal-wrap">
     <div class="login-brand">
@@ -324,7 +324,6 @@
       </div>
     </div>
 
-    <!-- Step 1: email input -->
     <div id="login-step-email">
       <p class="login-hint">Введіть корпоративну пошту для входу. Ваш профіль буде визначено автоматично.</p>
       <div class="form-group">
@@ -345,7 +344,6 @@
       </button>
     </div>
 
-    <!-- Step 2: confirmed -->
     <div id="login-step-confirm" style="display:none">
       <div class="login-email-display">
         <div class="login-email-dot"></div>
@@ -358,11 +356,9 @@
         <button class="btn btn-primary" style="flex:2" id="login-confirm-btn">Продовжити</button>
       </div>
     </div>
-
   </div>
 </div>
 
-<!-- ── EVENT MODAL ── -->
 <div class="modal-overlay" id="event-modal">
   <div class="modal">
     <div class="modal-header">
@@ -420,7 +416,6 @@
   </div>
 </div>
 
-<!-- ── TEACHER MODAL ── -->
 <div class="modal-overlay" id="teacher-modal">
   <div class="modal" style="max-width:380px">
     <div class="modal-header">
@@ -441,7 +436,6 @@
   </div>
 </div>
 
-<!-- ── CONFIRM DIALOG ── -->
 <div class="modal-overlay" id="confirm-dialog">
   <div class="modal" style="max-width:380px">
     <div class="modal-header">
