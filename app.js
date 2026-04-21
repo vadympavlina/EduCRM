@@ -457,7 +457,7 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
     data.createdAt = new Date().toISOString();
     const newRef = db.ref('events').push();
     await newRef.set(data);
-    ('СТВОРЕНО', { ...data, id: newRef.key });
+    sendTelegram('СТВОРЕНО', { ...data, id: newRef.key });
     showToast('Подію створено', 'success');
   } else {
     await db.ref('events/' + id).update(data);
@@ -470,7 +470,7 @@ async function confirmEvent(id) {
   const ev = events[id];
   if (!ev) return;
   await db.ref('events/' + id).update({ status: 'confirmed', confirmedBy: currentUser });
-  ('ПІДТВЕРДЖЕНО', ev);
+  sendTelegram('ПІДТВЕРДЖЕНО', ev);
   showToast('Подію підтверджено', 'success');
   closeModal('event-modal');
 }
@@ -479,7 +479,7 @@ function cancelEvent(id) {
   showConfirm('Скасувати цю подію?', async () => {
     const ev = events[id];
     await db.ref('events/' + id).update({ status: 'cancelled', cancelledBy: currentUser });
-    ('СКАСОВАНО', ev);
+    sendTelegram('СКАСОВАНО', ev);
     showToast('Подію скасовано', 'info');
     closeModal('event-modal');
   });
