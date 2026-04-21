@@ -348,8 +348,11 @@ function parseDateTime(date, time) {
 
 // ── EVENT MODAL ──────────────────────────────────────────────
 function openCreateModal(startStr, endStr) {
-  const form = document.getElementById('event-form');
-  form.reset();
+  // 1. Видаляємо form.reset() і очищаємо поля вручну:
+  document.getElementById('event-title').value = '';
+  document.getElementById('event-description').value = '';
+  document.getElementById('event-phone').value = '';
+  
   document.getElementById('event-modal-title').textContent = 'Нова подія';
   document.getElementById('event-id').value = '';
 
