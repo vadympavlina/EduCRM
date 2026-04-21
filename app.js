@@ -173,6 +173,7 @@ function initCalendar() {
         ? 'timeGridDay,listWeek'
         : 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
     },
+    firstDay: 1,
     height:                '100%',
     allDaySlot:            false,
     slotMinTime:           '07:00:00',
