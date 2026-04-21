@@ -771,20 +771,34 @@ function showToast(message, type = 'info') {
   container.appendChild(toast); setTimeout(() => toast.remove(), 3200);
 }
 
-// Зробили функцію асинхронною (додали async)
 async function sendTelegram(status, ev) {
   if (!TELEGRAM.BOT_TOKEN || TELEGRAM.BOT_TOKEN === 'YOUR_BOT_TOKEN') return;
 
+  // 1. Функція для безпечного тексту (щоб Telegram не ламався від символів <, >, &)
+  const escapeHTML = (str) => {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  };
+
   const tName = teacherName(ev.assignedPersonId) || 'Не призначено';
+
+  // 2. Очищаємо всі змінні від небезпечних символів
+  const safeTitle = escapeHTML(ev.title);
+  const safeTeacher = escapeHTML(tName);
+  const safeUser = escapeHTML(currentUser);
 
   let statusIcon = 'ℹ️';
   if (status === 'СТВОРЕНО') statusIcon = '🆕';
   if (status === 'ПІДТВЕРДЖЕНО') statusIcon = '✅';
   if (status === 'СКАСОВАНО') statusIcon = '❌';
 
-  const text = `${statusIcon} <b>${status}</b>\n\n📌 <b>Подія:</b> ${ev.title}\n🗓 <b>Час:</b> ${ev.date} (з ${ev.startTime} до ${ev.endTime})\n🧑‍🏫 <b>Вчитель:</b> ${tName}\n\n👤 <i>Менеджер: ${currentUser}</i>`;
+  // Формуємо текст з безпечними змінними
+  const text = `${statusIcon} <b>${status}</b>\n\n📌 <b>Подія:</b> ${safeTitle}\n🗓 <b>Час:</b> ${ev.date} (з ${ev.startTime} до ${ev.endTime})\n🧑‍🏫 <b>Вчитель:</b> ${safeTeacher}\n\n👤 <i>Менеджер: ${safeUser}</i>`;
 
-  // 1. ВИДАЛЯЄМО СТАРЕ ПОВІДОМЛЕННЯ (якщо воно існує)
+  // 3. ВИДАЛЯЄМО СТАРЕ ПОВІДОМЛЕННЯ (якщо воно є)
   if (ev.telegramMessageId) {
     try {
       await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/deleteMessage`, {
@@ -796,11 +810,11 @@ async function sendTelegram(status, ev) {
         })
       });
     } catch (err) {
-      console.error('Не вдалося видалити старе повідомлення:', err);
+      console.log('Помилка видалення старого повідомлення (можливо воно вже видалене).');
     }
   }
 
-  // 2. НАДСИЛАЄМО НОВЕ ПОВІДОМЛЕННЯ
+  // 4. НАДСИЛАЄМО НОВЕ ПОВІДОМЛЕННЯ
   try {
     const response = await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/sendMessage`, {
       method: 'POST',
@@ -814,16 +828,19 @@ async function sendTelegram(status, ev) {
     
     const data = await response.json();
 
-    // 3. ЗБЕРІГАЄМО НОВИЙ MESSAGE_ID В БАЗУ ДАНИХ (щоб мати змогу видалити його наступного разу)
+    // 5. ЗБЕРІГАЄМО НОВИЙ MESSAGE_ID
     if (data.ok && data.result && data.result.message_id) {
-      await db.ref('events/' + ev.id).update({
-        telegramMessageId: data.result.message_id
-      });
+      if (ev.id) {
+        await db.ref('events/' + ev.id).update({
+          telegramMessageId: data.result.message_id
+        });
+      }
     } else {
-      console.error('Помилка Telegram при надсиланні:', data);
+      // Виводимо точну помилку Telegram у консоль, щоб знати, що не так
+      console.error('Помилка Telegram:', data.description);
     }
   } catch (err) {
-    console.error('Помилка мережі:', err);
+    console.error('Помилка мережі при відправці в Telegram:', err);
   }
 }
 
