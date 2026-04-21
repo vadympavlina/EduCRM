@@ -4,210 +4,461 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>EduCRM — Управління подіями</title>
+  
   <link rel="stylesheet" href="styles.css">
+  
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f6ef7'/><stop offset='1' stop-color='%233b5be8'/></linearGradient></defs><rect width='32' height='32' rx='9' fill='url(%23g)'/><rect x='7' y='9' width='11' height='2.5' rx='1.25' fill='white'/><rect x='7' y='14.75' width='18' height='2.5' rx='1.25' fill='white'/><rect x='7' y='20.5' width='8' height='2.5' rx='1.25' fill='white'/></svg>">
+
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <script src="firebase.js"></script>
 </head>
 <body>
 
-<div id="sidebar-overlay"></div>
+<div id="app">
 
-<aside id="sidebar">
-  <div class="sidebar-header">
-    <div class="logo">
-      <div class="logo-icon"></div>
-      <span class="logo-text">EduCRM</span>
-    </div>
-  </div>
-
-  <nav class="nav-menu">
-    <div class="nav-item active" data-page="calendar">
-      <span class="nav-icon">📅</span>
-      <span>Календар</span>
-    </div>
-    <div class="nav-item" data-page="confirmed-list">
-      <span class="nav-icon">✅</span>
-      <span>Підтверджені</span>
-    </div>
-    <div class="nav-item" data-page="teachers">
-      <span class="nav-icon">👥</span>
-      <span>Вчителі</span>
-    </div>
-    <div class="nav-item" data-page="pricing">
-      <span class="nav-icon">💰</span>
-      <span>Виплати</span>
-    </div>
-
-    <div class="nav-section-label">Налаштування</div>
-    <div class="nav-item" data-page="schedule">
-      <span class="nav-icon">🚫</span>
-      <span>Графік роботи</span>
-    </div>
-  </nav>
-
-  <div class="sidebar-footer" id="user-info">
-    </div>
-</aside>
-
-<main id="main">
-  <div class="page active" id="calendar-page">
-    <div class="page-header">
-      <div class="page-header-left">
-        <button class="hamburger-btn">☰</button>
-        <h2>Розклад занять</h2>
+  <aside id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
       </div>
-      <div class="page-header-right">
-        <button class="btn btn-primary" onclick="openCreateModal()">+ Додати подію</button>
+      <div class="sidebar-logo-text">
+        <h1>EduCRM</h1>
+        <p>Event Management</p>
       </div>
     </div>
-    <div class="calendar-container">
-      <div id="calendar"></div>
-    </div>
-  </div>
 
-  <div class="page" id="confirmed-list-page">
-    <div class="page-header">
-      <div class="page-header-left">
-        <button class="hamburger-btn">☰</button>
-        <h2>Підтверджені заняття</h2>
+    <div class="sidebar-user">
+      <div class="user-avatar">
+        <span id="user-avatar-letter">?</span>
       </div>
-      <div class="page-header-right">
-        <input type="month" id="stats-month" class="form-control" style="width:160px">
+      <div class="user-info">
+        <div class="user-name"  id="user-name-display">—</div>
+        <div class="user-email" id="user-email-display"></div>
       </div>
+      <button class="btn-change-name" id="btn-change-name" title="Змінити акаунт">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
     </div>
-    <div class="stats-strip" id="stats-container">
-      </div>
-    <div class="table-wrap mobile-cards">
-      <table id="confirmed-table">
-        <thead>
-          <tr>
-            <th>Дата</th>
-            <th>Подія</th>
-            <th>Вчитель</th>
-            <th>Статус</th>
-            <th>Виплата</th>
-          </tr>
-        </thead>
-        <tbody id="confirmed-tbody"></tbody>
-      </table>
-    </div>
-  </div>
 
-  <div class="page" id="teachers-page">
-    <div class="page-header">
-      <div class="page-header-left">
-        <button class="hamburger-btn">☰</button>
-        <h2>Викладацький склад</h2>
+    <nav>
+      <div class="nav-section-label">Головна</div>
+      <div class="nav-item active" data-page="calendar">
+        <span class="nav-icon">
+          <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </span>
+        <span>Календар</span>
       </div>
-      <div class="page-header-right">
-        <button class="btn btn-primary" onclick="openTeacherModal()">+ Додати вчителя</button>
+      <div class="nav-item" data-page="confirmed-list">
+        <span class="nav-icon">
+          <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M9 11l3 3L22 4"/>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+        </span>
+        <span>Підтверджені</span>
       </div>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Ім'я</th><th style="text-align:right">Дії</th></tr>
-        </thead>
-        <tbody id="teachers-tbody"></tbody>
-      </table>
-    </div>
-  </div>
+      <div class="nav-item" data-page="completed">
+        <span class="nav-icon">
+          <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </span>
+        <span>Завершені</span>
+      </div>
+      <div class="nav-item" data-page="stats">
+        <span class="nav-icon">
+          <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+        </span>
+        <span>Статистика</span>
+      </div>
+      <div class="nav-section-label">Налаштування</div>
+      <div class="nav-item" data-page="pricing">
+        <span class="nav-icon">
+          <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </span>
+        <span>Ціноутворення</span>
+      </div>
+      <div class="nav-item" data-page="teachers">
+        <span class="nav-icon">
+          <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </span>
+        <span>Вчителі</span>
+      </div>
+    </nav>
+  </aside>
 
-  <div class="page" id="pricing-page">
-    <div class="page-header">
-      <div class="page-header-left">
-        <button class="hamburger-btn">☰</button>
-        <h2>Налаштування виплат</h2>
-      </div>
-    </div>
-    <div class="pricing-section">
-      <div class="pricing-section-title">Стандартні ставки (грн)</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Базова за урок</label>
-          <input type="number" class="form-control pricing-input" id="base-reward" onchange="updateBasePricing()">
+  <div id="sidebar-overlay"></div>
+
+  <main id="main">
+
+    <div class="page active" id="calendar-page">
+      <div class="page-header">
+        <div class="page-header-left">
+          <button class="hamburger-btn" id="hamburger">☰</button>
+          <h2>Календар</h2>
         </div>
-        <div class="form-group">
-          <label class="form-label">Бонус за контракт</label>
-          <input type="number" class="form-control pricing-input" id="contract-bonus" onchange="updateBasePricing()">
-        </div>
+        <button class="btn btn-primary btn-sm" onclick="openCreateModal()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Нова подія
+        </button>
+      </div>
+      <div class="page-content">
+        <div id="calendar"></div>
       </div>
     </div>
-    <div class="pricing-section" style="margin-top:32px">
-      <div class="pricing-section-title">Індивідуальні надбавки вчителів</div>
-      <div id="teacher-overrides-list"></div>
-    </div>
-  </div>
 
-  <div class="page" id="schedule-page">
-    <div class="page-header">
-      <div class="page-header-left">
-        <button class="hamburger-btn">☰</button>
-        <h2>Графік та блокування</h2>
+    <div class="page" id="confirmed-list-page">
+      <div class="page-header">
+        <div class="page-header-left">
+          <button class="hamburger-btn">☰</button>
+          <h2>Підтверджені події</h2>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input type="month" id="confirmed-month-filter" class="form-control" style="width:auto">
+        </div>
       </div>
-    </div>
-    <div class="page-content">
-      <div class="pricing-section">
-        <div class="pricing-section-title">Додати заборонений час</div>
-        
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Назва (напр. Обід)</label>
-            <input type="text" class="form-control" id="block-title">
+      <div class="page-content">
+        <div id="confirmed-list-empty" class="empty-state" style="display:none">
+          <div class="empty-state-icon">
+            <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
           </div>
-          <div class="form-group">
-            <label class="form-label">Діє до (необов'язково)</label>
-            <input type="date" class="form-control" id="block-until">
-          </div>
+          <div class="empty-state-title">Немає підтверджених подій</div>
+          <div class="empty-state-text">Спробуйте обрати інший місяць</div>
         </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Початок *</label>
-            <input type="time" class="form-control" id="block-start">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Кінець *</label>
-            <input type="time" class="form-control" id="block-end">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Дні тижня *</label>
-          <div class="days-selector">
-            <label class="day-label"><input type="checkbox" class="day-checkbox" value="1"><span class="day-pill">Пн</span></label>
-            <label class="day-label"><input type="checkbox" class="day-checkbox" value="2"><span class="day-pill">Вт</span></label>
-            <label class="day-label"><input type="checkbox" class="day-checkbox" value="3"><span class="day-pill">Ср</span></label>
-            <label class="day-label"><input type="checkbox" class="day-checkbox" value="4"><span class="day-pill">Чт</span></label>
-            <label class="day-label"><input type="checkbox" class="day-checkbox" value="5"><span class="day-pill">Пт</span></label>
-            <label class="day-label"><input type="checkbox" class="day-checkbox" value="6"><span class="day-pill">Сб</span></label>
-            <label class="day-label"><input type="checkbox" class="day-checkbox" value="0"><span class="day-pill">Нд</span></label>
-          </div>
-        </div>
-
-        <button class="btn btn-danger btn-sm" onclick="saveBlockedTime()">Заблокувати час</button>
-      </div>
-
-      <div class="pricing-section" style="margin-top: 32px;">
-        <div class="pricing-section-title">Активні блокування</div>
         <div class="table-wrap mobile-cards">
           <table>
             <thead>
-              <tr><th>Назва</th><th>Дні</th><th>Час</th><th>Діє до</th><th>Дії</th></tr>
+              <tr>
+                <th>Назва</th>
+                <th>Дата та час</th>
+                <th>Вчитель</th>
+                <th>Дії</th>
+              </tr>
             </thead>
-            <tbody id="blocked-times-tbody"></tbody>
+            <tbody id="confirmed-list-tbody"></tbody>
           </table>
         </div>
       </div>
     </div>
+
+    <div class="page" id="completed-page">
+      <div class="page-header">
+        <div class="page-header-left">
+          <button class="hamburger-btn">☰</button>
+          <h2>Завершені події</h2>
+        </div>
+        <div class="stats-strip">
+          <div class="mini-stat">
+            <div class="mini-stat-label">Подій</div>
+            <div class="mini-stat-value" id="completed-total">0</div>
+          </div>
+          <div class="mini-stat">
+            <div class="mini-stat-label">Заробіток</div>
+            <div class="mini-stat-value" id="completed-earnings" style="color:var(--green)">₴0</div>
+          </div>
+          <div class="mini-stat">
+            <div class="mini-stat-label">Договори</div>
+            <div class="mini-stat-value" id="completed-contracts" style="color:var(--blue)">0</div>
+          </div>
+        </div>
+      </div>
+      <div class="page-content">
+        <div class="empty-state" id="completed-empty">
+          <div class="empty-state-icon">
+            <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div class="empty-state-title">Завершених подій ще немає</div>
+          <div class="empty-state-text">Вони з'являться тут після завершення</div>
+        </div>
+        <div id="completed-table-wrap" class="table-wrap mobile-cards" style="display:none">
+          <table>
+            <thead>
+              <tr>
+                <th>Назва</th><th>Дата</th><th>Час</th><th>Вчитель</th>
+                <th>Телефон</th><th>Договір</th><th>Заробіток</th><th>Завершив</th>
+              </tr>
+            </thead>
+            <tbody id="completed-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="stats-page">
+      <div class="page-header">
+        <div class="page-header-left">
+          <button class="hamburger-btn">☰</button>
+          <h2>Статистика</h2>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <select id="stats-teacher" class="form-control" style="width:auto">
+            <option value="">Всі вчителі</option>
+          </select>
+          <input type="month" id="stats-month" class="form-control" style="width:auto">
+          <button class="btn btn-ghost btn-sm" onclick="printStats()" style="color: var(--text); border-color: var(--border2);">
+            🖨 Друк
+          </button>
+        </div>
+      </div>
+      <div class="page-content">
+        <div class="table-wrap mobile-cards">
+          <table>
+            <thead>
+              <tr><th>Вчитель</th><th>Подій</th><th>Договорів</th><th>Заробіток</th></tr>
+            </thead>
+            <tbody id="stats-tbody"></tbody>
+            <tfoot id="stats-tfoot" style="background: var(--bg3); border-top: 2px solid var(--border);">
+              </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="pricing-page">
+      <div class="page-header">
+        <div class="page-header-left">
+          <button class="hamburger-btn">☰</button>
+          <h2>Ціноутворення</h2>
+        </div>
+      </div>
+      <div class="page-content">
+        <div class="pricing-section">
+          <div class="pricing-section-title">Стандартні налаштування</div>
+          <div class="pricing-row">
+            <span class="pricing-teacher-name">Всі вчителі</span>
+            <div class="pricing-input-group">
+              <label>Базова ₴</label>
+              <input class="pricing-input" type="number" min="0" id="pricing-default-base" value="50">
+            </div>
+            <div class="pricing-input-group">
+              <label>Бонус за договір ₴</label>
+              <input class="pricing-input" type="number" min="0" id="pricing-default-bonus" value="100">
+            </div>
+            <button class="btn btn-primary btn-sm" id="pricing-save-default">Зберегти</button>
+          </div>
+        </div>
+
+        <div class="pricing-section" style="margin-top: 32px;">
+          <div class="pricing-section-title">Індивідуальні налаштування</div>
+          <div id="pricing-overrides"></div>
+          <div class="pricing-row" style="border:1px dashed var(--border2);background:transparent;margin-top:12px">
+            <select class="form-control" id="override-teacher-select" style="width:auto;flex:1">
+              <option value="">— Додати для вчителя —</option>
+            </select>
+            <div class="pricing-input-group">
+              <label>Базова ₴</label>
+              <input class="pricing-input" type="number" min="0" id="override-base" value="50">
+            </div>
+            <div class="pricing-input-group">
+              <label>Бонус ₴</label>
+              <input class="pricing-input" type="number" min="0" id="override-bonus" value="100">
+            </div>
+            <button class="btn btn-success btn-sm" id="btn-add-override">+ Додати</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="teachers-page">
+      <div class="page-header">
+        <div class="page-header-left">
+          <button class="hamburger-btn">☰</button>
+          <h2>Вчителі</h2>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btn-add-teacher">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Додати
+        </button>
+      </div>
+      <div class="page-content">
+        <div class="teacher-list" id="teachers-list"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="modal-overlay" id="name-modal">
+  <div class="modal login-modal-wrap">
+    <div class="login-brand">
+      <div class="login-brand-icon">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <div>
+        <h2>EduCRM</h2>
+        <p>Event Management Platform</p>
+      </div>
+    </div>
+
+    <div id="login-step-email">
+      <p class="login-hint">Введіть корпоративну пошту для входу. Ваш профіль буде визначено автоматично.</p>
+      <div class="form-group">
+        <label class="form-label">Електронна пошта</label>
+        <input type="email" class="form-control" id="name-input" placeholder="your@email.com" autocomplete="email">
+      </div>
+      <div class="login-error" id="login-error">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span id="login-error-text">Пошту не знайдено</span>
+      </div>
+      <div class="login-loading" id="login-loading">
+        <div class="spinner"></div>
+        <span>Перевірка…</span>
+      </div>
+      <button class="btn btn-primary" style="width:100%; margin-top:6px" id="name-save-btn">
+        Увійти
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+    </div>
+
+    <div id="login-step-confirm" style="display:none">
+      <div class="login-email-display">
+        <div class="login-email-dot"></div>
+        <div>Вхід як <strong id="login-confirmed-name"></strong></div>
+      </div>
+      <p class="login-hint" style="margin-bottom:0">Профіль знайдено. Натисніть для продовження.</p>
+      <div class="login-divider"></div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-ghost" style="flex:1" id="login-back-btn">← Назад</button>
+        <button class="btn btn-primary" style="flex:2" id="login-confirm-btn">Продовжити</button>
+      </div>
+    </div>
   </div>
-</main>
+</div>
+
+<div class="modal-overlay" id="event-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="event-modal-title">Нова подія</span>
+      <button class="modal-close" onclick="closeModal('event-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="event-id">
+
+      <div id="event-status-section"></div>
+
+      <div class="form-group">
+        <label class="form-label">Назва *</label>
+        <input type="text" class="form-control" id="event-title" placeholder="напр. Урок математики — Іван">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Опис</label>
+        <textarea class="form-control" id="event-description" placeholder="Нотатки, деталі…"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Телефон</label>
+        <input type="tel" class="form-control" id="event-phone" placeholder="+380 XX XXX XX XX">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Дата *</label>
+          <input type="date" class="form-control" id="event-date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Вчитель</label>
+          <select class="form-control" id="event-teacher"></select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Початок *</label>
+          <input type="time" class="form-control" id="event-start">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Кінець *</label>
+          <input type="time" class="form-control" id="event-end">
+        </div>
+      </div>
+
+      <div id="event-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="event-cancel-btn">Скасувати</button>
+      <button class="btn btn-primary" id="event-save-btn">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="teacher-modal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <span class="modal-title" id="teacher-modal-title">Додати вчителя</span>
+      <button class="modal-close" onclick="closeModal('teacher-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="teacher-id">
+      <div class="form-group">
+        <label class="form-label">Повне ім'я *</label>
+        <input type="text" class="form-control" id="teacher-name-input" placeholder="напр. Анна Коваль">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="teacher-cancel-btn">Скасувати</button>
+      <button class="btn btn-primary" id="teacher-save-btn">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirm-dialog">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <span class="modal-title">Підтвердження</span>
+    </div>
+    <div class="modal-body">
+      <p id="confirm-message" style="color:var(--text2);line-height:1.6;font-size:14px"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="confirm-cancel">Скасувати</button>
+      <button class="btn btn-danger" id="confirm-ok">Підтвердити</button>
+    </div>
+  </div>
+</div>
 
 <div id="toast-container"></div>
 
-<script src="firebase.js"></script>
 <script src="app.js"></script>
+<script>
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+</script>
+
 </body>
 </html>
