@@ -597,12 +597,12 @@ function renderCompleted() {
         <td>${ev.title}</td><td>${ev.date}</td><td>${ev.startTime}–${ev.endTime}</td>
         <td>${teacherName(ev.assignedPersonId)}</td><td>${ev.phone || '—'}</td>
         <td><input type="checkbox" ${ev.contractSigned ? 'checked' : ''} onchange="toggleContract('${ev.id}', this.checked)"></td>
-        <td class="earnings-value">$${earnings}</td><td>${ev.completedBy || '—'}</td>`;
+        <td class="earnings-value">₴${earnings}</td><td>${ev.completedBy || '—'}</td>`;
       tbody.appendChild(tr);
     });
   }
   document.getElementById('completed-total').textContent = list.length;
-  document.getElementById('completed-earnings').textContent = '$' + totalEarnings;
+  document.getElementById('completed-earnings').textContent = '₴' + totalEarnings;
   document.getElementById('completed-contracts').textContent = totalContracts;
 }
 
@@ -637,9 +637,6 @@ function renderStats() {
   });
 
   const byTeacher = {};
-  let totalCount = 0;
-  let totalContracts = 0;
-  let totalEarnings = 0;
 
   completed.forEach(ev => {
     const tid = ev.assignedPersonId || '__none__';
@@ -647,16 +644,13 @@ function renderStats() {
     const p = getPricing(ev.assignedPersonId);
     
     byTeacher[tid].count++;
-    totalCount++;
 
     const earnings = ev.contractSigned ? p.baseReward + p.contractBonus : p.baseReward;
     if (ev.contractSigned) {
       byTeacher[tid].contracts++;
-      totalContracts++;
     }
     
     byTeacher[tid].earnings += earnings;
-    totalEarnings += earnings;
   });
 
   const tbody = document.getElementById('stats-tbody');
@@ -664,24 +658,14 @@ function renderStats() {
   Object.entries(byTeacher).forEach(([tid, data]) => {
     const name = tid === '__none__' ? 'Не призначено' : (teachers[tid]?.name || 'Невідомо');
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${name}</td><td>${data.count}</td><td>${data.contracts}</td><td class="earnings-value">$${data.earnings}</td>`;
+    tr.innerHTML = `<td>${name}</td><td>${data.count}</td><td>${data.contracts}</td><td class="earnings-value">₴${data.earnings}</td>`;
     tbody.appendChild(tr);
   });
 
-  // Рендеримо футер з підсумками
+  // Очищаємо футер, щоб рядок "Разом" більше не з'являвся
   const tfoot = document.getElementById('stats-tfoot');
   if (tfoot) {
-    if (Object.keys(byTeacher).length > 0) {
-      tfoot.innerHTML = `
-        <tr>
-          <td style="padding: 12px 16px;"><strong>Разом</strong></td>
-          <td style="padding: 12px 16px;"><strong>${totalCount}</strong></td>
-          <td style="padding: 12px 16px;"><strong>${totalContracts}</strong></td>
-          <td class="earnings-value" style="padding: 12px 16px; font-size: 15px;"><strong>$${totalEarnings}</strong></td>
-        </tr>`;
-    } else {
-      tfoot.innerHTML = '';
-    }
+    tfoot.innerHTML = '';
   }
 }
 
@@ -741,8 +725,8 @@ function renderPricing() {
     const teacher = teachers[tid]; if (!teacher) return;
     const row = document.createElement('div'); row.className = 'pricing-row';
     row.innerHTML = `<span class="pricing-teacher-name">${teacher.name}</span>
-      <div class="pricing-input-group"><label>Базова $</label><input class="pricing-input" type="number" value="${vals.baseReward}" onchange="updateOverride('${tid}','baseReward',this.value)"></div>
-      <div class="pricing-input-group"><label>Бонус $</label><input class="pricing-input" type="number" value="${vals.contractBonus}" onchange="updateOverride('${tid}','contractBonus',this.value)"></div>
+      <div class="pricing-input-group"><label>Базова ₴</label><input class="pricing-input" type="number" value="${vals.baseReward}" onchange="updateOverride('${tid}','baseReward',this.value)"></div>
+      <div class="pricing-input-group"><label>Бонус ₴</label><input class="pricing-input" type="number" value="${vals.contractBonus}" onchange="updateOverride('${tid}','contractBonus',this.value)"></div>
       <button class="btn btn-danger btn-sm" onclick="removeOverride('${tid}')">Видалити</button>`;
     container.appendChild(row);
   });
