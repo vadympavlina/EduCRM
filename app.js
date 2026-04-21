@@ -58,7 +58,7 @@ function showNameModal(required = false) {
 }
 
 function saveName(name, required) {
-  if (!name) { showToast('Введи своє ім\'я', 'error'); return; }
+  if (!name) { showToast('Введіть своє ім\'я', 'error'); return; }
   currentUser = name;
   localStorage.setItem('crm_user_name', name);
   document.getElementById('name-modal').classList.remove('open');
@@ -314,15 +314,15 @@ function openEventModal(eventId) {
   actions.innerHTML = '';
 
   if (ev.status === 'pending') {
-    actions.appendChild(makeBtn('✓ Підтвердити', 'btn btn-success btn-sm', () => confirmEvent(ev.id)));
+    actions.appendChild(makeBtn('Підтвердити', 'btn btn-success btn-sm', () => confirmEvent(ev.id)));
   }
   if (ev.status === 'pending' || ev.status === 'confirmed') {
-    actions.appendChild(makeBtn('✕ Скасувати', 'btn btn-danger btn-sm', () => cancelEvent(ev.id)));
+    actions.appendChild(makeBtn('Скасувати', 'btn btn-danger btn-sm', () => cancelEvent(ev.id)));
   }
   if (ev.status === 'confirmed') {
-    actions.appendChild(makeBtn('⬛ Завершити', 'btn btn-info btn-sm', () => completeEvent(ev.id)));
+    actions.appendChild(makeBtn('Завершити', 'btn btn-info btn-sm', () => completeEvent(ev.id)));
   }
-  actions.appendChild(makeBtn('🗑 Видалити', 'btn btn-ghost btn-sm', () => deleteEvent(ev.id)));
+  actions.appendChild(makeBtn('Видалити', 'btn btn-ghost btn-sm', () => deleteEvent(ev.id)));
 
   document.getElementById('event-modal').classList.add('open');
 }
@@ -378,10 +378,10 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
     await newRef.set(data);
     
     sendTelegram('СТВОРЕНО', { ...data, id: newRef.key });
-    showToast('Подію створено ✓', 'success');
+    showToast('Подію створено', 'success');
   } else {
     await db.ref('events/' + id).update(data);
-    showToast('Подію оновлено ✓', 'success');
+    showToast('Подію оновлено', 'success');
   }
   closeModal('event-modal');
 });
@@ -391,7 +391,7 @@ async function confirmEvent(id) {
   if (!ev) return;
   await db.ref('events/' + id).update({ status: 'confirmed', confirmedBy: currentUser });
   sendTelegram('ПІДТВЕРДЖЕНО', ev);
-  showToast('Подію підтверджено ✓', 'success');
+  showToast('Подію підтверджено', 'success');
   closeModal('event-modal');
 }
 
@@ -409,7 +409,7 @@ function completeEvent(id) {
   const ev = events[id];
   if (!ev) return;
   if (ev.status !== 'confirmed') {
-    showToast('⚠️ Спочатку підтвердіть подію', 'error');
+    showToast('Спочатку підтвердіть подію', 'error');
     return;
   }
   showConfirm('Позначити подію як завершену?', async () => {
@@ -419,7 +419,7 @@ function completeEvent(id) {
       completedAt:    new Date().toISOString(),
       contractSigned: false
     });
-    showToast('Подію завершено ✓', 'success');
+    showToast('Подію завершено', 'success');
     closeModal('event-modal');
   });
 }
@@ -570,7 +570,7 @@ document.getElementById('pricing-save-default').addEventListener('click', () => 
   const base  = parseInt(document.getElementById('pricing-default-base').value)  || 0;
   const bonus = parseInt(document.getElementById('pricing-default-bonus').value) || 0;
   db.ref('pricing/config').set({ ...pricing, default: { baseReward: base, contractBonus: bonus } })
-    .then(() => showToast('Збережено ✓', 'success'));
+    .then(() => showToast('Збережено', 'success'));
 });
 
 document.getElementById('btn-add-override').addEventListener('click', () => {
@@ -580,7 +580,7 @@ document.getElementById('btn-add-override').addEventListener('click', () => {
   if (!tid) { showToast('Оберіть вчителя', 'error'); return; }
   const newPricing = { ...pricing, overrides: { ...pricing.overrides, [tid]: { baseReward: base, contractBonus: bonus } } };
   db.ref('pricing/config').set(newPricing)
-    .then(() => { showToast('Додано ✓', 'success'); document.getElementById('override-teacher-select').value = ''; });
+    .then(() => { showToast('Додано', 'success'); document.getElementById('override-teacher-select').value = ''; });
 });
 
 function updateOverride(tid, field, value) {
@@ -615,7 +615,7 @@ function renderTeachers() {
 
   const arr = Object.values(teachers);
   if (arr.length === 0) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-text">Вчителів ще немає</div></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon"><svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div><div class="empty-state-text">Вчителів ще немає</div></div>`;
     return;
   }
 
@@ -626,8 +626,8 @@ function renderTeachers() {
       <div class="teacher-avatar">${t.name.charAt(0).toUpperCase()}</div>
       <div class="teacher-name">${t.name}</div>
       <div class="teacher-actions">
-        <button class="btn btn-ghost btn-sm" onclick="editTeacher('${t.id}','${escStr(t.name)}')">✏️</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteTeacher('${t.id}','${escStr(t.name)}')">🗑</button>
+        <button class="btn btn-ghost btn-sm" onclick="editTeacher('${t.id}','${escStr(t.name)}')">Ред.</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTeacher('${t.id}','${escStr(t.name)}')">Вид.</button>
       </div>`;
     list.appendChild(item);
   });
@@ -658,10 +658,10 @@ document.getElementById('teacher-save-btn').addEventListener('click', async () =
 
   if (id) {
     await db.ref('people/' + id).update({ name });
-    showToast('Оновлено ✓', 'success');
+    showToast('Оновлено', 'success');
   } else {
     await db.ref('people').push({ name });
-    showToast('Додано ✓', 'success');
+    showToast('Додано', 'success');
   }
   closeModal('teacher-modal');
 });
