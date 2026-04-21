@@ -10,7 +10,8 @@ const TELEGRAM = {
 };
 
 // ── STATE ────────────────────────────────────────────────────
-let currentUser = localStorage.getItem('crm_user_name') || '';
+let currentUser  = localStorage.getItem('crm_user_name')  || '';
+let currentEmail = localStorage.getItem('crm_user_email') || '';
 let events    = {};   // { id: eventObj }
 let teachers  = {};   // { id: teacherObj }
 let pricing   = { default: { baseReward: 50, contractBonus: 100 }, overrides: {} };
@@ -19,66 +20,145 @@ let confirmCallback  = null;
 
 // ── INIT ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  if (!currentUser) showNameModal(true);
-  else renderUserInfo();
+  if (!currentUser || !currentEmail) {
+    showLoginModal(true);
+  } else {
+    renderUserInfo();
+    startApp();
+  }
 
   setupNav();
   setupHamburger();
+});
+
+function startApp() {
   listenTeachers();
   listenPricing();
   listenEvents();
 
-  // Ініціалізація календаря після затримки
   setTimeout(initCalendar, 200);
 
   const now = new Date();
-  
-  // Встановити місяць для статистики
+
   const monthSel = document.getElementById('stats-month');
   if (monthSel) {
     monthSel.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     monthSel.addEventListener('change', renderStats);
   }
 
-  // Встановити місяць для списку підтверджених
   const monthFilter = document.getElementById('confirmed-month-filter');
   if (monthFilter) {
     monthFilter.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     monthFilter.addEventListener('change', renderConfirmedList);
   }
-});
-
-// ── USER NAME ────────────────────────────────────────────────
-function showNameModal(required = false) {
-  const overlay  = document.getElementById('name-modal');
-  const input    = document.getElementById('name-input');
-  const saveBtn  = document.getElementById('name-save-btn');
-  const closeBtn = overlay.querySelector('.modal-close');
-
-  input.value = currentUser;
-  overlay.classList.add('open');
-  setTimeout(() => input.focus(), 150);
-
-  closeBtn.style.display = required ? 'none' : '';
-  saveBtn.onclick = () => saveName(input.value.trim(), required);
-  input.onkeydown = e => { if (e.key === 'Enter') saveName(input.value.trim(), required); };
-  closeBtn.onclick = () => { if (!required) overlay.classList.remove('open'); };
 }
 
-function saveName(name, required) {
-  if (!name) { showToast('Введіть своє ім\'я', 'error'); return; }
-  currentUser = name;
-  localStorage.setItem('crm_user_name', name);
-  document.getElementById('name-modal').classList.remove('open');
-  renderUserInfo();
+// ── LOGIN (email-based) ──────────────────────────────────────
+function showLoginModal(required = false) {
+  const overlay    = document.getElementById('name-modal');
+  const input      = document.getElementById('name-input');
+  const saveBtn    = document.getElementById('name-save-btn');
+  const errorEl    = document.getElementById('login-error');
+  const loadingEl  = document.getElementById('login-loading');
+  const stepEmail  = document.getElementById('login-step-email');
+  const stepConfirm = document.getElementById('login-step-confirm');
+
+  // Reset to step 1
+  stepEmail.style.display   = '';
+  stepConfirm.style.display = 'none';
+  errorEl.style.display     = 'none';
+  loadingEl.style.display   = 'none';
+  input.value = '';
+
+  overlay.classList.add('open');
+  setTimeout(() => input.focus(), 180);
+
+  // Enter key support
+  input.onkeydown = e => { if (e.key === 'Enter') saveBtn.click(); };
+
+  saveBtn.onclick = async () => {
+    const email = input.value.trim().toLowerCase();
+    if (!email) {
+      showLoginError('Введіть пошту');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showLoginError('Невірний формат пошти');
+      return;
+    }
+
+    errorEl.style.display   = 'none';
+    loadingEl.style.display = 'flex';
+    saveBtn.disabled = true;
+
+    try {
+      // Look up user by email in Firebase `users` node
+      // Expected structure: users/<uid> = { name: "...", email: "..." }
+      const snap = await db.ref('users').orderByChild('email').equalTo(email).once('value');
+      const data = snap.val();
+
+      loadingEl.style.display = 'none';
+      saveBtn.disabled = false;
+
+      if (!data) {
+        showLoginError('Пошту не знайдено в системі');
+        return;
+      }
+
+      // Get first matching user
+      const uid  = Object.keys(data)[0];
+      const user = data[uid];
+
+      // Show confirmation step
+      stepEmail.style.display   = 'none';
+      stepConfirm.style.display = '';
+      document.getElementById('login-confirmed-name').textContent = user.name;
+
+      document.getElementById('login-confirm-btn').onclick = () => {
+        currentUser  = user.name;
+        currentEmail = email;
+        localStorage.setItem('crm_user_name',  currentUser);
+        localStorage.setItem('crm_user_email', currentEmail);
+        overlay.classList.remove('open');
+        renderUserInfo();
+        startApp();
+      };
+
+      document.getElementById('login-back-btn').onclick = () => {
+        stepEmail.style.display   = '';
+        stepConfirm.style.display = 'none';
+        input.value = email;
+        setTimeout(() => input.focus(), 100);
+      };
+
+    } catch (err) {
+      loadingEl.style.display = 'none';
+      saveBtn.disabled = false;
+      showLoginError('Помилка підключення. Спробуйте ще раз.');
+    }
+  };
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  document.getElementById('login-error-text').textContent = msg;
+  el.style.display = 'flex';
 }
 
 function renderUserInfo() {
-  document.getElementById('user-name-display').textContent = currentUser;
+  document.getElementById('user-name-display').textContent  = currentUser;
+  document.getElementById('user-email-display').textContent = currentEmail;
   document.getElementById('user-avatar-letter').textContent = currentUser.charAt(0).toUpperCase();
 }
 
-document.getElementById('btn-change-name').addEventListener('click', () => showNameModal(false));
+// Logout / switch account
+document.getElementById('btn-change-name').addEventListener('click', () => {
+  localStorage.removeItem('crm_user_name');
+  localStorage.removeItem('crm_user_email');
+  currentUser  = '';
+  currentEmail = '';
+  showLoginModal(true);
+});
 
 // ── NAVIGATION ───────────────────────────────────────────────
 function setupNav() {
