@@ -5,8 +5,8 @@
 
 // ── TELEGRAM CONFIG ──────────────────────────────────────────
 const TELEGRAM = {
-  BOT_TOKEN: 'YOUR_BOT_TOKEN',   // від @BotFather
-  CHAT_ID:   'YOUR_CHAT_ID'      // ID чату або групи
+  BOT_TOKEN: '8635267324:AAEvvbpNItZRZpnLiJptm-BvlxoSCLu8y-s',   // від @BotFather
+  CHAT_ID:   '-5261422669'      // ID чату або групи
 };
 
 // ── STATE ────────────────────────────────────────────────────
