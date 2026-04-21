@@ -457,7 +457,7 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
     data.createdAt = new Date().toISOString();
     const newRef = db.ref('events').push();
     await newRef.set(data);
-    sendTelegram('СТВОРЕНО', { ...data, id: newRef.key });
+    ('СТВОРЕНО', { ...data, id: newRef.key });
     showToast('Подію створено', 'success');
   } else {
     await db.ref('events/' + id).update(data);
@@ -470,7 +470,7 @@ async function confirmEvent(id) {
   const ev = events[id];
   if (!ev) return;
   await db.ref('events/' + id).update({ status: 'confirmed', confirmedBy: currentUser });
-  sendTelegram('ПІДТВЕРДЖЕНО', ev);
+  ('ПІДТВЕРДЖЕНО', ev);
   showToast('Подію підтверджено', 'success');
   closeModal('event-modal');
 }
@@ -479,7 +479,7 @@ function cancelEvent(id) {
   showConfirm('Скасувати цю подію?', async () => {
     const ev = events[id];
     await db.ref('events/' + id).update({ status: 'cancelled', cancelledBy: currentUser });
-    sendTelegram('СКАСОВАНО', ev);
+    ('СКАСОВАНО', ev);
     showToast('Подію скасовано', 'info');
     closeModal('event-modal');
   });
@@ -504,6 +504,21 @@ function completeEvent(id) {
 
 function deleteEvent(id) {
   showConfirm('Видалити цю подію назавжди?', async () => {
+    const ev = events[id];
+    
+    // Якщо у події було повідомлення в Telegram - видаляємо його з чату
+    if (ev && ev.telegramMessageId) {
+      fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/deleteMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM.CHAT_ID,
+          message_id: ev.telegramMessageId
+        })
+      }).catch(() => {}); // Ігноруємо помилки, якщо повідомлення вже немає
+    }
+
+    // Видаляємо з бази
     await db.ref('events/' + id).remove();
     showToast('Подію видалено', 'info');
     closeModal('event-modal');
@@ -756,40 +771,60 @@ function showToast(message, type = 'info') {
   container.appendChild(toast); setTimeout(() => toast.remove(), 3200);
 }
 
-function sendTelegram(status, ev) {
+// Зробили функцію асинхронною (додали async)
+async function sendTelegram(status, ev) {
   if (!TELEGRAM.BOT_TOKEN || TELEGRAM.BOT_TOKEN === 'YOUR_BOT_TOKEN') return;
 
   const tName = teacherName(ev.assignedPersonId) || 'Не призначено';
 
-  // Визначаємо візуальну іконку для статусу
   let statusIcon = 'ℹ️';
   if (status === 'СТВОРЕНО') statusIcon = '🆕';
   if (status === 'ПІДТВЕРДЖЕНО') statusIcon = '✅';
   if (status === 'СКАСОВАНО') statusIcon = '❌';
 
-  // Формуємо красивий текст із HTML-тегами
-  const text = `${statusIcon} <b>${status}</b>
+  const text = `${statusIcon} <b>${status}</b>\n\n📌 <b>Подія:</b> ${ev.title}\n🗓 <b>Час:</b> ${ev.date} (з ${ev.startTime} до ${ev.endTime})\n🧑‍🏫 <b>Вчитель:</b> ${tName}\n\n👤 <i>Менеджер: ${currentUser}</i>`;
 
-📌 <b>Подія:</b> ${ev.title}
-🗓 <b>Час:</b> ${ev.date} (з ${ev.startTime} до ${ev.endTime})
-🧑‍🏫 <b>Вчитель:</b> ${tName}
+  // 1. ВИДАЛЯЄМО СТАРЕ ПОВІДОМЛЕННЯ (якщо воно існує)
+  if (ev.telegramMessageId) {
+    try {
+      await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/deleteMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM.CHAT_ID,
+          message_id: ev.telegramMessageId
+        })
+      });
+    } catch (err) {
+      console.error('Не вдалося видалити старе повідомлення:', err);
+    }
+  }
 
-👤 <i>Менеджер: ${currentUser}</i>`;
+  // 2. НАДСИЛАЄМО НОВЕ ПОВІДОМЛЕННЯ
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TELEGRAM.CHAT_ID,
+        text: text,
+        parse_mode: 'HTML'
+      })
+    });
+    
+    const data = await response.json();
 
-  fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: TELEGRAM.CHAT_ID,
-      text: text,
-      parse_mode: 'HTML' // Додаємо підтримку жирного шрифту та курсиву
-    })
-  })
-  .then(res => res.json())
-  .then(data => {
-      if (!data.ok) console.error('Деталі помилки Telegram:', data);
-  })
-  .catch(err => console.error('Помилка мережі:', err));
+    // 3. ЗБЕРІГАЄМО НОВИЙ MESSAGE_ID В БАЗУ ДАНИХ (щоб мати змогу видалити його наступного разу)
+    if (data.ok && data.result && data.result.message_id) {
+      await db.ref('events/' + ev.id).update({
+        telegramMessageId: data.result.message_id
+      });
+    } else {
+      console.error('Помилка Telegram при надсиланні:', data);
+    }
+  } catch (err) {
+    console.error('Помилка мережі:', err);
+  }
 }
 
 // ── EXPORTS ──────────────────────────────────────────────────
