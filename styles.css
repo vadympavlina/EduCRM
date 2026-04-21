@@ -743,12 +743,6 @@ input[type="month"].form-control { width: auto; font-family: var(--font-mono); f
     display: block !important;
 }
 
-/* Додаємо іконку заборони перед текстом через pseudo-element */
-.fc-bg-event .fc-event-title::before {
-    content: '🚫 ';
-    font-size: 14px;
-}
-
 /* Стилі для кнопок днів тижня (якщо ще не додали) */
 .days-selector { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 .day-label { cursor: pointer; }
