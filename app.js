@@ -4,11 +4,11 @@
 // ============================================================
 
 // ── TELEGRAM CONFIG ──────────────────────────────────────────
-// Тепер константа порожня
 const TELEGRAM = {
-  BOT_TOKEN: '', 
-  CHAT_ID: '-1003992712563'
+  BOT_TOKEN: '',   
+  CHAT_ID:   '-1003992712563'      
 };
+
 // Функція для завантаження конфігурації
 function loadConfig() {
   return db.ref('settings/telegramToken').once('value').then(snap => {
@@ -20,11 +20,12 @@ function loadConfig() {
     }
   });
 }
+
 // ── STATE ────────────────────────────────────────────────────
 let currentUser  = localStorage.getItem('crm_user_name')  || '';
 let currentEmail = localStorage.getItem('crm_user_email') || '';
-let events    = {};   // { id: eventObj }
-let teachers  = {};   // { id: teacherObj }
+let events    = {};   
+let teachers  = {};   
 let pricing   = { default: { baseReward: 50, contractBonus: 100 }, overrides: {} };
 let calendarInstance = null;
 let confirmCallback  = null;
@@ -43,14 +44,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function startApp() {
-  // Додаємо try...catch, щоб помилка не ламала весь додаток
   try {
     await loadConfig();
   } catch (error) {
     console.error("Помилка завантаження токена (перевірте правила Firebase):", error);
   }
 
-  // Тепер ці функції гарантовано запустяться в будь-якому випадку!
   listenTeachers();
   listenPricing();
   listenEvents();
@@ -63,6 +62,11 @@ async function startApp() {
   if (monthSel) {
     monthSel.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     monthSel.addEventListener('change', renderStats);
+  }
+
+  const teacherSel = document.getElementById('stats-teacher');
+  if (teacherSel) {
+    teacherSel.addEventListener('change', renderStats);
   }
 
   const monthFilter = document.getElementById('confirmed-month-filter');
@@ -82,7 +86,6 @@ function showLoginModal(required = false) {
   const stepEmail  = document.getElementById('login-step-email');
   const stepConfirm = document.getElementById('login-step-confirm');
 
-  // Reset to step 1
   stepEmail.style.display   = '';
   stepConfirm.style.display = 'none';
   errorEl.style.display     = 'none';
@@ -92,43 +95,29 @@ function showLoginModal(required = false) {
   overlay.classList.add('open');
   setTimeout(() => input.focus(), 180);
 
-  // Enter key support
   input.onkeydown = e => { if (e.key === 'Enter') saveBtn.click(); };
 
   saveBtn.onclick = async () => {
     const email = input.value.trim().toLowerCase();
-    if (!email) {
-      showLoginError('Введіть пошту');
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      showLoginError('Невірний формат пошти');
-      return;
-    }
+    if (!email) { showLoginError('Введіть пошту'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showLoginError('Невірний формат пошти'); return; }
 
     errorEl.style.display   = 'none';
     loadingEl.style.display = 'flex';
     saveBtn.disabled = true;
 
     try {
-      // Look up user by email in Firebase `users` node
-      // Expected structure: users/<uid> = { name: "...", email: "..." }
       const snap = await db.ref('users').orderByChild('email').equalTo(email).once('value');
       const data = snap.val();
 
       loadingEl.style.display = 'none';
       saveBtn.disabled = false;
 
-      if (!data) {
-        showLoginError('Пошту не знайдено в системі');
-        return;
-      }
+      if (!data) { showLoginError('Пошту не знайдено в системі'); return; }
 
-      // Get first matching user
       const uid  = Object.keys(data)[0];
       const user = data[uid];
 
-      // Show confirmation step
       stepEmail.style.display   = 'none';
       stepConfirm.style.display = '';
       document.getElementById('login-confirmed-name').textContent = user.name;
@@ -170,7 +159,6 @@ function renderUserInfo() {
   document.getElementById('user-avatar-letter').textContent = currentUser.charAt(0).toUpperCase();
 }
 
-// Logout / switch account
 document.getElementById('btn-change-name').addEventListener('click', () => {
   localStorage.removeItem('crm_user_name');
   localStorage.removeItem('crm_user_email');
@@ -246,9 +234,11 @@ function listenTeachers() {
       teachers[key] = { id: key, ...data[key] };
     });
 
+    populateStatsTeacherSelect();
     const activePage = document.querySelector('.page.active')?.id;
     if (activePage === 'teachers-page') renderTeachers();
     if (activePage === 'pricing-page')  renderPricing();
+    if (activePage === 'stats-page')    renderStats();
     populateOverrideSelect();
   });
 }
@@ -280,7 +270,7 @@ function initCalendar() {
         ? 'timeGridDay,listWeek'
         : 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
     },
-    firstDay: 1, // Понеділок
+    firstDay: 1, 
     height:                '100%',
     allDaySlot:            false,
     slotMinTime:           '07:00:00',
@@ -329,7 +319,7 @@ function initCalendar() {
   });
 
   calendarInstance.render();
-  refreshCalendar();
+  refreshCalendar(); // Фікс Race Condition
 }
 
 function refreshCalendar() {
@@ -368,11 +358,9 @@ function parseDateTime(date, time) {
 
 // ── EVENT MODAL ──────────────────────────────────────────────
 function openCreateModal(startStr, endStr) {
-  // 1. Видаляємо form.reset() і очищаємо поля вручну:
   document.getElementById('event-title').value = '';
   document.getElementById('event-description').value = '';
   document.getElementById('event-phone').value = '';
-  
   document.getElementById('event-modal-title').textContent = 'Нова подія';
   document.getElementById('event-id').value = '';
 
@@ -454,7 +442,6 @@ function makeBtn(text, className, onClick) {
   return btn;
 }
 
-// Зберегти подію
 document.getElementById('event-save-btn').addEventListener('click', async () => {
   const id          = document.getElementById('event-id').value;
   const title       = document.getElementById('event-title').value.trim();
@@ -526,7 +513,6 @@ function deleteEvent(id) {
   showConfirm('Видалити цю подію назавжди?', async () => {
     const ev = events[id];
     
-    // Якщо у події було повідомлення в Telegram - видаляємо його з чату
     if (ev && ev.telegramMessageId) {
       fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/deleteMessage`, {
         method: 'POST',
@@ -535,10 +521,9 @@ function deleteEvent(id) {
           chat_id: TELEGRAM.CHAT_ID,
           message_id: ev.telegramMessageId
         })
-      }).catch(() => {}); // Ігноруємо помилки, якщо повідомлення вже немає
+      }).catch(() => {}); 
     }
 
-    // Видаляємо з бази
     await db.ref('events/' + id).remove();
     showToast('Подію видалено', 'info');
     closeModal('event-modal');
@@ -625,18 +610,53 @@ function toggleContract(id, checked) {
   db.ref('events/' + id).update({ contractSigned: checked }).then(() => renderCompleted());
 }
 
+// Популяція селекту вчителів на сторінці статистики
+function populateStatsTeacherSelect() {
+  const sel = document.getElementById('stats-teacher');
+  if(!sel) return;
+  const currentVal = sel.value; 
+  sel.innerHTML = '<option value="">Всі вчителі</option>';
+  Object.values(teachers).forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = t.name;
+    sel.appendChild(opt);
+  });
+  sel.value = currentVal; 
+}
+
 function renderStats() {
   const selectedMonth = document.getElementById('stats-month').value;
-  const completed = Object.values(events).filter(e => e.status === 'completed' && (!selectedMonth || e.date.startsWith(selectedMonth)));
+  const selectedTeacher = document.getElementById('stats-teacher').value;
+
+  const completed = Object.values(events).filter(e => {
+    if (e.status !== 'completed') return false;
+    if (selectedMonth && !e.date.startsWith(selectedMonth)) return false;
+    if (selectedTeacher && e.assignedPersonId !== selectedTeacher) return false;
+    return true;
+  });
 
   const byTeacher = {};
+  let totalCount = 0;
+  let totalContracts = 0;
+  let totalEarnings = 0;
+
   completed.forEach(ev => {
     const tid = ev.assignedPersonId || '__none__';
     if (!byTeacher[tid]) byTeacher[tid] = { count: 0, contracts: 0, earnings: 0 };
     const p = getPricing(ev.assignedPersonId);
+    
     byTeacher[tid].count++;
-    if (ev.contractSigned) byTeacher[tid].contracts++;
-    byTeacher[tid].earnings += ev.contractSigned ? p.baseReward + p.contractBonus : p.baseReward;
+    totalCount++;
+
+    const earnings = ev.contractSigned ? p.baseReward + p.contractBonus : p.baseReward;
+    if (ev.contractSigned) {
+      byTeacher[tid].contracts++;
+      totalContracts++;
+    }
+    
+    byTeacher[tid].earnings += earnings;
+    totalEarnings += earnings;
   });
 
   const tbody = document.getElementById('stats-tbody');
@@ -647,6 +667,68 @@ function renderStats() {
     tr.innerHTML = `<td>${name}</td><td>${data.count}</td><td>${data.contracts}</td><td class="earnings-value">$${data.earnings}</td>`;
     tbody.appendChild(tr);
   });
+
+  // Рендеримо футер з підсумками
+  const tfoot = document.getElementById('stats-tfoot');
+  if (tfoot) {
+    if (Object.keys(byTeacher).length > 0) {
+      tfoot.innerHTML = `
+        <tr>
+          <td style="padding: 12px 16px;"><strong>Разом</strong></td>
+          <td style="padding: 12px 16px;"><strong>${totalCount}</strong></td>
+          <td style="padding: 12px 16px;"><strong>${totalContracts}</strong></td>
+          <td class="earnings-value" style="padding: 12px 16px; font-size: 15px;"><strong>$${totalEarnings}</strong></td>
+        </tr>`;
+    } else {
+      tfoot.innerHTML = '';
+    }
+  }
+}
+
+// Функція для друку таблиці статистики
+function printStats() {
+  const selectedMonth = document.getElementById('stats-month').value || 'Всі місяці';
+  const teacherSelect = document.getElementById('stats-teacher');
+  const selectedTeacherName = teacherSelect.options[teacherSelect.selectedIndex].text;
+  
+  // Копіюємо таблицю
+  const tableHTML = document.querySelector('#stats-page table').outerHTML;
+
+  // Відкриваємо нове вікно і вставляємо туди таблицю зі стилями
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <html>
+    <head>
+      <title>Статистика - EduCRM</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; color: #111827; }
+        h1 { font-size: 24px; margin-bottom: 5px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;}
+        p { color: #4b5563; font-size: 15px; margin-bottom: 25px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #d1d5db; padding: 12px; text-align: left; font-size: 14px; }
+        th { background-color: #f5f6fa; text-transform: uppercase; font-size: 12px; color: #6b7280; }
+        tfoot { background-color: #f3f4f6; }
+        .earnings-value { color: #059669; font-weight: bold; }
+        @media print {
+          body { padding: 0; }
+          button { display: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <h1>Звіт: Статистика подій</h1>
+      <p><strong>Місяць:</strong> ${selectedMonth} &nbsp;|&nbsp; <strong>Вчитель:</strong> ${selectedTeacherName}</p>
+      ${tableHTML}
+      <script>
+        // Чекаємо мить для застосування стилів і викликаємо діалог друку
+        window.onload = function() { 
+          setTimeout(() => { window.print(); window.close(); }, 250); 
+        }
+      </script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
 }
 
 // ── PRICING & TEACHERS ───────────────────────────────────────
@@ -709,7 +791,6 @@ function renderTeachers() {
   });
 }
 
-// КНОПКА "ДОДАТИ ВЧИТЕЛЯ"
 document.getElementById('btn-add-teacher').addEventListener('click', () => {
   document.getElementById('teacher-modal-title').textContent = 'Додати вчителя';
   document.getElementById('teacher-id').value = '';
@@ -718,7 +799,6 @@ document.getElementById('btn-add-teacher').addEventListener('click', () => {
   setTimeout(() => document.getElementById('teacher-name-input').focus(), 100);
 });
 
-// ФУНКЦІЯ РЕДАГУВАННЯ ВЧИТЕЛЯ
 function editTeacher(id, name) {
   document.getElementById('teacher-modal-title').textContent = 'Редагувати вчителя';
   document.getElementById('teacher-id').value = id;
@@ -727,7 +807,6 @@ function editTeacher(id, name) {
   setTimeout(() => document.getElementById('teacher-name-input').focus(), 100);
 }
 
-// ЗБЕРЕЖЕННЯ ВЧИТЕЛЯ
 document.getElementById('teacher-save-btn').addEventListener('click', async () => {
   const id = document.getElementById('teacher-id').value;
   const name = document.getElementById('teacher-name-input').value.trim();
@@ -742,10 +821,8 @@ document.getElementById('teacher-save-btn').addEventListener('click', async () =
   closeModal('teacher-modal');
 });
 
-// КНОПКА СКАСУВАННЯ ВЧИТЕЛЯ
 document.getElementById('teacher-cancel-btn').addEventListener('click', () => closeModal('teacher-modal'));
 
-// ФУНКЦІЯ ВИДАЛЕННЯ ВЧИТЕЛЯ
 function deleteTeacher(id, name) {
   showConfirm(`Видалити вчителя "${name}"?`, async () => {
     await db.ref('people/' + id).remove(); 
@@ -792,29 +869,15 @@ function showToast(message, type = 'info') {
 }
 
 async function sendTelegram(status, ev) {
-  // --- ДОДАЙТЕ ЦІ ДВА РЯДКИ ДЛЯ ПЕРЕВІРКИ ---
-  console.log('1. Функція sendTelegram ЗАПУСТИЛАСЯ! Статус:', status);
-  console.log('2. Дані події:', ev);
-  // -------------------------------------------
+  if (!TELEGRAM.BOT_TOKEN) return;
 
-  if (!TELEGRAM.BOT_TOKEN || TELEGRAM.BOT_TOKEN === 'YOUR_BOT_TOKEN') {
-    console.warn('Увага: Токен бота відсутній або він стандартний!');
-    return;
-  }
-
-  // ... далі йде ваш код (escapeHTML і т.д.) ...
-  // 1. Функція для безпечного тексту (щоб Telegram не ламався від символів <, >, &)
   const escapeHTML = (str) => {
     if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   };
 
   const tName = teacherName(ev.assignedPersonId) || 'Не призначено';
 
-  // 2. Очищаємо всі змінні від небезпечних символів
   const safeTitle = escapeHTML(ev.title);
   const safeTeacher = escapeHTML(tName);
   const safeUser = escapeHTML(currentUser);
@@ -824,53 +887,33 @@ async function sendTelegram(status, ev) {
   if (status === 'ПІДТВЕРДЖЕНО') statusIcon = '✅';
   if (status === 'СКАСОВАНО') statusIcon = '❌';
 
-  // Формуємо текст з безпечними змінними
   const text = `${statusIcon} <b>${status}</b>\n\n📌 <b>Подія:</b> ${safeTitle}\n🗓 <b>Час:</b> ${ev.date} (з ${ev.startTime} до ${ev.endTime})\n🧑‍🏫 <b>Вчитель:</b> ${safeTeacher}\n\n👤 <i>Менеджер: ${safeUser}</i>`;
 
-  // 3. ВИДАЛЯЄМО СТАРЕ ПОВІДОМЛЕННЯ (якщо воно є)
   if (ev.telegramMessageId) {
     try {
       await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/deleteMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: TELEGRAM.CHAT_ID,
-          message_id: ev.telegramMessageId
-        })
+        body: JSON.stringify({ chat_id: TELEGRAM.CHAT_ID, message_id: ev.telegramMessageId })
       });
-    } catch (err) {
-      console.log('Помилка видалення старого повідомлення (можливо воно вже видалене).');
-    }
+    } catch (err) {}
   }
 
-  // 4. НАДСИЛАЄМО НОВЕ ПОВІДОМЛЕННЯ
   try {
     const response = await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: TELEGRAM.CHAT_ID,
-        text: text,
-        parse_mode: 'HTML'
-      })
+      body: JSON.stringify({ chat_id: TELEGRAM.CHAT_ID, text: text, parse_mode: 'HTML' })
     });
     
     const data = await response.json();
 
-    // 5. ЗБЕРІГАЄМО НОВИЙ MESSAGE_ID
     if (data.ok && data.result && data.result.message_id) {
       if (ev.id) {
-        await db.ref('events/' + ev.id).update({
-          telegramMessageId: data.result.message_id
-        });
+        await db.ref('events/' + ev.id).update({ telegramMessageId: data.result.message_id });
       }
-    } else {
-      // Виводимо точну помилку Telegram у консоль, щоб знати, що не так
-      console.error('Помилка Telegram:', data.description);
     }
-  } catch (err) {
-    console.error('Помилка мережі при відправці в Telegram:', err);
-  }
+  } catch (err) {}
 }
 
 // ── EXPORTS ──────────────────────────────────────────────────
@@ -884,3 +927,4 @@ window.removeOverride = removeOverride;
 window.completeEvent = completeEvent;
 window.cancelEvent = cancelEvent;
 window.renderConfirmedList = renderConfirmedList;
+window.printStats = printStats;
