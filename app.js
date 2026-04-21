@@ -329,6 +329,7 @@ function initCalendar() {
   });
 
   calendarInstance.render();
+  refreshCalendar();
 }
 
 function refreshCalendar() {
