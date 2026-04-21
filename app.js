@@ -758,12 +758,38 @@ function showToast(message, type = 'info') {
 
 function sendTelegram(status, ev) {
   if (!TELEGRAM.BOT_TOKEN || TELEGRAM.BOT_TOKEN === 'YOUR_BOT_TOKEN') return;
+
   const tName = teacherName(ev.assignedPersonId) || 'Не призначено';
-  const text = `[${status}]\nПодія: ${ev.title}\nДата: ${ev.date} ${ev.startTime}–${ev.endTime}\nВчитель: ${tName}\nКим: ${currentUser}`;
+
+  // Визначаємо візуальну іконку для статусу
+  let statusIcon = 'ℹ️';
+  if (status === 'СТВОРЕНО') statusIcon = '🆕';
+  if (status === 'ПІДТВЕРДЖЕНО') statusIcon = '✅';
+  if (status === 'СКАСОВАНО') statusIcon = '❌';
+
+  // Формуємо красивий текст із HTML-тегами
+  const text = `${statusIcon} <b>${status}</b>
+
+📌 <b>Подія:</b> ${ev.title}
+🗓 <b>Час:</b> ${ev.date} (з ${ev.startTime} до ${ev.endTime})
+🧑‍🏫 <b>Вчитель:</b> ${tName}
+
+👤 <i>Менеджер: ${currentUser}</i>`;
+
   fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/sendMessage`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: TELEGRAM.CHAT_ID, text })
-  }).catch(() => {});
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: TELEGRAM.CHAT_ID,
+      text: text,
+      parse_mode: 'HTML' // Додаємо підтримку жирного шрифту та курсиву
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+      if (!data.ok) console.error('Деталі помилки Telegram:', data);
+  })
+  .catch(err => console.error('Помилка мережі:', err));
 }
 
 // ── EXPORTS ──────────────────────────────────────────────────
