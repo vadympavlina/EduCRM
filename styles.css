@@ -999,20 +999,56 @@ input[type="month"].form-control { width: auto; font-family: var(--font-mono); f
     border: none;
     padding: 0;
     font-size: 13.5px;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
   }
-  .table-wrap.mobile-cards td:first-child { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .table-wrap.mobile-cards td:first-child {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+    display: block;
+  }
   .table-wrap.mobile-cards td::before {
-    content: attr(data-label) ': ';
+    content: attr(data-label);
     font-size: 10.5px;
     font-weight: 700;
     color: var(--text3);
     text-transform: uppercase;
     letter-spacing: 0.4px;
-    display: block;
-    margin-bottom: 2px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 70px;
   }
   .table-wrap.mobile-cards td:first-child::before { display: none; }
   .table-wrap.mobile-cards tbody tr:last-child td { border: none; }
+
+  /* Stats table — stays as horizontal scroll table, NOT cards */
+  .stats-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .stats-table-wrap table { min-width: 320px; border-collapse: separate; border-spacing: 0; width: 100%; }
+  .stats-table-wrap th, .stats-table-wrap td {
+    padding: 11px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-size: 13.5px;
+    white-space: nowrap;
+  }
+  .stats-table-wrap th {
+    color: var(--text3);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 10.5px;
+    letter-spacing: 0.7px;
+    background: var(--bg3);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+  .stats-table-wrap th:first-child { border-radius: 9px 0 0 9px; }
+  .stats-table-wrap th:last-child  { border-radius: 0 9px 9px 0; }
+  .stats-table-wrap tbody tr:last-child td { border-bottom: none; }
+  .stats-table-wrap td:first-child { font-weight: 700; color: var(--text); white-space: nowrap; }
 }
 
 /* ── MOBILE BREAKPOINT ── */
