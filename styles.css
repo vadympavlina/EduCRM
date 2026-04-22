@@ -72,6 +72,9 @@ body {
   height: 100dvh;
   overflow: hidden;
   line-height: 1.5;
+  background-image:
+    radial-gradient(ellipse at 0% 0%, rgba(79,110,247,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse at 100% 100%, rgba(59,91,232,0.05) 0%, transparent 55%);
 }
 
 /* ── LAYOUT ── */
@@ -279,7 +282,7 @@ nav {
   border-bottom: none;
   padding: 24px;
   overflow-y: auto;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 -4px 24px rgba(15,22,35,0.05), var(--shadow-sm);
   margin: 16px 20px 0;
 }
 
@@ -841,12 +844,29 @@ select.form-control {
   border: none !important;
   padding: 3px 6px !important;
   font-size: 12px !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12) !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.14) !important;
   transition: transform 0.15s, box-shadow 0.15s !important;
+  color: #ffffff !important;
 }
-.fc-event:hover { transform: translateY(-1px) !important; box-shadow: 0 4px 12px rgba(0,0,0,0.18) !important; }
+/* White text for all event title/time elements in all views */
+.fc-event .fc-event-title,
+.fc-event .fc-event-time,
+.fc-event .fc-event-title-container,
+.fc-daygrid-event .fc-event-title,
+.fc-daygrid-event .fc-event-time,
+.fc-timegrid-event .fc-event-title,
+.fc-timegrid-event .fc-event-time,
+.fc-list-event .fc-event-title,
+.fc-list-event-title a,
+.fc-list-event-time {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+/* Dot in daygrid month view */
+.fc-daygrid-event-dot { border-color: #ffffff !important; }
+.fc-event:hover { transform: translateY(-1px) !important; box-shadow: 0 4px 14px rgba(0,0,0,0.22) !important; }
 .status-pending   { background: linear-gradient(135deg, #f59e0b, #d97706) !important; }
 .status-confirmed { background: linear-gradient(135deg, #4f6ef7, #3b5be8) !important; }
 .status-completed { background: linear-gradient(135deg, #059669, #047857) !important; }

@@ -301,6 +301,11 @@
           </button>
           <h2>Завершені</h2>
         </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input type="month" id="completed-month-filter" class="form-control" style="width:auto">
+        </div>
+      </div>
+      <div class="page-header" style="padding-top:8px;">
         <div class="stats-strip">
           <div class="mini-stat">
             <div class="mini-stat-label">Подій</div>
@@ -636,17 +641,72 @@
   function closeModal(id) {
     document.getElementById(id).classList.remove('open');
   }
-  // Close modals on backdrop click
+
+  // ── Close modals on backdrop click ──
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', function(e) {
       if (e.target === this) {
-        const id = this.id;
-        // Don't close name-modal on backdrop (required login)
-        if (id !== 'name-modal') {
-          this.classList.remove('open');
-        }
+        if (this.id !== 'name-modal') this.classList.remove('open');
       }
     });
+  });
+
+  // ── Completed page: month filter ──
+  // Override renderCompleted to support month filtering
+  const _origRenderCompleted = window.renderCompleted || null;
+
+  function renderCompleted() {
+    const filterEl = document.getElementById('completed-month-filter');
+    const selectedMonth = filterEl ? filterEl.value : '';
+
+    const list = Object.values(events).filter(e => {
+      if (e.status !== 'completed') return false;
+      if (selectedMonth && e.date && !e.date.startsWith(selectedMonth)) return false;
+      return true;
+    }).sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0));
+
+    let totalEarnings = 0, totalContracts = 0;
+    const tbody = document.getElementById('completed-tbody');
+    tbody.innerHTML = '';
+
+    if (list.length === 0) {
+      document.getElementById('completed-empty').style.display = 'flex';
+      document.getElementById('completed-table-wrap').style.display = 'none';
+    } else {
+      document.getElementById('completed-empty').style.display = 'none';
+      document.getElementById('completed-table-wrap').style.display = 'block';
+      list.forEach(ev => {
+        const p = getPricing(ev.assignedPersonId);
+        const earnings = ev.contractSigned ? p.baseReward + p.contractBonus : p.baseReward;
+        totalEarnings += earnings;
+        if (ev.contractSigned) totalContracts++;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td data-label="Назва">${ev.title}</td>
+          <td data-label="Дата">${ev.date}</td>
+          <td data-label="Час">${ev.startTime}–${ev.endTime}</td>
+          <td data-label="Вчитель">${teacherName(ev.assignedPersonId) || '—'}</td>
+          <td data-label="Телефон">${ev.phone || '—'}</td>
+          <td data-label="Договір"><input type="checkbox" ${ev.contractSigned ? 'checked' : ''} onchange="toggleContract('${ev.id}', this.checked)"></td>
+          <td data-label="Заробіток" class="earnings-value">₴${earnings}</td>
+          <td data-label="Завершив">${ev.completedBy || '—'}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+    document.getElementById('completed-total').textContent = list.length;
+    document.getElementById('completed-earnings').textContent = '₴' + totalEarnings;
+    document.getElementById('completed-contracts').textContent = totalContracts;
+  }
+  window.renderCompleted = renderCompleted;
+
+  // Init filter with current month + attach listener
+  document.addEventListener('DOMContentLoaded', () => {
+    const filterEl = document.getElementById('completed-month-filter');
+    if (filterEl) {
+      const now = new Date();
+      filterEl.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      filterEl.addEventListener('change', renderCompleted);
+    }
   });
 </script>
 
