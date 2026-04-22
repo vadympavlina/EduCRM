@@ -290,34 +290,34 @@
 
     <!-- ── ЗАВЕРШЕНІ ПОДІЇ ── -->
     <div class="page" id="completed-page">
-      <div class="page-header">
-        <div class="page-header-left">
-          <button class="hamburger-btn" aria-label="Меню">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-              <line x1="3" y1="6" x2="21" y2="6"/>
-              <line x1="3" y1="12" x2="21" y2="12"/>
-              <line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-          </button>
-          <h2>Завершені</h2>
-        </div>
-        <div style="display:flex; gap:10px; align-items:center;">
-          <input type="month" id="completed-month-filter" class="form-control" style="width:auto">
-        </div>
-      </div>
-      <div class="page-header" style="padding-top:8px;">
-        <div class="stats-strip">
-          <div class="mini-stat">
-            <div class="mini-stat-label">Подій</div>
-            <div class="mini-stat-value" id="completed-total">0</div>
+      <div class="completed-header">
+        <div class="completed-header-top">
+          <div class="page-header-left">
+            <button class="hamburger-btn" aria-label="Меню">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
+            <h2>Завершені</h2>
           </div>
-          <div class="mini-stat">
-            <div class="mini-stat-label">Заробіток</div>
-            <div class="mini-stat-value" id="completed-earnings" style="color:var(--green)">₴0</div>
+          <input type="month" id="completed-month-filter" class="form-control completed-month-input">
+        </div>
+        <div class="completed-stats-row">
+          <div class="completed-stat">
+            <div class="completed-stat-label">Подій</div>
+            <div class="completed-stat-value" id="completed-total">0</div>
           </div>
-          <div class="mini-stat">
-            <div class="mini-stat-label">Договори</div>
-            <div class="mini-stat-value" id="completed-contracts" style="color:var(--blue)">0</div>
+          <div class="completed-stat-divider"></div>
+          <div class="completed-stat">
+            <div class="completed-stat-label">Заробіток</div>
+            <div class="completed-stat-value" id="completed-earnings" style="color:var(--green)">₴0</div>
+          </div>
+          <div class="completed-stat-divider"></div>
+          <div class="completed-stat">
+            <div class="completed-stat-label">Договори</div>
+            <div class="completed-stat-value" id="completed-contracts" style="color:var(--blue)">0</div>
           </div>
         </div>
       </div>
@@ -669,6 +669,14 @@
     const tbody = document.getElementById('completed-tbody');
     tbody.innerHTML = '';
 
+    // Format date: 2026-04-09 → 09.04.2026
+    function fmtDate(d) {
+      if (!d) return '—';
+      const parts = d.split('-');
+      if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
+      return d;
+    }
+
     if (list.length === 0) {
       document.getElementById('completed-empty').style.display = 'flex';
       document.getElementById('completed-table-wrap').style.display = 'none';
@@ -683,7 +691,7 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td data-label="Назва">${ev.title}</td>
-          <td data-label="Дата">${ev.date}</td>
+          <td data-label="Дата">${fmtDate(ev.date)}</td>
           <td data-label="Час">${ev.startTime}–${ev.endTime}</td>
           <td data-label="Вчитель">${teacherName(ev.assignedPersonId) || '—'}</td>
           <td data-label="Телефон">${ev.phone || '—'}</td>

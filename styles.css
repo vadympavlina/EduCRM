@@ -978,6 +978,84 @@ input[type="month"].form-control { width: auto; font-family: var(--font-mono); f
 /* ── EARNINGS VALUE ── */
 .earnings-value { font-family: var(--font-mono); font-weight: 700; color: var(--green); }
 
+/* ── COMPLETED PAGE HEADER ── */
+.completed-header {
+  padding: 18px 28px 0;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.completed-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.completed-month-input {
+  width: auto !important;
+  font-family: var(--font-mono) !important;
+  font-size: 13px !important;
+  padding: 8px 12px !important;
+  border-radius: var(--radius-sm) !important;
+  min-width: 160px;
+}
+.completed-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 4px;
+  box-shadow: var(--shadow-xs);
+  width: fit-content;
+  overflow: hidden;
+}
+.completed-stat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+}
+.completed-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  white-space: nowrap;
+}
+.completed-stat-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.5px;
+  font-family: var(--font-mono);
+}
+.completed-stat-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .completed-header { padding: 14px 16px 0; gap: 10px; }
+  .completed-header-top { gap: 8px; }
+  .completed-month-input { min-width: 0; font-size: 12px !important; }
+  .completed-stats-row { width: 100%; justify-content: space-between; }
+  .completed-stat { flex-direction: column; align-items: center; gap: 3px; padding: 10px 12px; flex: 1; }
+  .completed-stat-label { font-size: 9.5px; }
+  .completed-stat-value { font-size: 18px; }
+}
+
+@media (max-width: 420px) {
+  .completed-stat { padding: 8px 8px; }
+  .completed-stat-value { font-size: 16px; }
+}
+
 /* ── MOBILE CARDS ── */
 @media (max-width: 640px) {
   .table-wrap.mobile-cards { overflow-x: visible; }
