@@ -46,15 +46,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function startApp() {
   try {
-    await loadConfig(); // Завантажуємо токен перед стартом
+    await loadConfig(); 
   } catch (error) {
     console.error("Помилка завантаження токена:", error);
   }
 
+  initPresence(); // Запуск системи онлайн-статусу
   listenTeachers();
   listenPricing();
   listenEvents();
-  listenBlockedTimes(); // Слухаємо заблоковані зони
+  listenBlockedTimes(); 
 
   setTimeout(initCalendar, 200);
 
@@ -75,6 +76,72 @@ async function startApp() {
     monthFilter.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     monthFilter.addEventListener('change', renderConfirmedList);
   }
+}
+
+// ── PRESENCE (ОНЛАЙН СТАТУС) ─────────────────────────────────
+function initPresence() {
+  if (!currentUser) return;
+  
+  // Ключі в Firebase не можуть містити крапок та спецсимволів
+  const safeKey = currentUser.replace(/[.#$[\]]/g, '_');
+  const myPresenceRef = db.ref('presence/' + safeKey);
+  
+  const updatePresence = (isActive) => {
+    myPresenceRef.set({
+      name: currentUser,
+      active: isActive,
+      updatedAt: firebase.database.ServerValue.TIMESTAMP
+    });
+  };
+
+  // Відстежуємо чи вкладка в фокусі
+  window.addEventListener('focus', () => updatePresence(true));
+  window.addEventListener('blur',  () => updatePresence(false));
+  
+  // Видаляємо статус, якщо користувач закрив вкладку або відключився інтернет
+  myPresenceRef.onDisconnect().remove();
+  
+  // Встановлюємо початковий стан (чи активна вкладка при завантаженні)
+  updatePresence(document.hasFocus());
+
+  // Слухаємо дані інших менеджерів для рендеру
+  db.ref('presence').on('value', snap => {
+    const data = snap.val() || {};
+    renderPresence(data);
+  });
+}
+
+function renderPresence(data) {
+  const now = Date.now();
+  let html = '';
+  let zIndexCount = 50;
+  
+  Object.values(data).forEach(user => {
+    // Якщо користувач не в фокусі більше ніж 2 години — ігноруємо його
+    if (!user.active && now - user.updatedAt > 2 * 60 * 60 * 1000) return;
+    
+    const initial = user.name ? user.name.charAt(0).toUpperCase() : '?';
+    const statusClass = user.active ? 'active' : 'inactive';
+    const title = `${user.name} (${user.active ? 'Онлайн' : 'Відійшов'})`;
+    
+    html += `
+      <div class="presence-avatar" title="${title}" style="z-index: ${zIndexCount--}">
+        ${initial}
+        <div class="presence-dot ${statusClass}"></div>
+      </div>
+    `;
+  });
+
+  // Додаємо аватарки у ВСІ заголовки сторінок, щоб їх було видно незалежно від вкладки
+  document.querySelectorAll('.page-header-left').forEach(header => {
+    let container = header.querySelector('.presence-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.className = 'presence-container';
+      header.appendChild(container);
+    }
+    container.innerHTML = html;
+  });
 }
 
 // ── LOGIN (email-based) ──────────────────────────────────────
@@ -161,6 +228,12 @@ function renderUserInfo() {
 }
 
 document.getElementById('btn-change-name').addEventListener('click', () => {
+  // Видаляємо статус перед виходом
+  if (currentUser) {
+    const safeKey = currentUser.replace(/[.#$[\]]/g, '_');
+    db.ref('presence/' + safeKey).remove();
+  }
+  
   localStorage.removeItem('crm_user_name');
   localStorage.removeItem('crm_user_email');
   currentUser  = '';
@@ -221,6 +294,7 @@ function listenEvents() {
     });
 
     refreshCalendar();
+    
     const activePage = document.querySelector('.page.active')?.id;
     if (activePage === 'completed-page') renderCompleted();
     if (activePage === 'stats-page')     renderStats();
@@ -242,18 +316,18 @@ function listenTeachers() {
     if (activePage === 'pricing-page')  renderPricing();
     if (activePage === 'stats-page')    renderStats();
     populateOverrideSelect();
-    // Оновити селект вчителів в формі блокування
+    
     const bts = document.getElementById('block-teacher-select');
     if (bts) {
       const cur = bts.value;
-      bts.innerHTML = '<option value="">Всі (загальне блокування)</option>';
+      bts.innerHTML = '<option value="">🚫 Всі (загальне блокування)</option>';
       Object.values(teachers).forEach(t => {
         const opt = document.createElement('option');
         opt.value = t.id; opt.textContent = t.name; bts.appendChild(opt);
       });
       bts.value = cur;
     }
-    // Перемалювати таблицю блокувань якщо відкрита
+    
     const ap = document.querySelector('.page.active')?.id;
     if (ap === 'schedule-page') renderBlockedTimes();
   });
@@ -298,7 +372,6 @@ function initCalendar() {
     selectMirror:          true,
     locale:                'uk',
 
-    // Перевіряємо чи можна виділяти час (глобальні блокування)
     selectAllow: function(selectInfo) {
       return !isTimeBlocked(selectInfo.start, selectInfo.end, null, true);
     },
@@ -346,15 +419,16 @@ function initCalendar() {
 
 function refreshCalendar() {
   if (!calendarInstance) return;
-  calendarInstance.removeAllEvents();
+  
+  const eventsArray = [];
 
-  // 1. Події
+  // 1. Формуємо масив подій
   Object.values(events).forEach(ev => {
     const start = parseDateTime(ev.date, ev.startTime || '09:00');
     const end   = parseDateTime(ev.date, ev.endTime   || '10:00');
     const title = ev.title + (teacherName(ev.assignedPersonId) ? ' · ' + teacherName(ev.assignedPersonId) : '');
 
-    calendarInstance.addEvent({
+    eventsArray.push({
       id:         ev.id,
       title,
       start,
@@ -363,24 +437,26 @@ function refreshCalendar() {
     });
   });
 
-  // 2. Блокування робочих зон (Background Events)
+  // 2. Формуємо масив блокувань
   Object.entries(blockedTimes).forEach(([id, b]) => {
     const isGlobal = !b.teacherId;
-    const tName = teachers[b.teacherId]?.name || '';
-    
-    calendarInstance.addEvent({
+    eventsArray.push({
       id: 'block_' + id,
       groupId: 'blocked_zone',
-      title: isGlobal ? (b.title || 'ЗАЙНЯТО') : `${b.title || 'ЗАЙНЯТО'} (${tName})`,
+      title: isGlobal ? `🚫 ${b.title || 'ЗАЙНЯТО'}` : `🔒 ${b.title || 'ЗАЙНЯТО'} (${teachers[b.teacherId]?.name || ''})`,
       startTime: b.start,
       endTime:   b.end,
       daysOfWeek: b.days,
       endRecur:  b.until || null,
       display:   'background',
-      classNames: isGlobal ? ['fc-block-global'] : ['fc-block-teacher'],
+      color:     isGlobal ? '#fee2e2' : '#dbeafe',
       overlap:   false
     });
   });
+
+  // Гарантоване перемалювання: видаляємо всі джерела даних і додаємо нове
+  calendarInstance.removeAllEventSources();
+  calendarInstance.addEventSource(eventsArray);
 }
 
 function parseDateTime(date, time) {
@@ -487,17 +563,14 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
     showToast("Заповніть обов'язкові поля", 'error'); return;
   }
 
-  // Перевіряємо блокування часу з урахуванням вчителя
   const checkStart = parseDateTime(date, startTime);
   const checkEnd   = parseDateTime(date, endTime);
 
-  // 1. Загальне блокування — заблоковано для всіх
   if (isTimeBlocked(checkStart, checkEnd, null, true)) {
-    showToast('Цей час заблоковано для всіх', 'error'); return;
+    showToast('🚫 Цей час заблоковано для всіх', 'error'); return;
   }
-  // 2. Блокування конкретного вчителя
   if (assignedPersonId && isTimeBlocked(checkStart, checkEnd, assignedPersonId, false)) {
-    showToast(`Цей час заблоковано для вчителя ${teacherName(assignedPersonId)}`, 'error'); return;
+    showToast(`🔒 Цей час заблоковано для вчителя ${teacherName(assignedPersonId)}`, 'error'); return;
   }
 
   const data = { title, description, phone, date, startTime, endTime, assignedPersonId };
@@ -759,7 +832,7 @@ function renderBlockedTimes() {
   const sel = document.getElementById('block-teacher-select');
   if (sel) {
     const cur = sel.value;
-    sel.innerHTML = '<option value="">Всі (загальне блокування)</option>';
+    sel.innerHTML = '<option value="">🚫 Всі (загальне блокування)</option>';
     Object.values(teachers).forEach(t => {
       const opt = document.createElement('option');
       opt.value = t.id; opt.textContent = t.name; sel.appendChild(opt);
@@ -836,8 +909,15 @@ function renderTeachers() {
   list.innerHTML = '';
   Object.values(teachers).forEach(t => {
     const item = document.createElement('div'); item.className = 'teacher-item';
-    item.innerHTML = `<div class="teacher-avatar">${t.name.charAt(0).toUpperCase()}</div><div class="teacher-name">${t.name}</div>
-      <div class="teacher-actions"><button class="btn btn-ghost btn-sm" onclick="editTeacher('${t.id}','${escStr(t.name)}')">Ред.</button><button class="btn btn-danger btn-sm" onclick="deleteTeacher('${t.id}','${escStr(t.name)}')">Вид.</button></div>`;
+    item.innerHTML = `
+      <div style="display:flex; align-items:center; gap:14px; flex:1; min-width:0;">
+        <div class="teacher-avatar">${t.name.charAt(0).toUpperCase()}</div>
+        <div class="teacher-name">${t.name}</div>
+      </div>
+      <div class="teacher-actions">
+        <button class="btn btn-ghost btn-sm" onclick="editTeacher('${t.id}','${escStr(t.name)}')">Ред.</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTeacher('${t.id}','${escStr(t.name)}')">Вид.</button>
+      </div>`;
     list.appendChild(item);
   });
 }
@@ -870,7 +950,6 @@ document.getElementById('teacher-save-btn').addEventListener('click', async () =
 function deleteTeacher(id, name) {
   showConfirm(`Видалити вчителя "${name}"?`, async () => { await db.ref('people/' + id).remove(); showToast('Видалено', 'info'); });
 }
-
 
 // ── BLOCKED TIME HELPER ───────────────────────────────────────
 function isTimeBlocked(startDT, endDT, teacherId, globalOnly) {
@@ -934,8 +1013,12 @@ async function sendTelegram(status, ev) {
   const escapeHTML = (str) => { if (!str) return ''; return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
   const tName = teacherName(ev.assignedPersonId) || 'Не призначено';
   const safeTitle = escapeHTML(ev.title), safeTeacher = escapeHTML(tName), safeUser = escapeHTML(currentUser);
+  let statusIcon = 'ℹ️';
+  if (status === 'СТВОРЕНО') statusIcon = '🆕';
+  else if (status === 'ПІДТВЕРДЖЕНО') statusIcon = '✅';
+  else if (status === 'СКАСОВАНО') statusIcon = '❌';
 
-  const text = `<b>[${status}]</b>\n\n<b>Подія:</b> ${safeTitle}\n<b>Час:</b> ${ev.date} (з ${ev.startTime} до ${ev.endTime})\n<b>Вчитель:</b> ${safeTeacher}\n\n<i>Менеджер: ${safeUser}</i>`;
+  const text = `${statusIcon} <b>${status}</b>\n\n📌 <b>Подія:</b> ${safeTitle}\n🗓 <b>Час:</b> ${ev.date} (з ${ev.startTime} до ${ev.endTime})\n🧑‍🏫 <b>Вчитель:</b> ${safeTeacher}\n\n👤 <i>Менеджер: ${safeUser}</i>`;
 
   if (ev.telegramMessageId) {
     try { await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/deleteMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: TELEGRAM.CHAT_ID, message_id: ev.telegramMessageId }) }); } catch (err) {}
