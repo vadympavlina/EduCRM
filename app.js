@@ -9,7 +9,6 @@ const TELEGRAM = {
   CHAT_ID:   '-1003992712563'      
 };
 
-// Функція для завантаження конфігурації з Firebase
 function loadConfig() {
   return db.ref('settings/telegramToken').once('value').then(snap => {
     if (snap.exists()) {
@@ -27,7 +26,7 @@ let currentEmail = localStorage.getItem('crm_user_email') || '';
 let events    = {};   
 let teachers  = {};   
 let pricing   = { default: { baseReward: 50, contractBonus: 100 }, overrides: {} };
-let blockedTimes = {}; // Сховище заблокованих зон
+let blockedTimes = {}; 
 let calendarInstance = null;
 let confirmCallback  = null;
 
@@ -39,19 +38,14 @@ document.addEventListener('DOMContentLoaded', () => {
     renderUserInfo();
     startApp();
   }
-
   setupNav();
   setupHamburger();
 });
 
 async function startApp() {
-  try {
-    await loadConfig(); 
-  } catch (error) {
-    console.error("Помилка завантаження токена:", error);
-  }
+  try { await loadConfig(); } catch (error) { console.error("Помилка завантаження токена:", error); }
 
-  initPresence(); // Запуск системи онлайн-статусу
+  initPresence(); 
   listenTeachers();
   listenPricing();
   listenEvents();
@@ -82,7 +76,6 @@ async function startApp() {
 function initPresence() {
   if (!currentUser) return;
   
-  // Ключі в Firebase не можуть містити крапок та спецсимволів
   const safeKey = currentUser.replace(/[.#$[\]]/g, '_');
   const myPresenceRef = db.ref('presence/' + safeKey);
   
@@ -94,17 +87,11 @@ function initPresence() {
     });
   };
 
-  // Відстежуємо чи вкладка в фокусі
   window.addEventListener('focus', () => updatePresence(true));
   window.addEventListener('blur',  () => updatePresence(false));
-  
-  // Видаляємо статус, якщо користувач закрив вкладку або відключився інтернет
   myPresenceRef.onDisconnect().remove();
-  
-  // Встановлюємо початковий стан (чи активна вкладка при завантаженні)
   updatePresence(document.hasFocus());
 
-  // Слухаємо дані інших менеджерів для рендеру
   db.ref('presence').on('value', snap => {
     const data = snap.val() || {};
     renderPresence(data);
@@ -117,22 +104,21 @@ function renderPresence(data) {
   let zIndexCount = 50;
   
   Object.values(data).forEach(user => {
-    // Якщо користувач не в фокусі більше ніж 2 години — ігноруємо його
     if (!user.active && now - user.updatedAt > 2 * 60 * 60 * 1000) return;
     
     const initial = user.name ? user.name.charAt(0).toUpperCase() : '?';
     const statusClass = user.active ? 'active' : 'inactive';
-    const title = `${user.name} (${user.active ? 'Онлайн' : 'Відійшов'})`;
+    const statusText = user.active ? 'Онлайн' : 'Відійшов';
     
     html += `
-      <div class="presence-avatar" title="${title}" style="z-index: ${zIndexCount--}">
-        ${initial}
+      <div class="presence-avatar" style="z-index: ${zIndexCount--}">
+        <div class="presence-initial">${initial}</div>
+        <span class="presence-name">${user.name} (${statusText})</span>
         <div class="presence-dot ${statusClass}"></div>
       </div>
     `;
   });
 
-  // Додаємо аватарки у ВСІ заголовки сторінок, щоб їх було видно незалежно від вкладки
   document.querySelectorAll('.page-header-left').forEach(header => {
     let container = header.querySelector('.presence-container');
     if (!container) {
@@ -228,7 +214,6 @@ function renderUserInfo() {
 }
 
 document.getElementById('btn-change-name').addEventListener('click', () => {
-  // Видаляємо статус перед виходом
   if (currentUser) {
     const safeKey = currentUser.replace(/[.#$[\]]/g, '_');
     db.ref('presence/' + safeKey).remove();
@@ -320,7 +305,7 @@ function listenTeachers() {
     const bts = document.getElementById('block-teacher-select');
     if (bts) {
       const cur = bts.value;
-      bts.innerHTML = '<option value="">🚫 Всі (загальне блокування)</option>';
+      bts.innerHTML = '<option value="">Всі (загальне блокування)</option>';
       Object.values(teachers).forEach(t => {
         const opt = document.createElement('option');
         opt.value = t.id; opt.textContent = t.name; bts.appendChild(opt);
@@ -443,18 +428,17 @@ function refreshCalendar() {
     eventsArray.push({
       id: 'block_' + id,
       groupId: 'blocked_zone',
-      title: isGlobal ? `🚫 ${b.title || 'ЗАЙНЯТО'}` : `🔒 ${b.title || 'ЗАЙНЯТО'} (${teachers[b.teacherId]?.name || ''})`,
+      title: isGlobal ? (b.title || 'ЗАЙНЯТО') : `${b.title || 'ЗАЙНЯТО'} (${teachers[b.teacherId]?.name || ''})`,
       startTime: b.start,
       endTime:   b.end,
       daysOfWeek: b.days,
       endRecur:  b.until || null,
       display:   'background',
-      color:     isGlobal ? '#fee2e2' : '#dbeafe',
+      classNames: isGlobal ? ['fc-block-global'] : ['fc-block-teacher'],
       overlap:   false
     });
   });
 
-  // Гарантоване перемалювання: видаляємо всі джерела даних і додаємо нове
   calendarInstance.removeAllEventSources();
   calendarInstance.addEventSource(eventsArray);
 }
@@ -567,10 +551,10 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
   const checkEnd   = parseDateTime(date, endTime);
 
   if (isTimeBlocked(checkStart, checkEnd, null, true)) {
-    showToast('🚫 Цей час заблоковано для всіх', 'error'); return;
+    showToast('Цей час заблоковано для всіх', 'error'); return;
   }
   if (assignedPersonId && isTimeBlocked(checkStart, checkEnd, assignedPersonId, false)) {
-    showToast(`🔒 Цей час заблоковано для вчителя ${teacherName(assignedPersonId)}`, 'error'); return;
+    showToast(`Цей час заблоковано для вчителя ${teacherName(assignedPersonId)}`, 'error'); return;
   }
 
   const data = { title, description, phone, date, startTime, endTime, assignedPersonId };
@@ -832,7 +816,7 @@ function renderBlockedTimes() {
   const sel = document.getElementById('block-teacher-select');
   if (sel) {
     const cur = sel.value;
-    sel.innerHTML = '<option value="">🚫 Всі (загальне блокування)</option>';
+    sel.innerHTML = '<option value="">Всі (загальне блокування)</option>';
     Object.values(teachers).forEach(t => {
       const opt = document.createElement('option');
       opt.value = t.id; opt.textContent = t.name; sel.appendChild(opt);
@@ -951,7 +935,6 @@ function deleteTeacher(id, name) {
   showConfirm(`Видалити вчителя "${name}"?`, async () => { await db.ref('people/' + id).remove(); showToast('Видалено', 'info'); });
 }
 
-// ── BLOCKED TIME HELPER ───────────────────────────────────────
 function isTimeBlocked(startDT, endDT, teacherId, globalOnly) {
   return Object.values(blockedTimes).some(b => {
     if (globalOnly && b.teacherId) return false;
@@ -1013,12 +996,8 @@ async function sendTelegram(status, ev) {
   const escapeHTML = (str) => { if (!str) return ''; return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
   const tName = teacherName(ev.assignedPersonId) || 'Не призначено';
   const safeTitle = escapeHTML(ev.title), safeTeacher = escapeHTML(tName), safeUser = escapeHTML(currentUser);
-  let statusIcon = 'ℹ️';
-  if (status === 'СТВОРЕНО') statusIcon = '🆕';
-  else if (status === 'ПІДТВЕРДЖЕНО') statusIcon = '✅';
-  else if (status === 'СКАСОВАНО') statusIcon = '❌';
 
-  const text = `${statusIcon} <b>${status}</b>\n\n📌 <b>Подія:</b> ${safeTitle}\n🗓 <b>Час:</b> ${ev.date} (з ${ev.startTime} до ${ev.endTime})\n🧑‍🏫 <b>Вчитель:</b> ${safeTeacher}\n\n👤 <i>Менеджер: ${safeUser}</i>`;
+  const text = `<b>[${status}]</b>\n\n<b>Подія:</b> ${safeTitle}\n<b>Час:</b> ${ev.date} (${ev.startTime} - ${ev.endTime})\n<b>Вчитель:</b> ${safeTeacher}\n\n<i>Менеджер: ${safeUser}</i>`;
 
   if (ev.telegramMessageId) {
     try { await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/deleteMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: TELEGRAM.CHAT_ID, message_id: ev.telegramMessageId }) }); } catch (err) {}
