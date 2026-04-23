@@ -246,7 +246,7 @@ function listenTeachers() {
     const bts = document.getElementById('block-teacher-select');
     if (bts) {
       const cur = bts.value;
-      bts.innerHTML = '<option value="">🚫 Всі (загальне блокування)</option>';
+      bts.innerHTML = '<option value="">Всі (загальне блокування)</option>';
       Object.values(teachers).forEach(t => {
         const opt = document.createElement('option');
         opt.value = t.id; opt.textContent = t.name; bts.appendChild(opt);
@@ -299,7 +299,6 @@ function initCalendar() {
     locale:                'uk',
 
     // Перевіряємо чи можна виділяти час (глобальні блокування)
-    // Блокування по конкретному вчителю перевіряється при збереженні події
     selectAllow: function(selectInfo) {
       return !isTimeBlocked(selectInfo.start, selectInfo.end, null, true);
     },
@@ -366,19 +365,19 @@ function refreshCalendar() {
 
   // 2. Блокування робочих зон (Background Events)
   Object.entries(blockedTimes).forEach(([id, b]) => {
-    // Глобальні блокування — червоний фон (нікому не можна)
-    // Блокування вчителя — синій фон (тільки цьому вчителю не можна)
     const isGlobal = !b.teacherId;
+    const tName = teachers[b.teacherId]?.name || '';
+    
     calendarInstance.addEvent({
       id: 'block_' + id,
       groupId: 'blocked_zone',
-      title: isGlobal ? `🚫 ${b.title || 'ЗАЙНЯТО'}` : `🔒 ${b.title || 'ЗАЙНЯТО'} (${teachers[b.teacherId]?.name || ''})`,
+      title: isGlobal ? (b.title || 'ЗАЙНЯТО') : `${b.title || 'ЗАЙНЯТО'} (${tName})`,
       startTime: b.start,
       endTime:   b.end,
       daysOfWeek: b.days,
       endRecur:  b.until || null,
       display:   'background',
-      color:     isGlobal ? '#fee2e2' : '#dbeafe',
+      classNames: isGlobal ? ['fc-block-global'] : ['fc-block-teacher'],
       overlap:   false
     });
   });
@@ -494,11 +493,11 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
 
   // 1. Загальне блокування — заблоковано для всіх
   if (isTimeBlocked(checkStart, checkEnd, null, true)) {
-    showToast('🚫 Цей час заблоковано для всіх', 'error'); return;
+    showToast('Цей час заблоковано для всіх', 'error'); return;
   }
   // 2. Блокування конкретного вчителя
   if (assignedPersonId && isTimeBlocked(checkStart, checkEnd, assignedPersonId, false)) {
-    showToast(`🔒 Цей час заблоковано для вчителя ${teacherName(assignedPersonId)}`, 'error'); return;
+    showToast(`Цей час заблоковано для вчителя ${teacherName(assignedPersonId)}`, 'error'); return;
   }
 
   const data = { title, description, phone, date, startTime, endTime, assignedPersonId };
@@ -733,7 +732,6 @@ function saveBlockedTime() {
   if (days.length === 0)    { showToast('Оберіть хоча б один день', 'error'); return; }
   if (!start || !end)       { showToast('Вкажіть час початку і кінця', 'error'); return; }
 
-  // teacherId = '' = блокування для ВСІХ; інакше — тільки для конкретного вчителя
   const data = { title, until: until || '', start, end, days, teacherId };
   db.ref('settings/blockedTimes').push(data).then(() => {
     showToast('Блокування додано', 'success');
@@ -758,7 +756,6 @@ function renderBlockedTimes() {
   tbody.innerHTML = '';
   const dayNames = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
-  // Populate block-teacher-select in form
   const sel = document.getElementById('block-teacher-select');
   if (sel) {
     const cur = sel.value;
@@ -779,8 +776,8 @@ function renderBlockedTimes() {
     const tr = document.createElement('tr');
     const daysStr = (b.days || []).map(d => dayNames[d]).join(', ');
     const scope = b.teacherId
-      ? `<span class="badge" style="background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue)">${teachers[b.teacherId]?.name || 'Невідомо'}</span>`
-      : `<span class="badge" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red)">Всі</span>`;
+      ? `<span class="badge" style="background:var(--blue-bg);color:var(--blue-text);border:1px solid var(--blue)">${teachers[b.teacherId]?.name || 'Невідомо'}</span>`
+      : `<span class="badge" style="background:var(--red-bg);color:var(--red-text);border:1px solid var(--red)">Всі</span>`;
     tr.innerHTML = `
       <td><strong>${b.title || 'Зайнято'}</strong></td>
       <td>${scope}</td>
@@ -876,19 +873,14 @@ function deleteTeacher(id, name) {
 
 
 // ── BLOCKED TIME HELPER ───────────────────────────────────────
-// globalOnly=true: перевіряємо тільки загальні блокування (без прив'язки до вчителя)
-// globalOnly=false: перевіряємо загальні + блокування конкретного вчителя (teacherId)
 function isTimeBlocked(startDT, endDT, teacherId, globalOnly) {
   return Object.values(blockedTimes).some(b => {
-    // Якщо globalOnly — пропускаємо блокування вчителів
     if (globalOnly && b.teacherId) return false;
-    // Якщо перевіряємо конкретного вчителя — враховуємо тільки загальні і його блокування
     if (!globalOnly && b.teacherId && b.teacherId !== teacherId) return false;
 
     const dayMatches = (b.days || []).includes(startDT.getDay());
     if (!dayMatches) return false;
 
-    // Перевірка дати завершення блокування
     if (b.until) {
       const untilDate = new Date(b.until + 'T23:59:59');
       if (startDT > untilDate) return false;
@@ -942,12 +934,8 @@ async function sendTelegram(status, ev) {
   const escapeHTML = (str) => { if (!str) return ''; return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
   const tName = teacherName(ev.assignedPersonId) || 'Не призначено';
   const safeTitle = escapeHTML(ev.title), safeTeacher = escapeHTML(tName), safeUser = escapeHTML(currentUser);
-  let statusIcon = 'ℹ️';
-  if (status === 'СТВОРЕНО') statusIcon = '🆕';
-  else if (status === 'ПІДТВЕРДЖЕНО') statusIcon = '✅';
-  else if (status === 'СКАСОВАНО') statusIcon = '❌';
 
-  const text = `${statusIcon} <b>${status}</b>\n\n📌 <b>Подія:</b> ${safeTitle}\n🗓 <b>Час:</b> ${ev.date} (з ${ev.startTime} до ${ev.endTime})\n🧑‍🏫 <b>Вчитель:</b> ${safeTeacher}\n\n👤 <i>Менеджер: ${safeUser}</i>`;
+  const text = `<b>[${status}]</b>\n\n<b>Подія:</b> ${safeTitle}\n<b>Час:</b> ${ev.date} (з ${ev.startTime} до ${ev.endTime})\n<b>Вчитель:</b> ${safeTeacher}\n\n<i>Менеджер: ${safeUser}</i>`;
 
   if (ev.telegramMessageId) {
     try { await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/deleteMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: TELEGRAM.CHAT_ID, message_id: ev.telegramMessageId }) }); } catch (err) {}
