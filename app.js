@@ -242,6 +242,20 @@ function listenTeachers() {
     if (activePage === 'pricing-page')  renderPricing();
     if (activePage === 'stats-page')    renderStats();
     populateOverrideSelect();
+    // Оновити селект вчителів в формі блокування
+    const bts = document.getElementById('block-teacher-select');
+    if (bts) {
+      const cur = bts.value;
+      bts.innerHTML = '<option value="">🚫 Всі (загальне блокування)</option>';
+      Object.values(teachers).forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id; opt.textContent = t.name; bts.appendChild(opt);
+      });
+      bts.value = cur;
+    }
+    // Перемалювати таблицю блокувань якщо відкрита
+    const ap = document.querySelector('.page.active')?.id;
+    if (ap === 'schedule-page') renderBlockedTimes();
   });
 }
 
@@ -284,23 +298,10 @@ function initCalendar() {
     selectMirror:          true,
     locale:                'uk',
 
-    // ЦЯ ФУНКЦІЯ ЗАБОРОНЯЄ ВИДІЛЯТИ ЧАС, ЯКИЙ ПЕРЕКРИВАЄТЬСЯ З БЛОКУВАННЯМ
+    // Перевіряємо чи можна виділяти час (глобальні блокування)
+    // Блокування по конкретному вчителю перевіряється при збереженні події
     selectAllow: function(selectInfo) {
-      const blocked = Object.values(blockedTimes).some(b => {
-        const dayMatches = b.days.includes(selectInfo.start.getDay());
-        if (!dayMatches) return false;
-
-        const selStart = selectInfo.start.getHours() * 60 + selectInfo.start.getMinutes();
-        const selEnd = selectInfo.end.getHours() * 60 + selectInfo.end.getMinutes();
-        
-        const [bStartH, bStartM] = b.start.split(':').map(Number);
-        const [bEndH, bEndM] = b.end.split(':').map(Number);
-        const blockStart = bStartH * 60 + bStartM;
-        const blockEnd = bEndH * 60 + bEndM;
-
-        return selStart < blockEnd && selEnd > blockStart;
-      });
-      return !blocked;
+      return !isTimeBlocked(selectInfo.start, selectInfo.end, null, true);
     },
 
     select(info) {
@@ -365,17 +366,20 @@ function refreshCalendar() {
 
   // 2. Блокування робочих зон (Background Events)
   Object.entries(blockedTimes).forEach(([id, b]) => {
+    // Глобальні блокування — червоний фон (нікому не можна)
+    // Блокування вчителя — синій фон (тільки цьому вчителю не можна)
+    const isGlobal = !b.teacherId;
     calendarInstance.addEvent({
       id: 'block_' + id,
       groupId: 'blocked_zone',
-      title: b.title || 'ЗАЙНЯТО',
+      title: isGlobal ? `🚫 ${b.title || 'ЗАЙНЯТО'}` : `🔒 ${b.title || 'ЗАЙНЯТО'} (${teachers[b.teacherId]?.name || ''})`,
       startTime: b.start,
-      endTime: b.end,
+      endTime:   b.end,
       daysOfWeek: b.days,
-      endRecur: b.until ? b.until : null,
-      display: 'background',
-      color: '#fee2e2',
-      overlap: false 
+      endRecur:  b.until || null,
+      display:   'background',
+      color:     isGlobal ? '#fee2e2' : '#dbeafe',
+      overlap:   false
     });
   });
 }
@@ -480,8 +484,21 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
   const endTime     = document.getElementById('event-end').value;
   const assignedPersonId = document.getElementById('event-teacher').value;
 
-  if (!title || !date || !startTime || !endTime) { 
-    showToast('Заповніть обов\'язкові поля', 'error'); return; 
+  if (!title || !date || !startTime || !endTime) {
+    showToast("Заповніть обов'язкові поля", 'error'); return;
+  }
+
+  // Перевіряємо блокування часу з урахуванням вчителя
+  const checkStart = parseDateTime(date, startTime);
+  const checkEnd   = parseDateTime(date, endTime);
+
+  // 1. Загальне блокування — заблоковано для всіх
+  if (isTimeBlocked(checkStart, checkEnd, null, true)) {
+    showToast('🚫 Цей час заблоковано для всіх', 'error'); return;
+  }
+  // 2. Блокування конкретного вчителя
+  if (assignedPersonId && isTimeBlocked(checkStart, checkEnd, assignedPersonId, false)) {
+    showToast(`🔒 Цей час заблоковано для вчителя ${teacherName(assignedPersonId)}`, 'error'); return;
   }
 
   const data = { title, description, phone, date, startTime, endTime, assignedPersonId };
@@ -704,22 +721,27 @@ function listenBlockedTimes() {
 }
 
 function saveBlockedTime() {
-  const title = document.getElementById('block-title').value.trim();
-  const until = document.getElementById('block-until').value; 
-  const start = document.getElementById('block-start').value; 
-  const end = document.getElementById('block-end').value; 
+  const title     = document.getElementById('block-title').value.trim();
+  const until     = document.getElementById('block-until').value;
+  const start     = document.getElementById('block-start').value;
+  const end       = document.getElementById('block-end').value;
+  const teacherId = document.getElementById('block-teacher-select').value || '';
   const days = [];
-  document.querySelectorAll('.day-checkbox:checked').forEach(cb => { days.push(parseInt(cb.value)); });
+  document.querySelectorAll('.day-checkbox:checked').forEach(cb => days.push(parseInt(cb.value)));
 
-  if (days.length === 0 || !start || !end) { showToast('Оберіть дні та час', 'error'); return; }
+  if (!title)               { showToast("Введіть назву блокування", 'error'); return; }
+  if (days.length === 0)    { showToast('Оберіть хоча б один день', 'error'); return; }
+  if (!start || !end)       { showToast('Вкажіть час початку і кінця', 'error'); return; }
 
-  const data = { title, until, start, end, days };
+  // teacherId = '' = блокування для ВСІХ; інакше — тільки для конкретного вчителя
+  const data = { title, until: until || '', start, end, days, teacherId };
   db.ref('settings/blockedTimes').push(data).then(() => {
     showToast('Блокування додано', 'success');
     document.getElementById('block-title').value = '';
     document.getElementById('block-until').value = '';
     document.getElementById('block-start').value = '';
-    document.getElementById('block-end').value = '';
+    document.getElementById('block-end').value   = '';
+    document.getElementById('block-teacher-select').value = '';
     document.querySelectorAll('.day-checkbox').forEach(cb => cb.checked = false);
   });
 }
@@ -735,10 +757,37 @@ function renderBlockedTimes() {
   if (!tbody) return;
   tbody.innerHTML = '';
   const dayNames = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+
+  // Populate block-teacher-select in form
+  const sel = document.getElementById('block-teacher-select');
+  if (sel) {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Всі (загальне блокування)</option>';
+    Object.values(teachers).forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id; opt.textContent = t.name; sel.appendChild(opt);
+    });
+    sel.value = cur;
+  }
+
+  if (Object.keys(blockedTimes).length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">Блокувань ще немає</td></tr>';
+    return;
+  }
+
   Object.entries(blockedTimes).forEach(([id, b]) => {
     const tr = document.createElement('tr');
-    const daysStr = b.days.map(d => dayNames[d]).join(', ');
-    tr.innerHTML = `<td><strong>${b.title || 'Зайнято'}</strong></td><td>${daysStr}</td><td>${b.start} – ${b.end}</td><td>${b.until || '∞'}</td><td><button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteBlockedTime('${id}')">Видалити</button></td>`;
+    const daysStr = (b.days || []).map(d => dayNames[d]).join(', ');
+    const scope = b.teacherId
+      ? `<span class="badge" style="background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue)">${teachers[b.teacherId]?.name || 'Невідомо'}</span>`
+      : `<span class="badge" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red)">Всі</span>`;
+    tr.innerHTML = `
+      <td><strong>${b.title || 'Зайнято'}</strong></td>
+      <td>${scope}</td>
+      <td>${daysStr}</td>
+      <td>${b.start} – ${b.end}</td>
+      <td>${b.until || '∞'}</td>
+      <td><button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteBlockedTime('${id}')">Видалити</button></td>`;
     tbody.appendChild(tr);
   });
 }
@@ -823,6 +872,37 @@ document.getElementById('teacher-save-btn').addEventListener('click', async () =
 
 function deleteTeacher(id, name) {
   showConfirm(`Видалити вчителя "${name}"?`, async () => { await db.ref('people/' + id).remove(); showToast('Видалено', 'info'); });
+}
+
+
+// ── BLOCKED TIME HELPER ───────────────────────────────────────
+// globalOnly=true: перевіряємо тільки загальні блокування (без прив'язки до вчителя)
+// globalOnly=false: перевіряємо загальні + блокування конкретного вчителя (teacherId)
+function isTimeBlocked(startDT, endDT, teacherId, globalOnly) {
+  return Object.values(blockedTimes).some(b => {
+    // Якщо globalOnly — пропускаємо блокування вчителів
+    if (globalOnly && b.teacherId) return false;
+    // Якщо перевіряємо конкретного вчителя — враховуємо тільки загальні і його блокування
+    if (!globalOnly && b.teacherId && b.teacherId !== teacherId) return false;
+
+    const dayMatches = (b.days || []).includes(startDT.getDay());
+    if (!dayMatches) return false;
+
+    // Перевірка дати завершення блокування
+    if (b.until) {
+      const untilDate = new Date(b.until + 'T23:59:59');
+      if (startDT > untilDate) return false;
+    }
+
+    const selStart = startDT.getHours() * 60 + startDT.getMinutes();
+    const selEnd   = endDT.getHours()   * 60 + endDT.getMinutes();
+    const [bSH, bSM] = b.start.split(':').map(Number);
+    const [bEH, bEM] = b.end.split(':').map(Number);
+    const blockStart = bSH * 60 + bSM;
+    const blockEnd   = bEH * 60 + bEM;
+
+    return selStart < blockEnd && selEnd > blockStart;
+  });
 }
 
 // ── HELPERS ──────────────────────────────────────────────────
