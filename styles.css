@@ -1,5 +1,5 @@
 /* =========================================
-   EduCRM — Premium UI v3 (styles.css)
+   EduCRM — Premium UI v4 (styles.css)
    Aesthetic: Clean modern SaaS, high-fidelity
    Font: Nunito + JetBrains Mono
 ========================================= */
@@ -46,7 +46,7 @@
   --radius-sm:  12px;
   --radius-lg:  24px;
 
-  /* Soft SaaS Shadows */
+  /* Shadows */
   --shadow-xs:  0 2px 4px rgba(13, 20, 33, 0.02);
   --shadow-sm:  0 4px 12px rgba(13, 20, 33, 0.04), 0 1px 3px rgba(13, 20, 33, 0.02);
   --shadow-md:  0 10px 28px rgba(13, 20, 33, 0.06), 0 4px 10px rgba(13, 20, 33, 0.03);
@@ -167,7 +167,7 @@ nav { display: flex; flex-direction: column; gap: 4px; padding: 10px 16px; flex:
   display: flex; justify-content: space-between; align-items: center;
   padding: 32px 32px 20px; flex-shrink: 0; flex-wrap: wrap; gap: 16px;
 }
-.page-header-left { display: flex; align-items: center; gap: 16px; }
+.page-header-left { display: flex; align-items: center; gap: 16px; flex: 1; }
 .page-header h2 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
 
 .page-content {
@@ -204,11 +204,11 @@ nav { display: flex; flex-direction: column; gap: 4px; padding: 10px 16px; flex:
 .btn-sm { padding: 8px 16px; font-size: 13px; border-radius: 10px; }
 
 /* ── FORMS (Beautiful SaaS Inputs) ── */
-.form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; width: 100%; }
+.form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; width: 100%; }
 .form-row { display: flex; gap: 20px; width: 100%; }
 .form-row > .form-group { flex: 1; min-width: 0; }
 .form-label {
-  font-size: 11.5px; color: var(--text3); font-weight: 700;
+  font-size: 11.5px; color: var(--text3); font-weight: 800;
   text-transform: uppercase; letter-spacing: 0.6px;
 }
 .form-control {
@@ -237,24 +237,62 @@ select.form-control {
   padding-right: 40px;
 }
 
-/* ── STATS STRIP (Completed Page) ── */
-.completed-header { padding: 32px 32px 20px; }
-.completed-header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;}
+/* ── COMPLETED HEADER (One Row) ── */
+.completed-header {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 32px 32px 24px !important;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.completed-header-top { 
+  display: flex; align-items: center; gap: 20px; margin-bottom: 0 !important; flex: 1;
+}
 .completed-stats-row {
-  display: flex; align-items: center; gap: 32px;
+  margin: 0 !important;
+  display: flex; align-items: center; gap: 24px;
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px 32px;
-  box-shadow: var(--shadow-sm);
-  width: fit-content;
+  padding: 12px 28px !important;
+  box-shadow: var(--shadow-xs);
+  width: auto !important;
 }
 .completed-stat { display: flex; flex-direction: column; gap: 4px; }
 .completed-stat-label { font-size: 11px; font-weight: 800; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; }
-.completed-stat-value { font-size: 24px; font-weight: 800; font-family: var(--font-mono); letter-spacing: -0.5px; color: var(--text); }
-.completed-stat-divider { width: 1px; height: 40px; background: var(--border); }
+.completed-stat-value { font-size: 22px; font-weight: 800; font-family: var(--font-mono); letter-spacing: -0.5px; color: var(--text); }
+.completed-stat-divider { width: 1px; height: 36px; background: var(--border); }
 
-/* ── PRICING & BLOCKED TIME ROWS (Cards) ── */
+/* ── TEACHERS LIST (Cards Layout) ── */
+.teacher-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-xs);
+  width: 100%;
+}
+.teacher-item:hover { border-color: var(--border2); box-shadow: var(--shadow-sm); }
+.teacher-avatar {
+  width: 44px; height: 44px;
+  background: var(--accent-light); color: var(--accent);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 800; flex-shrink: 0;
+}
+.teacher-name { flex: 1; font-size: 16px; font-weight: 700; color: var(--text); }
+.teacher-actions { display: flex; gap: 10px; flex-shrink: 0; }
+.teacher-actions .btn { padding: 8px 14px; font-size: 13px; border-radius: 10px; }
+
+/* ── PRICING & BLOCKED TIME ROWS ── */
 .pricing-section-title {
   font-size: 12px; font-weight: 800; color: var(--text3);
   text-transform: uppercase; letter-spacing: 1px;
@@ -264,12 +302,9 @@ select.form-control {
 .pricing-row {
   display: flex; align-items: center; justify-content: space-between;
   gap: 20px; padding: 16px 20px;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  margin-bottom: 12px;
-  transition: all 0.2s ease;
-  box-shadow: var(--shadow-xs);
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 12px;
+  transition: all 0.2s ease; box-shadow: var(--shadow-xs);
 }
 .pricing-row:hover { border-color: var(--border2); box-shadow: var(--shadow-sm); }
 .pricing-teacher-name { font-weight: 700; font-size: 15px; flex: 1; }
@@ -320,9 +355,22 @@ td { font-weight: 500; }
   border-color: var(--blue); font-weight: 800;
 }
 
+/* ── EVENT STATUS BAR (Inside Modal) ── */
+.event-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 26px !important; /* Даємо багато повітря знизу */
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+}
+.meta-by { font-size: 13px; color: var(--text3); font-weight: 600; }
+
 /* ── BADGES ── */
 .badge {
-  padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
+  padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700;
   display: inline-flex; align-items: center; letter-spacing: 0.3px;
 }
 .badge-pending   { background: var(--yellow-bg); color: var(--yellow-text); }
@@ -339,20 +387,20 @@ td { font-weight: 500; }
 .modal-overlay.open { display: flex; opacity: 1; }
 .modal {
   background: var(--bg2); border-radius: var(--radius-lg); width: 100%; max-width: 540px;
-  padding: 32px; box-shadow: var(--shadow-md); border: 1px solid var(--border);
+  padding: 36px; box-shadow: var(--shadow-md); border: 1px solid var(--border);
   transform: scale(0.95) translateY(10px); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   max-height: 90vh; overflow-y: auto;
 }
 .modal-overlay.open .modal { transform: scale(1) translateY(0); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.modal-title { font-size: 20px; font-weight: 800; color: var(--text); letter-spacing: -0.4px; }
+.modal-title { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.4px; }
 .modal-close {
   background: var(--bg); border: none; width: 36px; height: 36px; border-radius: 50%;
   font-size: 20px; cursor: pointer; color: var(--text3); transition: 0.2s;
   display: flex; align-items: center; justify-content: center;
 }
 .modal-close:hover { background: var(--red-bg); color: var(--red); }
-.modal-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
+.modal-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); }
 
 /* ── TOASTS ── */
 #toast-container { position: fixed; bottom: 32px; right: 32px; display: flex; flex-direction: column; gap: 12px; z-index: 9999; }
@@ -386,16 +434,50 @@ td { font-weight: 500; }
 
 .fc-theme-standard td, .fc-theme-standard th, .fc-theme-standard .fc-scrollgrid { border-color: var(--border) !important; }
 .fc .fc-col-header-cell-cushion { padding: 12px 0 !important; font-size: 13px !important; font-weight: 800 !important; color: var(--text2) !important; text-transform: uppercase; }
+
 .fc-event {
   border-radius: 8px !important; border: none !important; padding: 4px 8px !important;
   font-size: 12.5px !important; font-weight: 700 !important; box-shadow: 0 2px 5px rgba(0,0,0,0.08) !important;
   transition: transform 0.2s !important;
 }
 .fc-event:hover { transform: translateY(-2px) !important; box-shadow: 0 6px 12px rgba(0,0,0,0.15) !important; }
-.fc-event .fc-event-title, .fc-event .fc-event-time { color: white !important; }
+
+/* Кольори статусів */
 .status-pending { background: linear-gradient(135deg, #f59e0b, #d97706) !important; }
 .status-confirmed { background: linear-gradient(135deg, var(--accent), var(--accent-hover)) !important; }
 .status-completed { background: linear-gradient(135deg, var(--green), #047857) !important; }
+
+/* Скасовані події (вирішує проблему перегляду місяця) */
+.fc-event.status-cancelled {
+  background: #e4e8f1 !important; /* Світло-сірий фон */
+  border: 1px dashed #ced4e2 !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+.fc-event.status-cancelled .fc-event-title,
+.fc-event.status-cancelled .fc-event-time,
+.fc-event.status-cancelled .fc-event-title-container {
+  color: #828fa6 !important; /* Темно-сірий текст */
+  text-decoration: line-through;
+}
+.fc-event.status-cancelled:hover { transform: none !important; }
+
+/* Білий текст для звичайних подій (Сітка / Місяць) */
+.fc-timegrid-event .fc-event-title, .fc-timegrid-event .fc-event-time,
+.fc-daygrid-event .fc-event-title, .fc-daygrid-event .fc-event-time {
+  color: white !important;
+}
+
+/* Порядок денний (List View) - темний текст на білому фоні */
+.fc-list-event .fc-event-title,
+.fc-list-event-title a,
+.fc-list-event-time,
+.fc-list-event .fc-event-main {
+  color: var(--text) !important;
+  font-weight: 700 !important;
+}
+.fc-list-event:hover td { background: var(--bg3) !important; }
+
 
 /* ── BLOCKED ZONES (Refined) ── */
 .fc-bg-event { opacity: 1 !important; border-radius: 8px !important; display: flex !important; align-items: center; justify-content: center; background: none !important; border: none !important; }
@@ -415,8 +497,11 @@ td { font-weight: 500; }
   .pricing-input-group { width: 100%; flex-direction: row; justify-content: space-between; align-items: center; }
   .pricing-input-group label { margin-bottom: 0; }
   .pricing-row .btn { width: 100%; margin-top: 8px; }
-  .completed-stats-row { width: 100%; flex-direction: column; align-items: flex-start; gap: 16px; padding: 20px; }
-  .completed-stat-divider { width: 100%; height: 1px; }
+
+  /* Completed header stacking for small screens */
+  .completed-header { flex-direction: column !important; align-items: stretch !important; }
+  .completed-header-top { justify-content: space-between; }
+  .completed-stats-row { width: 100% !important; justify-content: space-between; }
 }
 
 @media (max-width: 768px) {
@@ -435,4 +520,7 @@ td { font-weight: 500; }
   .modal-overlay { padding: 0; align-items: flex-end; }
   
   .fc .fc-toolbar { flex-direction: column; align-items: flex-start; gap: 12px; }
+  
+  .teacher-item { flex-direction: column !important; align-items: stretch !important; gap: 12px; }
+  .teacher-actions { justify-content: flex-end; }
 }
