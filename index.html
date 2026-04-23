@@ -19,7 +19,6 @@
 
 <div id="app">
 
-  <!-- ═══ SIDEBAR ═══ -->
   <aside id="sidebar">
 
     <div class="sidebar-logo">
@@ -138,10 +137,8 @@
 
   <div id="sidebar-overlay"></div>
 
-  <!-- ═══ MAIN ═══ -->
   <main id="main">
 
-    <!-- ── КАЛЕНДАР ── -->
     <div class="page active" id="calendar-page">
       <div class="page-header">
         <div class="page-header-left">
@@ -167,7 +164,6 @@
       </div>
     </div>
 
-    <!-- ── ПІДТВЕРДЖЕНІ ПОДІЇ ── -->
     <div class="page" id="confirmed-list-page">
       <div class="page-header">
         <div class="page-header-left">
@@ -211,7 +207,6 @@
       </div>
     </div>
 
-    <!-- ── ГРАФІК РОБОТИ ── -->
     <div class="page" id="schedule-page">
       <div class="page-header">
         <div class="page-header-left">
@@ -251,7 +246,7 @@
           <div class="form-group">
             <label class="form-label">Для кого</label>
             <select class="form-control" id="block-teacher-select">
-              <option value="">🚫 Всі (загальне блокування)</option>
+              <option value="">Всі (загальне блокування)</option>
             </select>
             <p style="font-size:11px;color:var(--text3);margin-top:4px">
               «Всі» — ніхто не може поставити подію в цей час.<br>
@@ -299,7 +294,6 @@
       </div>
     </div>
 
-    <!-- ── ЗАВЕРШЕНІ ПОДІЇ ── -->
     <div class="page" id="completed-page">
       <div class="completed-header">
         <div class="completed-header-top">
@@ -363,7 +357,6 @@
       </div>
     </div>
 
-    <!-- ── СТАТИСТИКА ── -->
     <div class="page" id="stats-page">
       <div class="page-header">
         <div class="page-header-left">
@@ -407,7 +400,6 @@
       </div>
     </div>
 
-    <!-- ── ЦІНОУТВОРЕННЯ ── -->
     <div class="page" id="pricing-page">
       <div class="page-header">
         <div class="page-header-left">
@@ -464,7 +456,6 @@
       </div>
     </div>
 
-    <!-- ── ВЧИТЕЛІ ── -->
     <div class="page" id="teachers-page">
       <div class="page-header">
         <div class="page-header-left">
@@ -493,7 +484,6 @@
   </main>
 </div>
 
-<!-- ═══ MODAL: ВХІД ═══ -->
 <div class="modal-overlay" id="name-modal">
   <div class="modal login-modal-wrap">
     <div class="login-brand">
@@ -550,7 +540,6 @@
   </div>
 </div>
 
-<!-- ═══ MODAL: ПОДІЯ ═══ -->
 <div class="modal-overlay" id="event-modal">
   <div class="modal">
     <div class="modal-header">
@@ -608,7 +597,6 @@
   </div>
 </div>
 
-<!-- ═══ MODAL: ВЧИТЕЛЬ ═══ -->
 <div class="modal-overlay" id="teacher-modal">
   <div class="modal" style="max-width:400px">
     <div class="modal-header">
@@ -629,7 +617,6 @@
   </div>
 </div>
 
-<!-- ═══ MODAL: ПІДТВЕРДЖЕННЯ ═══ -->
 <div class="modal-overlay" id="confirm-dialog">
   <div class="modal" style="max-width:400px">
     <div class="modal-header">
