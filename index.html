@@ -20,7 +20,6 @@
 <div id="app">
 
   <aside id="sidebar">
-
     <div class="sidebar-logo">
       <div class="sidebar-logo-icon">
         <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
@@ -507,34 +506,28 @@
         <label class="form-label">Електронна пошта</label>
         <input type="email" class="form-control" id="name-input" placeholder="your@email.com" autocomplete="email">
       </div>
-      <div class="login-error" id="login-error">
+      <div class="login-error" id="login-error" style="display:none; align-items:center; gap:8px; color:var(--red); font-size:13px; font-weight:700; margin-top:8px;">
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
         <span id="login-error-text">Пошту не знайдено</span>
       </div>
-      <div class="login-loading" id="login-loading">
-        <div class="spinner"></div>
+      <div class="login-loading" id="login-loading" style="display:none; align-items:center; justify-content:center; gap:8px; color:var(--text3); font-size:13px; font-weight:600; margin-top:12px;">
         <span>Перевірка…</span>
       </div>
-      <button class="btn btn-primary" style="width:100%; margin-top:8px" id="name-save-btn">
+      <button class="btn btn-primary" style="width:100%; margin-top:16px" id="name-save-btn">
         Увійти
-        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-          <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-        </svg>
       </button>
     </div>
 
     <div id="login-step-confirm" style="display:none">
-      <div class="login-email-display">
-        <div class="login-email-dot"></div>
-        <div>Вхід як <strong id="login-confirmed-name"></strong></div>
+      <div style="padding:16px; background:var(--bg); border-radius:var(--radius-sm); border:1px solid var(--border); margin-bottom:20px; text-align:center;">
+        <div style="font-size:12px; color:var(--text3); text-transform:uppercase; font-weight:800; letter-spacing:0.5px; margin-bottom:6px;">Вхід як</div>
+        <strong id="login-confirmed-name" style="font-size:18px; color:var(--text);"></strong>
       </div>
-      <p class="login-hint" style="margin-bottom:0">Профіль знайдено. Натисніть для продовження.</p>
-      <div class="login-divider"></div>
       <div style="display:flex; gap:10px;">
-        <button class="btn btn-ghost" style="flex:1" id="login-back-btn">← Назад</button>
-        <button class="btn btn-primary" style="flex:2" id="login-confirm-btn">Продовжити →</button>
+        <button class="btn btn-ghost" style="flex:1" id="login-back-btn">Назад</button>
+        <button class="btn btn-primary" style="flex:2" id="login-confirm-btn">Продовжити</button>
       </div>
     </div>
   </div>
@@ -544,7 +537,9 @@
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title" id="event-modal-title">Нова подія</span>
-      <button class="modal-close" onclick="closeModal('event-modal')" aria-label="Закрити">×</button>
+      <button class="modal-close" onclick="closeModal('event-modal')" aria-label="Закрити">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="event-id">
@@ -588,7 +583,7 @@
         </div>
       </div>
 
-      <div id="event-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
+      <div id="event-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" id="event-cancel-btn">Скасувати</button>
@@ -601,7 +596,9 @@
   <div class="modal" style="max-width:400px">
     <div class="modal-header">
       <span class="modal-title" id="teacher-modal-title">Додати вчителя</span>
-      <button class="modal-close" onclick="closeModal('teacher-modal')" aria-label="Закрити">×</button>
+      <button class="modal-close" onclick="closeModal('teacher-modal')" aria-label="Закрити">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="teacher-id">
@@ -640,7 +637,7 @@
     document.getElementById(id).classList.remove('open');
   }
 
-  // ── Close modals on backdrop click ──
+  // ── Закриття модальних вікон при кліку на фон ──
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', function(e) {
       if (e.target === this) {
@@ -649,8 +646,7 @@
     });
   });
 
-  // ── Completed page: month filter ──
-  // Override renderCompleted to support month filtering
+  // ── Патч для фільтрації завершених подій по місяцю ──
   const _origRenderCompleted = window.renderCompleted || null;
 
   function renderCompleted() {
@@ -667,7 +663,6 @@
     const tbody = document.getElementById('completed-tbody');
     tbody.innerHTML = '';
 
-    // Format date: 2026-04-09 → 09.04.2026
     function fmtDate(d) {
       if (!d) return '—';
       const parts = d.split('-');
@@ -705,7 +700,7 @@
   }
   window.renderCompleted = renderCompleted;
 
-  // Init filter with current month + attach listener
+  // Ініціалізація фільтра поточним місяцем
   document.addEventListener('DOMContentLoaded', () => {
     const filterEl = document.getElementById('completed-month-filter');
     if (filterEl) {
