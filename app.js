@@ -1145,7 +1145,7 @@ async function sendTelegram(status, ev) {
     const reviewUrl = `${SITE_URL}/review.html?eventId=${ev.id}`;
     payload.reply_markup = {
       inline_keyboard: [[
-        { text: '⭐ Залишити відгук', url: reviewUrl }
+        { text: 'Залишити відгук', url: reviewUrl }
       ]]
     };
   }
