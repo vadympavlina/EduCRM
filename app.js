@@ -10,7 +10,7 @@ const TELEGRAM = {
 };
 
 // ── SITE URL — замін на свій GitHub Pages домен ──────────────
-const SITE_URL = 'https://YOUR_USERNAME.github.io/YOUR_REPO';
+const SITE_URL = 'https://vadympavlina.github.io/EduCRM';
 
 function loadConfig() {
   return db.ref('settings/telegramToken').once('value').then(snap => {
