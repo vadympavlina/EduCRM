@@ -758,3 +758,18 @@ select.form-control {
   box-shadow: 0 0 0 3px rgba(79,110,247,0.12);
 }
 .btn-google:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── PHONE COPY ──────────────────────────────────────────── */
+.phone-copy {
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 600;
+  border-bottom: 1px dashed var(--accent);
+  transition: opacity 0.15s;
+  user-select: none;
+}
+.phone-copy:hover { opacity: 0.75; }
+.phone-copied {
+  color: var(--green, #22c55e) !important;
+  border-bottom-color: var(--green, #22c55e) !important;
+}

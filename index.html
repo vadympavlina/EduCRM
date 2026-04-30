@@ -701,7 +701,7 @@
           <td data-label="Дата">${fmtDate(ev.date)}</td>
           <td data-label="Час">${ev.startTime}–${ev.endTime}</td>
           <td data-label="Вчитель">${teacherName(ev.assignedPersonId) || '—'}</td>
-          <td data-label="Телефон">${ev.phone || '—'}</td>
+          <td data-label="Телефон">${ev.phone ? `<span class="phone-copy" onclick="copyPhone(this, '${ev.phone}')" title="Натисни щоб скопіювати">${ev.phone}</span>` : '—'}</td>
           <td data-label="Договір"><input type="checkbox" ${ev.contractSigned ? 'checked' : ''} onchange="toggleContract('${ev.id}', this.checked)"></td>
           <td data-label="Заробіток" class="earnings-value">₴${earnings}</td>
           <td data-label="Завершив">${ev.completedBy || '—'}</td>`;
@@ -713,6 +713,18 @@
     document.getElementById('completed-contracts').textContent = totalContracts;
   }
   window.renderCompleted = renderCompleted;
+
+  window.copyPhone = function(el, phone) {
+    navigator.clipboard.writeText(phone).then(() => {
+      const prev = el.textContent;
+      el.textContent = 'Скопійовано!';
+      el.classList.add('phone-copied');
+      setTimeout(() => {
+        el.textContent = prev;
+        el.classList.remove('phone-copied');
+      }, 1500);
+    });
+  };
 
   // Ініціалізація фільтра поточним місяцем
   document.addEventListener('DOMContentLoaded', () => {
