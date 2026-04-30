@@ -868,3 +868,35 @@ select.form-control {
   .tbar-value { font-size: 15px; }
   .tbar-icon { width: 22px; height: 22px; border-radius: 6px; }
 }
+
+/* ── REVIEW BLOCK (event modal) ──────────────────────────── */
+.review-block {
+  margin-top: 16px;
+  background: rgba(79,110,247,0.05);
+  border: 1.5px solid rgba(79,110,247,0.18);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.review-block-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.review-block-text {
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+.review-block-meta {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 8px;
+  font-weight: 600;
+}

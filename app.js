@@ -5,9 +5,12 @@
 
 // ── TELEGRAM CONFIG ──────────────────────────────────────────
 const TELEGRAM = {
-  BOT_TOKEN: '',   
-  CHAT_ID:   '-1003992712563'      
+  BOT_TOKEN: '',
+  CHAT_ID:   '-1003992712563'
 };
+
+// ── SITE URL — замін на свій GitHub Pages домен ──────────────
+const SITE_URL = 'https://YOUR_USERNAME.github.io/YOUR_REPO';
 
 function loadConfig() {
   return db.ref('settings/telegramToken').once('value').then(snap => {
@@ -266,7 +269,7 @@ function renderUserInfo() {
     if (!img) {
       img = document.createElement('img');
       img.className = 'user-photo';
-      img.style.cssText = 'width:100%;height:100%;border-radius:25%;object-fit:cover;';
+      img.style.cssText = 'width:100%;height:100%;border-radius:50%;object-fit:cover;';
       avatarDiv.appendChild(img);
     }
     img.src = currentPhotoURL;
@@ -612,6 +615,29 @@ function openEventModal(eventId) {
     actions.appendChild(makeBtn('Завершити', 'btn btn-info btn-sm', () => completeEvent(ev.id)));
   }
   actions.appendChild(makeBtn('Видалити', 'btn btn-ghost btn-sm', () => deleteEvent(ev.id)));
+
+  // Показуємо відгук якщо є
+  const reviewSection = document.getElementById('event-review-section');
+  if (reviewSection) {
+    db.ref('reviews/' + ev.id).once('value').then(snap => {
+      if (snap.exists()) {
+        const r = snap.val();
+        reviewSection.innerHTML = `
+          <div class="review-block">
+            <div class="review-block-label">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              Відгук клієнта
+            </div>
+            <div class="review-block-text">${r.comment}</div>
+            <div class="review-block-meta">${new Date(r.createdAt).toLocaleString('uk-UA')}</div>
+          </div>`;
+      } else {
+        reviewSection.innerHTML = '';
+      }
+    });
+  }
 
   document.getElementById('event-modal').classList.add('open');
 }
@@ -1112,8 +1138,20 @@ async function sendTelegram(status, ev) {
     try { await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/deleteMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: TELEGRAM.CHAT_ID, message_id: ev.telegramMessageId }) }); } catch (err) {}
   }
 
+  const payload = { chat_id: TELEGRAM.CHAT_ID, text: text, parse_mode: 'HTML' };
+
+  // Кнопка відгуку — тільки для підтверджених подій
+  if (status === 'ПІДТВЕРДЖЕНО' && ev.id) {
+    const reviewUrl = `${SITE_URL}/review.html?eventId=${ev.id}`;
+    payload.reply_markup = {
+      inline_keyboard: [[
+        { text: '⭐ Залишити відгук', url: reviewUrl }
+      ]]
+    };
+  }
+
   try {
-    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: TELEGRAM.CHAT_ID, text: text, parse_mode: 'HTML' }) });
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const data = await response.json();
     if (data.ok && data.result && data.result.message_id) { if (ev.id) await db.ref('events/' + ev.id).update({ telegramMessageId: data.result.message_id }); }
   } catch (err) {}

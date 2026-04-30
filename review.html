@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Залишити відгук — EduCRM</title>
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <script src="firebase.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #4f6ef7;
+      --accent-hover: #3b5be8;
+      --bg: #f5f6fa;
+      --card: #ffffff;
+      --border: #e4e6ef;
+      --text: #1a1d2e;
+      --text2: #4b5068;
+      --text3: #9094ab;
+      --red: #ef4444;
+      --green: #22c55e;
+      --radius: 16px;
+      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+    }
+
+    /* ── Brand ── */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .brand-icon {
+      width: 44px; height: 44px;
+      background: var(--accent);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .brand-title { font-size: 18px; font-weight: 800; color: var(--text); }
+    .brand-sub   { font-size: 13px; color: var(--text3); font-weight: 500; }
+
+    /* ── Event info ── */
+    .event-info {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 28px;
+    }
+    .event-info-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .event-info-meta {
+      font-size: 13px;
+      color: var(--text3);
+      font-weight: 500;
+    }
+
+    /* ── Form ── */
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text2);
+      margin-bottom: 8px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 130px;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-family: var(--font);
+      font-size: 14px;
+      color: var(--text);
+      background: var(--card);
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s;
+      line-height: 1.6;
+    }
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: var(--text3); }
+
+    .btn-submit {
+      width: 100%;
+      margin-top: 16px;
+      padding: 13px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .btn-submit:hover    { background: var(--accent-hover); }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* ── States ── */
+    .state { display: none; flex-direction: column; align-items: center; text-align: center; gap: 16px; }
+    .state.active { display: flex; }
+
+    .state-icon {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .state-icon-success { background: rgba(34,197,94,0.12); color: var(--green); }
+    .state-icon-error   { background: rgba(239,68,68,0.12);  color: var(--red); }
+    .state-icon-loading { background: rgba(79,110,247,0.1);  color: var(--accent); }
+
+    .state-title { font-size: 18px; font-weight: 800; color: var(--text); }
+    .state-text  { font-size: 14px; color: var(--text3); line-height: 1.6; max-width: 320px; }
+
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Already reviewed ── */
+    .already-review {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 0;
+    }
+    .already-review-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text3);
+      margin-bottom: 8px;
+    }
+    .already-review-text {
+      font-size: 14px;
+      color: var(--text2);
+      line-height: 1.65;
+    }
+
+    @media (max-width: 500px) {
+      .card { padding: 28px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-title">EduCRM</div>
+      <div class="brand-sub">Відгук про захід</div>
+    </div>
+  </div>
+
+  <!-- Завантаження -->
+  <div class="state active" id="state-loading">
+    <div class="state-icon state-icon-loading">
+      <div class="spinner"></div>
+    </div>
+    <div class="state-text">Завантаження…</div>
+  </div>
+
+  <!-- Форма відгуку -->
+  <div class="state" id="state-form">
+    <div class="event-info" id="event-info-block" style="width:100%"></div>
+    <div style="width:100%">
+      <label class="form-label">Ваш відгук</label>
+      <textarea id="review-text" placeholder="Як пройшов захід? Що сподобалось? Будь-яка думка важлива для нас…"></textarea>
+      <button class="btn-submit" id="btn-submit">Надіслати відгук</button>
+    </div>
+  </div>
+
+  <!-- Вже залишено -->
+  <div class="state" id="state-already">
+    <div class="event-info" id="event-info-already" style="width:100%"></div>
+    <div style="width:100%">
+      <div class="already-review">
+        <div class="already-review-label">Ваш відгук</div>
+        <div class="already-review-text" id="existing-review-text"></div>
+      </div>
+    </div>
+    <div class="state-text" style="margin-top:4px">Відгук вже було залишено. Дякуємо!</div>
+  </div>
+
+  <!-- Успіх -->
+  <div class="state" id="state-success">
+    <div class="state-icon state-icon-success">
+      <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <div class="state-title">Дякуємо!</div>
+    <div class="state-text">Ваш відгук успішно збережено. Це дуже важливо для нас і наших викладачів.</div>
+  </div>
+
+  <!-- Помилка -->
+  <div class="state" id="state-error">
+    <div class="state-icon state-icon-error">
+      <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    </div>
+    <div class="state-title">Помилка</div>
+    <div class="state-text" id="error-text">Щось пішло не так. Спробуйте ще раз або зверніться до організаторів.</div>
+  </div>
+</div>
+
+<script>
+  function showState(id) {
+    document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function eventInfoHTML(ev) {
+    return `
+      <div class="event-info-title">${ev.title || 'Захід'}</div>
+      <div class="event-info-meta">${ev.date || ''} · ${ev.startTime || ''}–${ev.endTime || ''}</div>`;
+  }
+
+  const params  = new URLSearchParams(window.location.search);
+  const eventId = params.get('eventId');
+
+  if (!eventId) {
+    showState('state-error');
+    document.getElementById('error-text').textContent = 'Посилання недійсне — не вказано подію.';
+  } else {
+    // Завантажуємо подію і перевіряємо чи вже є відгук
+    Promise.all([
+      db.ref('events/' + eventId).once('value'),
+      db.ref('reviews/' + eventId).once('value')
+    ]).then(([evSnap, reviewSnap]) => {
+
+      if (!evSnap.exists()) {
+        showState('state-error');
+        document.getElementById('error-text').textContent = 'Подію не знайдено. Посилання може бути застарілим.';
+        return;
+      }
+
+      const ev = evSnap.val();
+
+      if (reviewSnap.exists()) {
+        // Відгук вже є — показуємо його
+        const r = reviewSnap.val();
+        document.getElementById('event-info-already').innerHTML = eventInfoHTML(ev);
+        document.getElementById('existing-review-text').textContent = r.comment;
+        showState('state-already');
+        return;
+      }
+
+      // Показуємо форму
+      document.getElementById('event-info-block').innerHTML = eventInfoHTML(ev);
+      showState('state-form');
+
+      document.getElementById('btn-submit').addEventListener('click', async () => {
+        const comment = document.getElementById('review-text').value.trim();
+        if (!comment) {
+          document.getElementById('review-text').style.borderColor = '#ef4444';
+          setTimeout(() => document.getElementById('review-text').style.borderColor = '', 1500);
+          return;
+        }
+
+        const btn = document.getElementById('btn-submit');
+        btn.disabled = true;
+        btn.textContent = 'Надсилаємо…';
+
+        try {
+          // Ще раз перевіряємо — на випадок якщо хтось відправив паралельно
+          const check = await db.ref('reviews/' + eventId).once('value');
+          if (check.exists()) {
+            const r = check.val();
+            document.getElementById('event-info-already').innerHTML = eventInfoHTML(ev);
+            document.getElementById('existing-review-text').textContent = r.comment;
+            showState('state-already');
+            return;
+          }
+
+          await db.ref('reviews/' + eventId).set({
+            comment,
+            eventId,
+            eventTitle: ev.title || '',
+            createdAt: Date.now()
+          });
+
+          showState('state-success');
+        } catch (err) {
+          btn.disabled = false;
+          btn.textContent = 'Надіслати відгук';
+          showState('state-error');
+        }
+      });
+
+    }).catch(() => {
+      showState('state-error');
+    });
+  }
+</script>
+
+</body>
+</html>
