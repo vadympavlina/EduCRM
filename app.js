@@ -266,7 +266,7 @@ function renderUserInfo() {
     if (!img) {
       img = document.createElement('img');
       img.className = 'user-photo';
-      img.style.cssText = 'width:100%;height:100%;border-radius:25%;object-fit:cover;';
+      img.style.cssText = 'width:100%;height:100%;border-radius:50%;object-fit:cover;';
       avatarDiv.appendChild(img);
     }
     img.src = currentPhotoURL;
@@ -1061,8 +1061,10 @@ async function sendTelegram(status, ev) {
   const escapeHTML = (str) => { if (!str) return ''; return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
   const tName = teacherName(ev.assignedPersonId) || 'Не призначено';
   const safeTitle = escapeHTML(ev.title), safeTeacher = escapeHTML(tName), safeUser = escapeHTML(currentUser);
+  const safeDesc = ev.description ? escapeHTML(ev.description) : '';
 
-  const text = `<b>[${status}]</b>\n\n<b>Подія:</b> ${safeTitle}\n<b>Час:</b> ${ev.date} (${ev.startTime} - ${ev.endTime})\n<b>Вчитель:</b> ${safeTeacher}\n\n<i>Менеджер: ${safeUser}</i>`;
+  const descBlock = safeDesc ? `\n\n<blockquote>${safeDesc}</blockquote>` : '';
+  const text = `<b>[${status}]</b>\n\n<b>Подія:</b> ${safeTitle}\n<b>Час:</b> ${ev.date} (${ev.startTime} - ${ev.endTime})\n<b>Вчитель:</b> ${safeTeacher}${descBlock}\n\n<i>Менеджер: ${safeUser}</i>`;
 
   if (ev.telegramMessageId) {
     try { await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/deleteMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: TELEGRAM.CHAT_ID, message_id: ev.telegramMessageId }) }); } catch (err) {}
