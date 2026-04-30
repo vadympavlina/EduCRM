@@ -337,7 +337,8 @@ function closeSidebar() {
 // ── FIREBASE LISTENERS ───────────────────────────────────────
 function renderDashboardCounters() {
   const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const todayStr  = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const monthStr  = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
 
   let cntToday = 0, cntCompleted = 0, cntContracts = 0, cntCancelled = 0;
 
@@ -347,24 +348,32 @@ function renderDashboardCounters() {
       cntCompleted++;
       if (ev.contractSigned) cntContracts++;
     }
-    if (ev.status === 'cancelled') cntCancelled++;
+    if (ev.status === 'cancelled' && ev.date && ev.date.startsWith(monthStr)) cntCancelled++;
   });
 
   const animate = (id, value) => {
     const el = document.getElementById(id);
     if (!el) return;
-    const prev = parseInt(el.dataset.val) || 0;
-    if (prev === value) { el.textContent = value; return; }
+    const prev = parseInt(el.dataset.val);
+    if (!isNaN(prev) && prev === value) return;
     el.dataset.val = value;
-    el.classList.add('dash-card-value--bump');
     el.textContent = value;
-    setTimeout(() => el.classList.remove('dash-card-value--bump'), 300);
+    el.classList.remove('tbar-bump');
+    void el.offsetWidth; // reflow
+    el.classList.add('tbar-bump');
   };
 
   animate('cnt-today',     cntToday);
   animate('cnt-completed', cntCompleted);
   animate('cnt-contracts', cntContracts);
   animate('cnt-cancelled', cntCancelled);
+}
+
+function goToToday() {
+  navigateTo('calendar');
+  setTimeout(() => {
+    if (calendarInstance) calendarInstance.today();
+  }, 60);
 }
 
 function listenEvents() {
