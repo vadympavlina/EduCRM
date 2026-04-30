@@ -269,7 +269,7 @@ function renderUserInfo() {
     if (!img) {
       img = document.createElement('img');
       img.className = 'user-photo';
-      img.style.cssText = 'width:100%;height:100%;border-radius:50%;object-fit:cover;';
+      img.style.cssText = 'width:100%;height:100%;border-radius:25%;object-fit:cover;';
       avatarDiv.appendChild(img);
     }
     img.src = currentPhotoURL;
