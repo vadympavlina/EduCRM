@@ -21,25 +21,60 @@ function loadConfig() {
 }
 
 // ── STATE ────────────────────────────────────────────────────
-let currentUser  = localStorage.getItem('crm_user_name')  || '';
-let currentEmail = localStorage.getItem('crm_user_email') || '';
-let events    = {};   
-let teachers  = {};   
-let pricing   = { default: { baseReward: 50, contractBonus: 100 }, overrides: {} };
-let blockedTimes = {}; 
+let currentUser     = '';
+let currentEmail    = '';
+let currentPhotoURL = '';
+let events       = {};
+let teachers     = {};
+let pricing      = { default: { baseReward: 50, contractBonus: 100 }, overrides: {} };
+let blockedTimes = {};
 let calendarInstance = null;
 let confirmCallback  = null;
 
 // ── INIT ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  if (!currentUser || !currentEmail) {
-    showLoginModal(true);
-  } else {
-    renderUserInfo();
-    startApp();
-  }
   setupNav();
   setupHamburger();
+
+  // Поки перевіряється авторизація — крутиться лоадер
+  auth.onAuthStateChanged(async (firebaseUser) => {
+    const loader = document.getElementById('auth-loader');
+
+    if (firebaseUser) {
+      try {
+        const snap = await db.ref('users').orderByChild('email')
+          .equalTo(firebaseUser.email.toLowerCase()).once('value');
+        const data = snap.val();
+
+        if (!data) {
+          await auth.signOut();
+          loader.style.display = 'none';
+          showLoginModal(true);
+          showLoginError('Цей акаунт не має доступу до системи');
+          return;
+        }
+
+        const uid  = Object.keys(data)[0];
+        const user = data[uid];
+
+        currentUser     = user.name || firebaseUser.displayName || firebaseUser.email;
+        currentEmail    = firebaseUser.email;
+        currentPhotoURL = firebaseUser.photoURL || '';
+
+        loader.style.display = 'none';
+        renderUserInfo();
+        startApp();
+      } catch (err) {
+        console.error('Помилка перевірки юзера:', err);
+        loader.style.display = 'none';
+        showLoginModal(true);
+        showLoginError('Помилка підключення. Спробуйте ще раз.');
+      }
+    } else {
+      loader.style.display = 'none';
+      showLoginModal(true);
+    }
+  });
 });
 
 async function startApp() {
@@ -130,73 +165,84 @@ function renderPresence(data) {
   });
 }
 
-// ── LOGIN (email-based) ──────────────────────────────────────
+// ── LOGIN (Google Auth) ──────────────────────────────────────
 function showLoginModal(required = false) {
-  const overlay    = document.getElementById('name-modal');
-  const input      = document.getElementById('name-input');
-  const saveBtn    = document.getElementById('name-save-btn');
-  const errorEl    = document.getElementById('login-error');
-  const loadingEl  = document.getElementById('login-loading');
-  const stepEmail  = document.getElementById('login-step-email');
-  const stepConfirm = document.getElementById('login-step-confirm');
+  const overlay      = document.getElementById('name-modal');
+  const stepGoogle   = document.getElementById('login-step-google');
+  const stepConfirm  = document.getElementById('login-step-confirm');
+  const errorEl      = document.getElementById('login-error');
+  const googleBtn    = document.getElementById('btn-google-signin');
 
-  stepEmail.style.display   = '';
+  stepGoogle.style.display  = '';
   stepConfirm.style.display = 'none';
   errorEl.style.display     = 'none';
-  loadingEl.style.display   = 'none';
-  input.value = '';
 
   overlay.classList.add('open');
-  setTimeout(() => input.focus(), 180);
 
-  input.onkeydown = e => { if (e.key === 'Enter') saveBtn.click(); };
+  let pendingGoogleUser = null;
 
-  saveBtn.onclick = async () => {
-    const email = input.value.trim().toLowerCase();
-    if (!email) { showLoginError('Введіть пошту'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showLoginError('Невірний формат пошти'); return; }
-
-    errorEl.style.display   = 'none';
-    loadingEl.style.display = 'flex';
-    saveBtn.disabled = true;
+  googleBtn.onclick = async () => {
+    errorEl.style.display = 'none';
+    googleBtn.disabled = true;
+    googleBtn.style.opacity = '0.7';
 
     try {
-      const snap = await db.ref('users').orderByChild('email').equalTo(email).once('value');
+      const provider = new firebase.auth.GoogleAuthProvider();
+      const result   = await auth.signInWithPopup(provider);
+      const gUser    = result.user;
+
+      // Перевіряємо чи є у БД
+      const snap = await db.ref('users').orderByChild('email')
+        .equalTo(gUser.email.toLowerCase()).once('value');
       const data = snap.val();
 
-      loadingEl.style.display = 'none';
-      saveBtn.disabled = false;
+      googleBtn.disabled = false;
+      googleBtn.style.opacity = '';
 
-      if (!data) { showLoginError('Пошту не знайдено в системі'); return; }
+      if (!data) {
+        await auth.signOut();
+        showLoginError('Цей акаунт не має доступу до системи');
+        return;
+      }
 
       const uid  = Object.keys(data)[0];
       const user = data[uid];
+      pendingGoogleUser = { gUser, dbUser: user };
 
-      stepEmail.style.display   = 'none';
+      // Показуємо крок підтвердження
+      stepGoogle.style.display  = 'none';
       stepConfirm.style.display = '';
-      document.getElementById('login-confirmed-name').textContent = user.name;
+
+      const avatar = document.getElementById('login-google-avatar');
+      if (gUser.photoURL) { avatar.src = gUser.photoURL; avatar.style.display = 'block'; }
+      else { avatar.style.display = 'none'; }
+
+      document.getElementById('login-confirmed-name').textContent  = user.name || gUser.displayName;
+      document.getElementById('login-confirmed-email').textContent = gUser.email;
 
       document.getElementById('login-confirm-btn').onclick = () => {
-        currentUser  = user.name;
-        currentEmail = email;
-        localStorage.setItem('crm_user_name',  currentUser);
-        localStorage.setItem('crm_user_email', currentEmail);
+        currentUser     = user.name || gUser.displayName || gUser.email;
+        currentEmail    = gUser.email;
+        currentPhotoURL = gUser.photoURL || '';
         overlay.classList.remove('open');
         renderUserInfo();
         startApp();
       };
 
-      document.getElementById('login-back-btn').onclick = () => {
-        stepEmail.style.display   = '';
+      document.getElementById('login-back-btn').onclick = async () => {
+        await auth.signOut();
+        pendingGoogleUser = null;
+        stepGoogle.style.display  = '';
         stepConfirm.style.display = 'none';
-        input.value = email;
-        setTimeout(() => input.focus(), 100);
+        errorEl.style.display     = 'none';
       };
 
     } catch (err) {
-      loadingEl.style.display = 'none';
-      saveBtn.disabled = false;
-      showLoginError('Помилка підключення. Спробуйте ще раз.');
+      googleBtn.disabled = false;
+      googleBtn.style.opacity = '';
+      if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+        showLoginError('Помилка входу. Спробуйте ще раз.');
+      }
     }
   };
 }
@@ -210,19 +256,38 @@ function showLoginError(msg) {
 function renderUserInfo() {
   document.getElementById('user-name-display').textContent  = currentUser;
   document.getElementById('user-email-display').textContent = currentEmail;
-  document.getElementById('user-avatar-letter').textContent = currentUser.charAt(0).toUpperCase();
+
+  const letterEl  = document.getElementById('user-avatar-letter');
+  const avatarDiv = letterEl.closest('.user-avatar');
+
+  if (currentPhotoURL) {
+    // Показуємо фото з Google
+    let img = avatarDiv.querySelector('img.user-photo');
+    if (!img) {
+      img = document.createElement('img');
+      img.className = 'user-photo';
+      img.style.cssText = 'width:100%;height:100%;border-radius:50%;object-fit:cover;';
+      avatarDiv.appendChild(img);
+    }
+    img.src = currentPhotoURL;
+    letterEl.style.display = 'none';
+  } else {
+    letterEl.textContent   = currentUser.charAt(0).toUpperCase();
+    letterEl.style.display = '';
+    const oldImg = avatarDiv.querySelector('img.user-photo');
+    if (oldImg) oldImg.remove();
+  }
 }
 
-document.getElementById('btn-change-name').addEventListener('click', () => {
+document.getElementById('btn-change-name').addEventListener('click', async () => {
   if (currentUser) {
     const safeKey = currentUser.replace(/[.#$[\]]/g, '_');
     db.ref('presence/' + safeKey).remove();
   }
-  
-  localStorage.removeItem('crm_user_name');
-  localStorage.removeItem('crm_user_email');
-  currentUser  = '';
-  currentEmail = '';
+  currentUser     = '';
+  currentEmail    = '';
+  currentPhotoURL = '';
+  await auth.signOut();
   showLoginModal(true);
 });
 
