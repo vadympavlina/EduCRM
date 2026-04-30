@@ -266,7 +266,7 @@ function renderUserInfo() {
     if (!img) {
       img = document.createElement('img');
       img.className = 'user-photo';
-      img.style.cssText = 'width:100%;height:100%;border-radius:25%;object-fit:cover;';
+      img.style.cssText = 'width:100%;height:100%;border-radius:50%;object-fit:cover;';
       avatarDiv.appendChild(img);
     }
     img.src = currentPhotoURL;
@@ -335,6 +335,38 @@ function closeSidebar() {
 }
 
 // ── FIREBASE LISTENERS ───────────────────────────────────────
+function renderDashboardCounters() {
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+  let cntToday = 0, cntCompleted = 0, cntContracts = 0, cntCancelled = 0;
+
+  Object.values(events).forEach(ev => {
+    if (ev.date === todayStr && ev.status !== 'cancelled') cntToday++;
+    if (ev.status === 'completed') {
+      cntCompleted++;
+      if (ev.contractSigned) cntContracts++;
+    }
+    if (ev.status === 'cancelled') cntCancelled++;
+  });
+
+  const animate = (id, value) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const prev = parseInt(el.dataset.val) || 0;
+    if (prev === value) { el.textContent = value; return; }
+    el.dataset.val = value;
+    el.classList.add('dash-card-value--bump');
+    el.textContent = value;
+    setTimeout(() => el.classList.remove('dash-card-value--bump'), 300);
+  };
+
+  animate('cnt-today',     cntToday);
+  animate('cnt-completed', cntCompleted);
+  animate('cnt-contracts', cntContracts);
+  animate('cnt-cancelled', cntCancelled);
+}
+
 function listenEvents() {
   db.ref('events').on('value', snap => {
     const data = snap.val() || {};
@@ -344,7 +376,8 @@ function listenEvents() {
     });
 
     refreshCalendar();
-    
+    renderDashboardCounters();
+
     const activePage = document.querySelector('.page.active')?.id;
     if (activePage === 'completed-page') renderCompleted();
     if (activePage === 'stats-page')     renderStats();
