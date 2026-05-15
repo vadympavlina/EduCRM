@@ -33,6 +33,9 @@ let pricing      = { default: { baseReward: 50, contractBonus: 100 }, overrides:
 let blockedTimes = {};
 let calendarInstance = null;
 let confirmCallback  = null;
+let allReviews  = {};
+let notifReads  = {};
+const appInitTime = Date.now();
 
 // ── INIT ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -87,7 +90,8 @@ async function startApp() {
   listenTeachers();
   listenPricing();
   listenEvents();
-  listenBlockedTimes(); 
+  listenBlockedTimes();
+  listenReviews();
 
   setTimeout(initCalendar, 200);
 
@@ -166,6 +170,148 @@ function renderPresence(data) {
     }
     container.innerHTML = html;
   });
+}
+
+// ── NOTIFICATIONS (Відгуки) ───────────────────────────────
+function listenReviews() {
+  const managerKey = currentUser.replace(/[.#$[\]]/g, '_');
+
+  // Read-стан цього менеджера (real-time)
+  db.ref('notifReads/' + managerKey).on('value', snap => {
+    notifReads = snap.val() || {};
+    renderNotifBadge();
+    renderNotifPanel();
+  });
+
+  // Всі відгуки — child_added спрацьовує і для існуючих, і для нових
+  db.ref('reviews').on('child_added', snap => {
+    const review = { id: snap.key, ...snap.val() };
+    allReviews[snap.key] = review;
+
+    // Справді новий відгук (прийшов поки застосунок відкритий і не прочитаний)
+    if (review.createdAt > appInitTime && !notifReads[snap.key]) {
+      playBloop();
+    }
+
+    renderNotifBadge();
+    renderNotifPanel();
+  });
+}
+
+function markNotifRead(eventId) {
+  const managerKey = currentUser.replace(/[.#$[\]]/g, '_');
+  db.ref('notifReads/' + managerKey + '/' + eventId).set(true);
+}
+
+function toggleNotifPanel() {
+  const panel   = document.getElementById('notif-panel');
+  const overlay = document.getElementById('notif-overlay');
+  if (!panel || !overlay) return;
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open', !isOpen);
+  overlay.classList.toggle('open', !isOpen);
+}
+
+function closeNotifPanel() {
+  document.getElementById('notif-panel')?.classList.remove('open');
+  document.getElementById('notif-overlay')?.classList.remove('open');
+}
+
+function renderNotifBadge() {
+  const unread = Object.keys(allReviews).filter(id => !notifReads[id]).length;
+  const badge  = document.getElementById('notif-badge');
+  const bell   = document.getElementById('btn-notif-bell');
+  if (!badge || !bell) return;
+  badge.textContent   = unread > 9 ? '9+' : String(unread);
+  badge.style.display = unread > 0 ? 'flex' : 'none';
+  bell.classList.toggle('has-unread', unread > 0);
+  updateFavicon(unread > 0);
+}
+
+function renderNotifPanel() {
+  const list = document.getElementById('notif-list');
+  if (!list) return;
+
+  const reviews = Object.values(allReviews).sort((a, b) => b.createdAt - a.createdAt);
+
+  if (reviews.length === 0) {
+    list.innerHTML = '<div class="notif-empty">Поки що відгуків немає</div>';
+    return;
+  }
+
+  list.innerHTML = reviews.map(r => {
+    const isRead = !!notifReads[r.id];
+    const d      = new Date(r.createdAt);
+    const time   = d.toLocaleString('uk-UA', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const safeTitle   = (r.eventTitle || 'Захід').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeComment = (r.comment    || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return `
+      <div class="notif-item ${isRead ? 'read' : 'unread'}" onclick="markNotifRead('${r.id}')">
+        <div class="notif-item-icon">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <div class="notif-item-body">
+          <div class="notif-item-title">${safeTitle}</div>
+          <div class="notif-item-text">${safeComment}</div>
+          <div class="notif-item-time">${time}</div>
+        </div>
+        ${!isRead ? '<div class="notif-dot"></div>' : ''}
+      </div>`;
+  }).join('');
+}
+
+function updateFavicon(hasUnread) {
+  const links = document.querySelectorAll('link[rel="icon"]');
+  const link  = links[links.length - 1];
+  if (!link) return;
+  if (hasUnread) {
+    link.href = "data:image/svg+xml," + encodeURIComponent(
+      `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>
+        <defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
+          <stop offset='0' stop-color='#4f6ef7'/><stop offset='1' stop-color='#3b5be8'/>
+        </linearGradient></defs>
+        <rect width='32' height='32' rx='9' fill='url(#g)'/>
+        <rect x='7' y='9' width='11' height='2.5' rx='1.25' fill='white'/>
+        <rect x='7' y='14.75' width='18' height='2.5' rx='1.25' fill='white'/>
+        <rect x='7' y='20.5' width='8' height='2.5' rx='1.25' fill='white'/>
+        <circle cx='26' cy='7' r='6' fill='#dc2626'/>
+        <text x='26' y='11' font-family='Arial' font-size='9' font-weight='bold' fill='white' text-anchor='middle'>!</text>
+      </svg>`
+    );
+  } else {
+    link.href = "data:image/svg+xml," + encodeURIComponent(
+      `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>
+        <defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
+          <stop offset='0' stop-color='#4f6ef7'/><stop offset='1' stop-color='#3b5be8'/>
+        </linearGradient></defs>
+        <rect width='32' height='32' rx='9' fill='url(#g)'/>
+        <rect x='7' y='9' width='11' height='2.5' rx='1.25' fill='white'/>
+        <rect x='7' y='14.75' width='18' height='2.5' rx='1.25' fill='white'/>
+        <rect x='7' y='20.5' width='8' height='2.5' rx='1.25' fill='white'/>
+      </svg>`
+    );
+  }
+}
+
+function playBloop() {
+  try {
+    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(420, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
+    osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.22);
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.45);
+    setTimeout(() => ctx.close(), 700);
+  } catch (e) {}
 }
 
 // ── LOGIN (Google Auth) ──────────────────────────────────────
@@ -347,7 +493,8 @@ function renderDashboardCounters() {
 
   Object.values(events).forEach(ev => {
     if (ev.date === todayStr && ev.status !== 'cancelled') cntToday++;
-    if (ev.status === 'completed') {
+    // Тільки поточний місяць
+    if (ev.status === 'completed' && ev.date && ev.date.startsWith(monthStr)) {
       cntCompleted++;
       if (ev.contractSigned) cntContracts++;
     }
@@ -1171,3 +1318,6 @@ window.renderConfirmedList = renderConfirmedList;
 window.printStats = printStats;
 window.saveBlockedTime = saveBlockedTime;
 window.deleteBlockedTime = deleteBlockedTime;
+window.toggleNotifPanel = toggleNotifPanel;
+window.closeNotifPanel  = closeNotifPanel;
+window.markNotifRead    = markNotifRead;
