@@ -403,29 +403,23 @@ function showLoginError(msg) {
 }
 
 function renderUserInfo() {
-  document.getElementById('user-name-display').textContent  = currentUser;
-  document.getElementById('user-email-display').textContent = currentEmail;
+  // Name / email (hidden span kept for compat)
+  const nameEl = document.getElementById('user-name-display');
+  if (nameEl) nameEl.textContent = currentUser;
+  const emailEl = document.getElementById('user-email-display');
+  if (emailEl) emailEl.textContent = currentEmail;
 
-  const letterEl  = document.getElementById('user-avatar-letter');
-  const avatarDiv = letterEl.closest('.user-avatar');
+  // Sidebar avatar (sb-user-av)
+  const sbAv = document.querySelector('.sb-user-av');
+  if (sbAv) sbAv.textContent = currentUser.charAt(0).toUpperCase();
 
-  if (currentPhotoURL) {
-    // Показуємо фото з Google
-    let img = avatarDiv.querySelector('img.user-photo');
-    if (!img) {
-      img = document.createElement('img');
-      img.className = 'user-photo';
-      img.style.cssText = 'width:100%;height:100%;border-radius:25%;object-fit:cover;';
-      avatarDiv.appendChild(img);
-    }
-    img.src = currentPhotoURL;
-    letterEl.style.display = 'none';
-  } else {
-    letterEl.textContent   = currentUser.charAt(0).toUpperCase();
-    letterEl.style.display = '';
-    const oldImg = avatarDiv.querySelector('img.user-photo');
-    if (oldImg) oldImg.remove();
-  }
+  // Sidebar tooltip with name
+  const sbTip = document.querySelector('.sb-user-item .sb-tip');
+  if (sbTip) sbTip.textContent = currentUser;
+
+  // Legacy letter element (kept if it exists)
+  const letterEl = document.getElementById('user-avatar-letter');
+  if (letterEl) letterEl.textContent = currentUser.charAt(0).toUpperCase();
 }
 
 document.getElementById('btn-change-name').addEventListener('click', async () => {
