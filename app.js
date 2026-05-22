@@ -442,16 +442,15 @@ document.getElementById('btn-change-name').addEventListener('click', async () =>
 
 // ── NAVIGATION ───────────────────────────────────────────────
 function setupNav() {
-  document.querySelectorAll('.nav-item').forEach(item => {
+  document.querySelectorAll('.sb-item[data-page]').forEach(item => {
     item.addEventListener('click', () => {
       navigateTo(item.dataset.page);
-      closeSidebar();
     });
   });
 }
 
 function navigateTo(page) {
-  document.querySelectorAll('.nav-item').forEach(n =>
+  document.querySelectorAll('.sb-item[data-page]').forEach(n =>
     n.classList.toggle('active', n.dataset.page === page));
   document.querySelectorAll('.page').forEach(p =>
     p.classList.toggle('active', p.id === page + '-page'));
@@ -470,7 +469,8 @@ function setupHamburger() {
   document.querySelectorAll('.hamburger-btn').forEach(btn => {
     btn.addEventListener('click', toggleSidebar);
   });
-  document.getElementById('sidebar-overlay').addEventListener('click', closeSidebar);
+  const overlay = document.getElementById('sidebar-overlay');
+  if (overlay) overlay.addEventListener('click', closeSidebar);
 }
 
 function toggleSidebar() {
@@ -845,34 +845,14 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
     data.createdAt = new Date().toISOString();
     const newRef = db.ref('events').push();
     await newRef.set(data);
-    sendTelegram('СТВОРЕНО', { ...data, id: newRef.key });
-    if (phone) upsertClient(phone, title);
+    sendTelegram('СТВОРЕНО', { ...data, id: newRef.key }); 
     showToast('Подію створено', 'success');
   } else {
     await db.ref('events/' + id).update(data);
-    if (phone) upsertClient(phone, title);
     showToast('Подію оновлено', 'success');
   }
   closeModal('event-modal');
 });
-
-function normalizePhone(p) {
-  if (!p) return null;
-  const d = p.replace(/\D/g, '');
-  return d.length >= 9 ? d : null;
-}
-
-async function upsertClient(rawPhone, eventTitle) {
-  const key = normalizePhone(rawPhone);
-  if (!key) return;
-  const ref  = db.ref('clients/' + key);
-  const snap = await ref.once('value');
-  if (!snap.exists()) {
-    await ref.set({ phone: rawPhone, name: eventTitle || '', createdAt: Date.now(), lastEventAt: Date.now() });
-  } else {
-    await ref.update({ lastEventAt: Date.now() });
-  }
-}
 
 async function confirmEvent(id) {
   const ev = events[id];

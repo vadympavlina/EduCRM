@@ -69,7 +69,7 @@
       flex: 1;
       display: grid;
       grid-template-columns: 264px 1fr 292px;
-      height: calc(100dvh - 60px);
+      height: calc(100dvh - 60px); overflow: hidden;
       overflow: hidden;
     }
     .col {
@@ -399,10 +399,143 @@
       .col:last-child { border-bottom: none; }
       .stat-chips { grid-template-columns: repeat(4,1fr); }
     }
-  </style>
+  
+    /* ── SHARED SIDEBAR ── */
+    .ext-sidebar {
+      width: 56px;
+      background: var(--bg2, #fff);
+      border-right: 1px solid var(--border, #e2e5f0);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0;
+      flex-shrink: 0;
+      overflow: visible;
+      z-index: 100;
+    }
+    .sb-logo { margin-bottom: 8px; }
+    .sb-logo-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #4f6ef7, #3b5be8);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sb-divider {
+      width: 30px; height: 1px;
+      background: var(--border, #e2e5f0);
+      margin: 6px 0; flex-shrink: 0;
+    }
+    .sb-nav {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 2px;
+      flex: 1; width: 100%; padding: 2px 0;
+    }
+    .sb-item {
+      position: relative;
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      color: var(--text3, #8693aa);
+      background: none; border: none;
+      transition: background 0.15s, color 0.15s;
+      flex-shrink: 0; text-decoration: none;
+    }
+    .sb-item:hover { background: var(--bg3, #eef0f8); color: var(--text2, #3d4a63); }
+    .sb-item.active { background: #edf0ff; color: #4f6ef7; }
+    .sb-tip {
+      position: absolute;
+      left: calc(100% + 10px);
+      top: 50%; transform: translateY(-50%);
+      background: var(--text, #0f1623);
+      color: #fff;
+      font-size: 12px; font-weight: 600;
+      padding: 5px 10px; border-radius: 7px;
+      white-space: nowrap; pointer-events: none;
+      opacity: 0; transition: opacity 0.15s;
+      z-index: 9999; font-family: var(--font-main);
+    }
+    .sb-tip::before {
+      content: '';
+      position: absolute; right: 100%; top: 50%;
+      transform: translateY(-50%);
+      border: 5px solid transparent;
+      border-right-color: var(--text, #0f1623);
+    }
+    .sb-item:hover .sb-tip { opacity: 1; }
+    .sb-bottom {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 2px;
+      width: 100%; padding-bottom: 4px;
+    }
+    .sb-user-av {
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, #4f6ef7, #3b5be8);
+      color: #fff; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 12px;
+    }
+    @media (max-width: 768px) { .ext-sidebar { display: none; } }
+
+    </style>
 </head>
 <body>
 
+<div style="display:flex;height:100dvh;overflow:hidden">
+  <!-- SIDEBAR -->
+  <aside class="ext-sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-icon">
+        <svg width="20" height="20" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+    </div>
+    <div class="sb-divider"></div>
+    <nav class="sb-nav">
+      <a class="sb-item" href="index.html" title="">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span class="sb-tip">Календар</span>
+      </a>
+      <a class="sb-item" href="index.html" title="">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span class="sb-tip">Підтверджені</span>
+      </a>
+      <a class="sb-item" href="index.html" title="">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span class="sb-tip">Завершені</span>
+      </a>
+      <a class="sb-item" href="index.html" title="">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span class="sb-tip">Статистика</span>
+      </a>
+      <div class="sb-divider"></div>
+      <a class="sb-item" href="index.html" title="">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span class="sb-tip">Ціноутворення</span>
+      </a>
+      <a class="sb-item" href="index.html" title="">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span class="sb-tip">Вчителі</span>
+      </a>
+      <div class="sb-divider"></div>
+      <a class="sb-item active" href="clients.html" title="">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span class="sb-tip">Клієнти</span>
+      </a>
+    </nav>
+    <div class="sb-bottom">
+      <div class="sb-divider"></div>
+      <div class="sb-item sb-user-item">
+        <div class="sb-user-av" id="user-avatar">?</div>
+        <span class="sb-tip" id="user-name-lbl">—</span>
+      </div>
+    </div>
+  </aside>
+<div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
 <div id="auth-loader"><div class="auth-spinner"></div></div>
 
 <!-- TOP BAR -->
@@ -549,8 +682,8 @@
       const uid = Object.keys(snap.val())[0];
       currentUser = snap.val()[uid].name || firebaseUser.displayName || firebaseUser.email;
       const ini = initials(currentUser);
-      document.getElementById('user-avatar').textContent   = ini;
-      document.getElementById('user-name-lbl').textContent = currentUser;
+      ['user-avatar','topbar-user-avatar'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=initials(currentUser)}); void 0 ///   = ini;
+      ['user-name-lbl','topbar-user-name'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=currentUser});
       document.getElementById('comment-avatar').textContent = ini;
       document.getElementById('comment-author').textContent = currentUser;
       loader.style.display = 'none';
@@ -807,5 +940,7 @@
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 </script>
+</div>
+</div>
 </body>
 </html>
