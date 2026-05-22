@@ -278,12 +278,16 @@
       if (!phoneMap[key]) {
         phoneMap[key] = {
           phone:       raw,
+          name:        ev.title || '',
           createdAt:   evTime,
           lastEventAt: evTime,
         };
       } else {
-        if (evTime < phoneMap[key].createdAt)   phoneMap[key].createdAt   = evTime;
-        if (evTime > phoneMap[key].lastEventAt) phoneMap[key].lastEventAt = evTime;
+        if (evTime < phoneMap[key].createdAt)   phoneMap[key].createdAt = evTime;
+        if (evTime > phoneMap[key].lastEventAt) {
+          phoneMap[key].lastEventAt = evTime;
+          phoneMap[key].name        = ev.title || phoneMap[key].name; // назва з останньої події
+        }
       }
     });
 
@@ -305,11 +309,11 @@
         if (!snap.exists()) {
           await db.ref('clients/' + key).set({
             phone:       data.phone,
-            name:        '',
+            name:        data.name || '',
             createdAt:   data.createdAt || Date.now(),
             lastEventAt: data.lastEventAt || Date.now(),
           });
-          log(`✓ Створено: ${data.phone}`, 'ok');
+          log(`✓ Створено: ${data.phone} — ${data.name || '(без імені)'}`, 'ok');
           created++;
         } else {
           // Only update lastEventAt if our value is newer
