@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Міграція клієнтів — EduCRM</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="firebase.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-main);
+      background: var(--bg);
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 560px;
+      box-shadow: var(--shadow-md);
+    }
+    .card-header {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 28px;
+    }
+    .card-icon {
+      width: 48px; height: 48px;
+      background: linear-gradient(135deg, #4f6ef7, #3b5be8);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .card-title { font-size: 20px; font-weight: 800; color: var(--text); }
+    .card-sub   { font-size: 13px; color: var(--text3); margin-top: 2px; font-weight: 500; }
+
+    .info-box {
+      background: var(--accent-light);
+      border: 1px solid rgba(79,110,247,0.2);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .info-box strong { color: var(--accent); }
+
+    .btn-run {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-main);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      margin-bottom: 20px;
+    }
+    .btn-run:hover    { background: var(--accent-hover); }
+    .btn-run:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* Progress */
+    .progress-wrap { margin-bottom: 16px; display: none; }
+    .progress-bar-bg {
+      height: 8px;
+      background: var(--bg3);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4f6ef7, #3b5be8);
+      border-radius: 4px;
+      transition: width 0.2s;
+      width: 0%;
+    }
+    .progress-text {
+      font-size: 12px; font-weight: 600; color: var(--text3); text-align: right;
+    }
+
+    /* Log */
+    .log-wrap { display: none; }
+    .log-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--text3); margin-bottom: 8px;
+    }
+    .log-box {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      max-height: 240px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--text2);
+    }
+    .log-line-ok      { color: var(--green); }
+    .log-line-skip    { color: var(--text3); }
+    .log-line-warn    { color: var(--yellow); }
+    .log-line-error   { color: var(--red); }
+    .log-line-summary { color: var(--accent); font-weight: 700; margin-top: 6px; }
+
+    /* Result */
+    .result-box {
+      display: none;
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      margin-top: 16px;
+    }
+    .result-box.ok  { background: var(--green-bg); color: var(--green-text); }
+    .result-box.err { background: var(--red-bg);   color: var(--red-text); }
+
+    .btn-back {
+      display: block; text-align: center; margin-top: 14px;
+      color: var(--accent); font-size: 13px; font-weight: 700;
+      text-decoration: none;
+    }
+    .btn-back:hover { text-decoration: underline; }
+
+    #auth-loader {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .auth-spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div id="auth-loader"><div class="auth-spinner"></div></div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-icon">
+      <svg width="22" height="22" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+    </div>
+    <div>
+      <div class="card-title">Міграція клієнтів</div>
+      <div class="card-sub">Одноразовий імпорт з існуючих подій</div>
+    </div>
+  </div>
+
+  <div class="info-box">
+    Скрипт пройде по всіх існуючих подіях і автоматично створить записи клієнтів у <strong>/clients</strong>.<br>
+    Ключ — нормалізований номер телефону. Якщо клієнт вже існує — оновиться лише <strong>lastEventAt</strong>, ім'я та дата створення не зміняться.<br><br>
+    Події без телефону — пропускаються.
+  </div>
+
+  <div class="progress-wrap" id="progress-wrap">
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progress-fill"></div>
+    </div>
+    <div class="progress-text" id="progress-text">0 / 0</div>
+  </div>
+
+  <button class="btn-run" id="btn-run" onclick="runMigration()">
+    Запустити міграцію
+  </button>
+
+  <div class="log-wrap" id="log-wrap">
+    <div class="log-title">Лог виконання</div>
+    <div class="log-box" id="log-box"></div>
+  </div>
+
+  <div class="result-box" id="result-box"></div>
+  <a href="clients.html" class="btn-back" id="btn-back" style="display:none">
+    → Перейти до клієнтів
+  </a>
+</div>
+
+<script>
+  // ── AUTH ──────────────────────────────────────────────────
+  auth.onAuthStateChanged(async firebaseUser => {
+    const loader = document.getElementById('auth-loader');
+    if (!firebaseUser) { window.location.href = 'index.html'; return; }
+    try {
+      const snap = await db.ref('users').orderByChild('email')
+        .equalTo(firebaseUser.email.toLowerCase()).once('value');
+      if (!snap.exists()) { await auth.signOut(); window.location.href = 'index.html'; return; }
+      loader.style.display = 'none';
+    } catch (e) {
+      window.location.href = 'index.html';
+    }
+  });
+
+  // ── HELPERS ───────────────────────────────────────────────
+  function normalizePhone(p) {
+    if (!p) return null;
+    const d = p.replace(/\D/g, '');
+    return d.length >= 9 ? d : null;
+  }
+
+  function log(msg, type = '') {
+    const box  = document.getElementById('log-box');
+    const line = document.createElement('div');
+    line.className   = 'log-line-' + (type || 'info');
+    line.textContent = msg;
+    box.appendChild(line);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function setProgress(done, total) {
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-text').textContent = `${done} / ${total}`;
+  }
+
+  // ── MIGRATION ─────────────────────────────────────────────
+  async function runMigration() {
+    const btn = document.getElementById('btn-run');
+    btn.disabled = true;
+    btn.textContent = 'Виконується…';
+
+    document.getElementById('progress-wrap').style.display = 'block';
+    document.getElementById('log-wrap').style.display      = 'block';
+    document.getElementById('log-box').innerHTML           = '';
+
+    log('Завантаження подій…');
+
+    let eventsSnap;
+    try {
+      eventsSnap = await db.ref('events').once('value');
+    } catch (e) {
+      log('Помилка завантаження: ' + e.message, 'error');
+      showResult('Помилка: ' + e.message, false);
+      btn.disabled = false;
+      btn.textContent = 'Спробувати ще раз';
+      return;
+    }
+
+    const allEvents = eventsSnap.val() || {};
+    const eventList = Object.entries(allEvents);
+    const total     = eventList.length;
+
+    log(`Знайдено ${total} подій. Починаємо…`);
+
+    // Group by normalized phone → find createdAt min, lastEventAt max
+    const phoneMap = {};   // { normalizedPhone: { phone, createdAt, lastEventAt } }
+
+    eventList.forEach(([id, ev]) => {
+      const raw = ev.phone;
+      const key = normalizePhone(raw);
+      if (!key) return;
+
+      const evTime = ev.date
+        ? new Date(ev.date + 'T' + (ev.startTime || '00:00')).getTime()
+        : (ev.createdAt ? new Date(ev.createdAt).getTime() : 0);
+
+      if (!phoneMap[key]) {
+        phoneMap[key] = {
+          phone:       raw,
+          createdAt:   evTime,
+          lastEventAt: evTime,
+        };
+      } else {
+        if (evTime < phoneMap[key].createdAt)   phoneMap[key].createdAt   = evTime;
+        if (evTime > phoneMap[key].lastEventAt) phoneMap[key].lastEventAt = evTime;
+      }
+    });
+
+    const phones     = Object.entries(phoneMap);
+    const noPhone    = eventList.filter(([, ev]) => !normalizePhone(ev.phone)).length;
+    const totalPhones = phones.length;
+
+    log(`Унікальних телефонів: ${totalPhones}. Пропущено (без телефону): ${noPhone}.`, 'warn');
+
+    let created = 0, updated = 0, errors = 0;
+
+    for (let i = 0; i < phones.length; i++) {
+      const [key, data] = phones[i];
+      setProgress(i + 1, totalPhones);
+
+      try {
+        const snap = await db.ref('clients/' + key).once('value');
+
+        if (!snap.exists()) {
+          await db.ref('clients/' + key).set({
+            phone:       data.phone,
+            name:        '',
+            createdAt:   data.createdAt || Date.now(),
+            lastEventAt: data.lastEventAt || Date.now(),
+          });
+          log(`✓ Створено: ${data.phone}`, 'ok');
+          created++;
+        } else {
+          // Only update lastEventAt if our value is newer
+          const existing = snap.val();
+          if ((data.lastEventAt || 0) > (existing.lastEventAt || 0)) {
+            await db.ref('clients/' + key).update({ lastEventAt: data.lastEventAt });
+            log(`↻ Оновлено lastEventAt: ${data.phone}`, 'skip');
+          } else {
+            log(`— Пропущено (актуальний): ${data.phone}`, 'skip');
+          }
+          updated++;
+        }
+      } catch (e) {
+        log(`✗ Помилка ${data.phone}: ${e.message}`, 'error');
+        errors++;
+      }
+    }
+
+    setProgress(totalPhones, totalPhones);
+    log('', '');
+    log(`Готово! Створено: ${created} · Оновлено: ${updated} · Помилок: ${errors}`, 'summary');
+
+    const ok = errors === 0;
+    showResult(
+      ok
+        ? `✓ Міграція завершена. Створено ${created} клієнтів, оновлено ${updated}.`
+        : `Завершено з помилками (${errors}). Створено ${created}, оновлено ${updated}.`,
+      ok
+    );
+
+    btn.textContent = 'Виконано';
+    document.getElementById('btn-back').style.display = 'block';
+  }
+
+  function showResult(msg, ok) {
+    const el = document.getElementById('result-box');
+    el.textContent = msg;
+    el.className   = 'result-box ' + (ok ? 'ok' : 'err');
+    el.style.display = 'block';
+  }
+</script>
+</body>
+</html>
