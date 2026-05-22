@@ -316,11 +316,18 @@
           log(`✓ Створено: ${data.phone} — ${data.name || '(без імені)'}`, 'ok');
           created++;
         } else {
-          // Only update lastEventAt if our value is newer
           const existing = snap.val();
+          const updates  = {};
           if ((data.lastEventAt || 0) > (existing.lastEventAt || 0)) {
-            await db.ref('clients/' + key).update({ lastEventAt: data.lastEventAt });
-            log(`↻ Оновлено lastEventAt: ${data.phone}`, 'skip');
+            updates.lastEventAt = data.lastEventAt;
+          }
+          // Якщо ім'я порожнє — заповнити з події
+          if (!existing.name && data.name) {
+            updates.name = data.name;
+          }
+          if (Object.keys(updates).length > 0) {
+            await db.ref('clients/' + key).update(updates);
+            log(`↻ Оновлено: ${data.phone}${updates.name ? ' — додано ім\'я: ' + updates.name : ''}`, 'skip');
           } else {
             log(`— Пропущено (актуальний): ${data.phone}`, 'skip');
           }
