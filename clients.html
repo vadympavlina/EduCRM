@@ -111,6 +111,7 @@
       .cl-table thead th:nth-child(4), .cl-table tbody td:nth-child(4) { display: none; }
     }
   </style>
+  <script src="shared/topbar.js"></script>
 </head>
 <body>
 
@@ -219,6 +220,7 @@
       document.getElementById('topbar-av').textContent      = av;
       document.getElementById('topbar-user-name').textContent = currentUser;
       loader.style.display = 'none';
+      Topbar.init();
       listenClients();
     } catch (e) { window.location.href = 'index.html'; }
   });

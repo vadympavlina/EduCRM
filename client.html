@@ -142,6 +142,7 @@
       .col:last-child { border-bottom: none; }
     }
   </style>
+  <script src="shared/topbar.js"></script>
 </head>
 <body>
 
@@ -314,6 +315,7 @@
       document.getElementById('author-av').textContent   = av;
       document.getElementById('author-name').textContent = currentUser;
       loader.style.display = 'none';
+      Topbar.init();
       initPage();
     } catch (e) { window.location.href = 'index.html'; }
   });
