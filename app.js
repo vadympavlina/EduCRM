@@ -453,16 +453,15 @@ document.getElementById('btn-change-name').addEventListener('click', async () =>
 
 // ── NAVIGATION ───────────────────────────────────────────────
 function setupNav() {
-  document.querySelectorAll('.nav-item').forEach(item => {
+  document.querySelectorAll('.sb-item[data-page]').forEach(item => {
     item.addEventListener('click', () => {
       navigateTo(item.dataset.page);
-      closeSidebar();
     });
   });
 }
 
 function navigateTo(page) {
-  document.querySelectorAll('.nav-item').forEach(n =>
+  document.querySelectorAll('.sb-item[data-page]').forEach(n =>
     n.classList.toggle('active', n.dataset.page === page));
   document.querySelectorAll('.page').forEach(p =>
     p.classList.toggle('active', p.id === page + '-page'));
@@ -481,7 +480,7 @@ function setupHamburger() {
   document.querySelectorAll('.hamburger-btn').forEach(btn => {
     btn.addEventListener('click', toggleSidebar);
   });
-  document.getElementById('sidebar-overlay').addEventListener('click', closeSidebar);
+  const ov = document.getElementById('sidebar-overlay'); if (ov) ov.addEventListener('click', closeSidebar);
 }
 
 function toggleSidebar() {
