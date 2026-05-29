@@ -1,23 +1,14 @@
 // ============================================================
 //  shared/auth.js
 //  Підключай на кожній захищеній сторінці після firebase.js
-//
-//  Надає глобально:
-//    currentUser     — ім'я залогованого менеджера
-//    currentEmail    — email
-//    currentPhotoURL — фото з Google (або '')
-//    waitForAuth()   — Promise, що резолвиться коли auth готовий
 // ============================================================
 
 let currentUser     = '';
 let currentEmail    = '';
 let currentPhotoURL = '';
 
-// Promise що резолвиться після перевірки auth
-// Сторінки чекають на нього перш ніж завантажувати дані
 let _authResolve;
 const authReady = new Promise(res => { _authResolve = res; });
-
 function waitForAuth() { return authReady; }
 
 // ── AUTH CHECK ───────────────────────────────────────────────
@@ -25,8 +16,13 @@ auth.onAuthStateChanged(async firebaseUser => {
   const loader = document.getElementById('auth-loader');
 
   if (!firebaseUser) {
-    if (loader) loader.style.display = 'none';
-    _showLoginOrRedirect();
+    // Firebase може тимчасово повернути null під час ініціалізації.
+    // Чекаємо 600ms і перевіряємо ще раз перш ніж редіректити.
+    await new Promise(r => setTimeout(r, 600));
+    if (!auth.currentUser) {
+      if (loader) loader.style.display = 'none';
+      _showLoginOrRedirect();
+    }
     return;
   }
 
@@ -54,35 +50,30 @@ auth.onAuthStateChanged(async firebaseUser => {
     _initPresence();
     _authResolve({ currentUser, currentEmail, currentPhotoURL });
 
-    // Викликаємо onAuthReady якщо сторінка його визначила
     if (typeof onAuthReady === 'function') onAuthReady();
 
   } catch (err) {
     console.error('Auth error:', err);
+    // Не редіректимо при мережевій помилці — просто ховаємо лоадер
     if (loader) loader.style.display = 'none';
-    _showLoginOrRedirect();
+    // Повторна спроба через 1с
+    setTimeout(async () => {
+      if (auth.currentUser) {
+        window.location.reload();
+      } else {
+        _showLoginOrRedirect();
+      }
+    }, 1000);
   }
 });
 
 // ── REDIRECT / LOGIN ─────────────────────────────────────────
 function _showLoginOrRedirect() {
-  // index.html має свій login modal — всі інші редиректять
   if (typeof showLoginModal === 'function') {
     showLoginModal(true);
   } else {
-    window.location.href = _rootPath() + 'index.html';
+    window.location.href = 'index.html';
   }
-}
-
-function _rootPath() {
-  // Визначаємо відносний шлях до кореня
-  const depth = window.location.pathname
-    .replace(/\/[^/]+$/, '')
-    .split('/')
-    .filter(Boolean).length;
-  // Якщо файл в /shared/ або /pages/ — підіймаємось вгору
-  // Для більшості сторінок що лежать поряд з index.html — пусто
-  return '';
 }
 
 // ── PRESENCE ─────────────────────────────────────────────────
@@ -92,8 +83,6 @@ function _initPresence() {
   const presRef = db.ref('presence/' + safeKey);
   presRef.set({ name: currentUser, online: true, lastSeen: Date.now() });
   presRef.onDisconnect().remove();
-
-  // Оновлюємо lastSeen кожні 30с
   setInterval(() => {
     if (currentUser) presRef.update({ lastSeen: Date.now() });
   }, 30000);
@@ -109,7 +98,6 @@ function _renderSidebarUser() {
   const sbTip = document.querySelector('.sb-user-item .sb-tip');
   if (sbTip) sbTip.textContent = currentUser;
 
-  // legacy
   const letterEl = document.getElementById('user-avatar-letter');
   if (letterEl) letterEl.textContent = initial;
   const nameEl = document.getElementById('user-name-display');
@@ -122,14 +110,13 @@ function _renderSidebarUser() {
 async function logout() {
   if (currentUser) {
     const safeKey = currentUser.replace(/[.#$[\]]/g, '_');
-    await db.ref('presence/' + safeKey).remove();
+    await db.ref('presence/' + safeKey).remove().catch(() => {});
   }
   currentUser = currentEmail = currentPhotoURL = '';
   await auth.signOut();
   window.location.href = 'index.html';
 }
 
-// Вішаємо logout на кнопку якщо є
 document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('btn-change-name');
   if (btn) btn.addEventListener('click', logout);
