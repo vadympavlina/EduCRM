@@ -660,6 +660,7 @@ function openCreateModal(startStr, endStr) {
 
   populateTeacherSelect('');
   document.getElementById('event-status-section').innerHTML = '';
+  const cs = document.getElementById('event-client-section'); if (cs) cs.innerHTML = '';
   document.getElementById('event-actions').innerHTML = '';
   document.getElementById('event-modal').classList.add('open');
 }
@@ -686,6 +687,9 @@ function openEventModal(eventId) {
     </div>`;
   document.getElementById('event-status-section').innerHTML = statusHTML;
 
+  // ── Client block ──────────────────────────────────────────
+  renderEventClientBlock(ev);
+
   const actions = document.getElementById('event-actions');
   actions.innerHTML = '';
 
@@ -698,18 +702,6 @@ function openEventModal(eventId) {
   if (ev.status === 'confirmed') {
     actions.appendChild(makeBtn('Завершити', 'btn btn-info btn-sm', () => completeEvent(ev.id)));
   }
-  // Кнопка "Картка клієнта" якщо є телефон
-  if (ev.phone) {
-    const phone = ev.phone.replace(/\D/g, '');
-    if (phone.length >= 9) {
-      const clientBtn = document.createElement('button');
-      clientBtn.className = 'btn btn-ghost btn-sm';
-      clientBtn.innerHTML = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Клієнт`;
-      clientBtn.onclick = () => window.open(`client.html?id=${encodeURIComponent(phone)}`, '_blank');
-      actions.appendChild(clientBtn);
-    }
-  }
-
   actions.appendChild(makeBtn('Видалити', 'btn btn-ghost btn-sm', () => deleteEvent(ev.id)));
 
   // Показуємо відгук якщо є
@@ -736,6 +728,74 @@ function openEventModal(eventId) {
   }
 
   document.getElementById('event-modal').classList.add('open');
+}
+
+async function renderEventClientBlock(ev) {
+  const section = document.getElementById('event-client-section');
+  if (!section) return;
+
+  if (!ev.phone) {
+    section.innerHTML = '';
+    return;
+  }
+
+  const phone    = ev.phone.replace(/\D/g, '');
+  if (phone.length < 9) { section.innerHTML = ''; return; }
+
+  const clientUrl = `client.html?id=${encodeURIComponent(phone)}`;
+
+  // Show skeleton while loading
+  section.innerHTML = `
+    <div class="event-client-chip">
+      <div class="event-client-av" style="background:var(--accent-light);color:var(--accent)">…</div>
+      <div class="event-client-info">
+        <div class="event-client-name" style="color:var(--text3)">Завантаження…</div>
+        <div class="event-client-phone">${ev.phone}</div>
+      </div>
+    </div>`;
+
+  // Load client name from Firebase
+  try {
+    const snap = await db.ref('clients/' + phone).once('value');
+    const name = snap.exists() ? (snap.val().name || '') : '';
+    const initials = name
+      ? name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
+      : phone.slice(-2);
+
+    section.innerHTML = `
+      <div class="event-client-chip">
+        <div class="event-client-av">${initials}</div>
+        <div class="event-client-info">
+          <div class="event-client-name">${name ? name.replace(/</g,'&lt;') : 'Без імені'}</div>
+          <div class="event-client-phone">${ev.phone}</div>
+        </div>
+        <a href="${clientUrl}" target="_blank" class="event-client-btn">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          Картка
+        </a>
+      </div>`;
+  } catch (e) {
+    section.innerHTML = `
+      <div class="event-client-chip">
+        <div class="event-client-av">${phone.slice(-2)}</div>
+        <div class="event-client-info">
+          <div class="event-client-name">Без імені</div>
+          <div class="event-client-phone">${ev.phone}</div>
+        </div>
+        <a href="${clientUrl}" target="_blank" class="event-client-btn">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          Картка
+        </a>
+      </div>`;
+  }
 }
 
 function statusLabel(s) {
