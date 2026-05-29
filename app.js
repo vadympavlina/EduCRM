@@ -245,8 +245,14 @@ function renderNotifPanel() {
     const time   = d.toLocaleString('uk-UA', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
     const safeTitle   = (r.eventTitle || 'Захід').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const safeComment = (r.comment    || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // Get phone for this event to open client card
+    const ev = events[r.id];
+    const phone = ev ? normalizePhone(ev.phone) : null;
+    const clientUrl = phone ? `client.html?id=${encodeURIComponent(phone)}` : null;
     return `
-      <div class="notif-item ${isRead ? 'read' : 'unread'}" onclick="markNotifRead('${r.id}')">
+      <div class="notif-item ${isRead ? 'read' : 'unread'}"
+           onmouseenter="markNotifRead('${r.id}')"
+           onclick="${clientUrl ? `openClientFromNotif('${clientUrl}')` : ''}">
         <div class="notif-item-icon">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -257,7 +263,12 @@ function renderNotifPanel() {
           <div class="notif-item-text">${safeComment}</div>
           <div class="notif-item-time">${time}</div>
         </div>
-        ${!isRead ? '<div class="notif-dot"></div>' : ''}
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+          ${!isRead ? '<div class="notif-dot"></div>' : ''}
+          ${clientUrl ? `<div title="Відкрити картку клієнта" style="color:var(--accent);opacity:0.7">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </div>` : ''}
+        </div>
       </div>`;
   }).join('');
 }
@@ -403,23 +414,29 @@ function showLoginError(msg) {
 }
 
 function renderUserInfo() {
-  // Name / email (hidden span kept for compat)
-  const nameEl = document.getElementById('user-name-display');
-  if (nameEl) nameEl.textContent = currentUser;
-  const emailEl = document.getElementById('user-email-display');
-  if (emailEl) emailEl.textContent = currentEmail;
+  document.getElementById('user-name-display').textContent  = currentUser;
+  document.getElementById('user-email-display').textContent = currentEmail;
 
-  // Sidebar avatar (sb-user-av)
-  const sbAv = document.querySelector('.sb-user-av');
-  if (sbAv) sbAv.textContent = currentUser.charAt(0).toUpperCase();
+  const letterEl  = document.getElementById('user-avatar-letter');
+  const avatarDiv = letterEl.closest('.user-avatar');
 
-  // Sidebar tooltip with name
-  const sbTip = document.querySelector('.sb-user-item .sb-tip');
-  if (sbTip) sbTip.textContent = currentUser;
-
-  // Legacy letter element (kept if it exists)
-  const letterEl = document.getElementById('user-avatar-letter');
-  if (letterEl) letterEl.textContent = currentUser.charAt(0).toUpperCase();
+  if (currentPhotoURL) {
+    // Показуємо фото з Google
+    let img = avatarDiv.querySelector('img.user-photo');
+    if (!img) {
+      img = document.createElement('img');
+      img.className = 'user-photo';
+      img.style.cssText = 'width:100%;height:100%;border-radius:25%;object-fit:cover;';
+      avatarDiv.appendChild(img);
+    }
+    img.src = currentPhotoURL;
+    letterEl.style.display = 'none';
+  } else {
+    letterEl.textContent   = currentUser.charAt(0).toUpperCase();
+    letterEl.style.display = '';
+    const oldImg = avatarDiv.querySelector('img.user-photo');
+    if (oldImg) oldImg.remove();
+  }
 }
 
 document.getElementById('btn-change-name').addEventListener('click', async () => {
@@ -436,15 +453,16 @@ document.getElementById('btn-change-name').addEventListener('click', async () =>
 
 // ── NAVIGATION ───────────────────────────────────────────────
 function setupNav() {
-  document.querySelectorAll('.sb-item[data-page]').forEach(item => {
+  document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
       navigateTo(item.dataset.page);
+      closeSidebar();
     });
   });
 }
 
 function navigateTo(page) {
-  document.querySelectorAll('.sb-item[data-page]').forEach(n =>
+  document.querySelectorAll('.nav-item').forEach(n =>
     n.classList.toggle('active', n.dataset.page === page));
   document.querySelectorAll('.page').forEach(p =>
     p.classList.toggle('active', p.id === page + '-page'));
@@ -463,8 +481,7 @@ function setupHamburger() {
   document.querySelectorAll('.hamburger-btn').forEach(btn => {
     btn.addEventListener('click', toggleSidebar);
   });
-  const overlay = document.getElementById('sidebar-overlay');
-  if (overlay) overlay.addEventListener('click', closeSidebar);
+  document.getElementById('sidebar-overlay').addEventListener('click', closeSidebar);
 }
 
 function toggleSidebar() {
@@ -821,6 +838,14 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
     showToast("Заповніть обов'язкові поля", 'error'); return;
   }
 
+  if (!phone) {
+    const phoneEl = document.getElementById('event-phone');
+    phoneEl.style.borderColor = 'var(--red)';
+    phoneEl.focus();
+    setTimeout(() => phoneEl.style.borderColor = '', 2000);
+    showToast('Вкажіть номер телефону клієнта', 'error'); return;
+  }
+
   const checkStart = parseDateTime(date, startTime);
   const checkEnd   = parseDateTime(date, endTime);
 
@@ -839,10 +864,12 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
     data.createdAt = new Date().toISOString();
     const newRef = db.ref('events').push();
     await newRef.set(data);
-    sendTelegram('СТВОРЕНО', { ...data, id: newRef.key }); 
+    sendTelegram('СТВОРЕНО', { ...data, id: newRef.key });
+    if (phone) upsertClient(phone, title);
     showToast('Подію створено', 'success');
   } else {
     await db.ref('events/' + id).update(data);
+    if (phone) upsertClient(phone, title);
     showToast('Подію оновлено', 'success');
   }
   closeModal('event-modal');
@@ -1312,6 +1339,29 @@ window.renderConfirmedList = renderConfirmedList;
 window.printStats = printStats;
 window.saveBlockedTime = saveBlockedTime;
 window.deleteBlockedTime = deleteBlockedTime;
+function openClientFromNotif(url) {
+  window.open(url, '_blank');
+}
+
+function normalizePhone(p) {
+  if (!p) return null;
+  const d = p.replace(/\D/g, '');
+  return d.length >= 9 ? d : null;
+}
+
+async function upsertClient(rawPhone, eventTitle) {
+  const key = normalizePhone(rawPhone);
+  if (!key) return;
+  const ref  = db.ref('clients/' + key);
+  const snap = await ref.once('value');
+  if (!snap.exists()) {
+    await ref.set({ phone: rawPhone, name: eventTitle || '', createdAt: Date.now(), lastEventAt: Date.now() });
+  } else {
+    await ref.update({ lastEventAt: Date.now() });
+  }
+}
+
 window.toggleNotifPanel = toggleNotifPanel;
-window.closeNotifPanel  = closeNotifPanel;
-window.markNotifRead    = markNotifRead;
+window.closeNotifPanel      = closeNotifPanel;
+window.markNotifRead        = markNotifRead;
+window.openClientFromNotif  = openClientFromNotif;
