@@ -698,6 +698,18 @@ function openEventModal(eventId) {
   if (ev.status === 'confirmed') {
     actions.appendChild(makeBtn('Завершити', 'btn btn-info btn-sm', () => completeEvent(ev.id)));
   }
+  // Кнопка "Картка клієнта" якщо є телефон
+  if (ev.phone) {
+    const phone = ev.phone.replace(/\D/g, '');
+    if (phone.length >= 9) {
+      const clientBtn = document.createElement('button');
+      clientBtn.className = 'btn btn-ghost btn-sm';
+      clientBtn.innerHTML = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Клієнт`;
+      clientBtn.onclick = () => window.open(`client.html?id=${encodeURIComponent(phone)}`, '_blank');
+      actions.appendChild(clientBtn);
+    }
+  }
+
   actions.appendChild(makeBtn('Видалити', 'btn btn-ghost btn-sm', () => deleteEvent(ev.id)));
 
   // Показуємо відгук якщо є
