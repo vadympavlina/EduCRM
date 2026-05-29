@@ -227,8 +227,14 @@ function renderNotifPanel() {
     const time   = d.toLocaleString('uk-UA', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
     const safeTitle   = (r.eventTitle || 'Захід').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const safeComment = (r.comment    || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const ev = events[r.id];
+    const phone = ev ? normalizePhone(ev.phone) : null;
+    const clientUrl = phone ? `client.html?id=${encodeURIComponent(phone)}` : null;
     return `
-      <div class="notif-item ${isRead ? 'read' : 'unread'}" onclick="markNotifRead('${r.id}')">
+      <div class="notif-item ${isRead ? 'read' : 'unread'}"
+           onmouseenter="markNotifRead('${r.id}')"
+           style="${clientUrl ? 'cursor:pointer' : ''}"
+           onclick="${clientUrl ? `window.open('${clientUrl}','_blank')` : ''}">
         <div class="notif-item-icon">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -239,7 +245,10 @@ function renderNotifPanel() {
           <div class="notif-item-text">${safeComment}</div>
           <div class="notif-item-time">${time}</div>
         </div>
-        ${!isRead ? '<div class="notif-dot"></div>' : ''}
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+          ${!isRead ? '<div class="notif-dot"></div>' : ''}
+          ${clientUrl ? `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" style="color:var(--accent);opacity:0.7"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>` : ''}
+        </div>
       </div>`;
   }).join('');
 }
@@ -755,6 +764,14 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
     showToast("Заповніть обов'язкові поля", 'error'); return;
   }
 
+  if (!phone) {
+    const phoneEl = document.getElementById('event-phone');
+    phoneEl.style.borderColor = 'var(--red)';
+    phoneEl.focus();
+    setTimeout(() => phoneEl.style.borderColor = '', 2000);
+    showToast('Вкажіть номер телефону клієнта', 'error'); return;
+  }
+
   const checkStart = parseDateTime(date, startTime);
   const checkEnd   = parseDateTime(date, endTime);
 
@@ -773,10 +790,12 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
     data.createdAt = new Date().toISOString();
     const newRef = db.ref('events').push();
     await newRef.set(data);
-    sendTelegram('СТВОРЕНО', { ...data, id: newRef.key }); 
+    sendTelegram('СТВОРЕНО', { ...data, id: newRef.key });
+    if (phone) upsertClient(phone, title);
     showToast('Подію створено', 'success');
   } else {
     await db.ref('events/' + id).update(data);
+    if (phone) upsertClient(phone, title);
     showToast('Подію оновлено', 'success');
   }
   closeModal('event-modal');
@@ -926,6 +945,24 @@ async function sendTelegram(status, ev) {
     const data = await response.json();
     if (data.ok && data.result && data.result.message_id) { if (ev.id) await db.ref('events/' + ev.id).update({ telegramMessageId: data.result.message_id }); }
   } catch (err) {}
+}
+
+function normalizePhone(p) {
+  if (!p) return null;
+  const d = p.replace(/\D/g, '');
+  return d.length >= 9 ? d : null;
+}
+
+async function upsertClient(rawPhone, eventTitle) {
+  const key = normalizePhone(rawPhone);
+  if (!key) return;
+  const ref  = db.ref('clients/' + key);
+  const snap = await ref.once('value');
+  if (!snap.exists()) {
+    await ref.set({ phone: rawPhone, name: eventTitle || '', createdAt: Date.now(), lastEventAt: Date.now() });
+  } else {
+    await ref.update({ lastEventAt: Date.now() });
+  }
 }
 
 // ── EXPORTS ──────────────────────────────────────────────────
