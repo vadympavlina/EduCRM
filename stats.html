@@ -36,13 +36,14 @@
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 14px;
       padding: 0 20px;
       flex-shrink: 0;
       box-shadow: var(--shadow-xs);
     }
-    .topbar-title { font-size: 16px; font-weight: 800; color: var(--text); }
-    .topbar-spacer { flex: 1; }
+    .topbar-title { font-size: 16px; font-weight: 800; color: var(--text); flex-shrink: 0; }
+    .topbar-spacer { display: none; }
     .topbar-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
     /* ── CONTENT ── */
@@ -180,10 +181,10 @@
     <span class="topbar-title">Статистика</span>
     <div class="topbar-spacer"></div>
     <div class="topbar-controls">
-      <select id="stats-teacher" class="form-control">
+      <select id="stats-teacher" class="form-control" style="width:auto;min-width:140px">
         <option value="">Всі вчителі</option>
       </select>
-      <input type="month" id="stats-month" class="form-control">
+      <input type="month" id="stats-month" class="form-control" style="width:auto">
       <button class="btn-print" onclick="printStats()">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <polyline points="6 9 6 2 18 2 18 9"/>
