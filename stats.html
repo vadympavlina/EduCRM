@@ -162,6 +162,70 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── FUNNEL ── */
+    .funnel-section {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow-xs);
+      margin-bottom: 20px;
+    }
+    .funnel-head {
+      padding: 12px 18px;
+      font-size: 11px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--text3); background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+    }
+    .funnel-body {
+      display: flex;
+      align-items: stretch;
+      padding: 20px 24px;
+      gap: 0;
+    }
+    .funnel-step {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+      text-align: center;
+    }
+    .funnel-step:not(:last-child)::after {
+      content: '→';
+      position: absolute;
+      right: -12px;
+      top: 50%;
+      transform: translateY(-80%);
+      font-size: 18px;
+      color: var(--text3);
+      font-weight: 300;
+    }
+    .funnel-count {
+      font-size: 28px; font-weight: 800;
+      font-family: var(--font-mono); line-height: 1;
+    }
+    .funnel-count.pending   { color: var(--yellow-text); }
+    .funnel-count.confirmed { color: var(--blue); }
+    .funnel-count.completed { color: var(--green); }
+    .funnel-count.cancelled { color: var(--red); }
+    .funnel-label {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text3);
+    }
+    .funnel-pct {
+      font-size: 12px; font-weight: 700;
+      color: var(--text2);
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2px 8px;
+    }
+    .funnel-pct.good { color: var(--green); border-color: var(--green-bg); background: var(--green-bg); }
+
     @media (max-width: 640px) {
       .topbar { padding: 0 12px; }
       .content { padding: 14px; }
@@ -211,6 +275,33 @@
       <div class="summary-chip">
         <div class="summary-chip-val blue" id="sum-contracts">—</div>
         <div class="summary-chip-label">Договорів</div>
+      </div>
+    </div>
+
+    <!-- Conversion funnel -->
+    <div class="funnel-section">
+      <div class="funnel-head">Конверсія</div>
+      <div class="funnel-body" id="funnel-body">
+        <div class="funnel-step">
+          <div class="funnel-count pending" id="f-pending">—</div>
+          <div class="funnel-label">Очікують</div>
+          <div class="funnel-pct" id="f-pending-pct">—</div>
+        </div>
+        <div class="funnel-step">
+          <div class="funnel-count confirmed" id="f-confirmed">—</div>
+          <div class="funnel-label">Підтверджені</div>
+          <div class="funnel-pct" id="f-confirmed-pct">—</div>
+        </div>
+        <div class="funnel-step">
+          <div class="funnel-count completed" id="f-completed">—</div>
+          <div class="funnel-label">Проведені</div>
+          <div class="funnel-pct good" id="f-completed-pct">—</div>
+        </div>
+        <div class="funnel-step">
+          <div class="funnel-count cancelled" id="f-cancelled">—</div>
+          <div class="funnel-label">Скасовані</div>
+          <div class="funnel-pct" id="f-cancelled-pct">—</div>
+        </div>
       </div>
     </div>
 
@@ -333,6 +424,30 @@
         ? p.baseReward + p.contractBonus
         : p.baseReward;
     });
+
+    // ── Funnel (all events for selected teacher, all statuses) ──
+    const allForPeriod = Object.values(events).filter(ev => {
+      if (selectedMonth && ev.date && !ev.date.startsWith(selectedMonth)) return false;
+      if (selectedTeacher && ev.assignedPersonId !== selectedTeacher) return false;
+      return true;
+    });
+    const fTotal     = allForPeriod.length;
+    const fPending   = allForPeriod.filter(e => e.status === 'pending').length;
+    const fConfirmed = allForPeriod.filter(e => e.status === 'confirmed').length;
+    const fCompleted = allForPeriod.filter(e => e.status === 'completed').length;
+    const fCancelled = allForPeriod.filter(e => e.status === 'cancelled').length;
+
+    const pct = (n) => fTotal > 0 ? Math.round(n / fTotal * 100) + '%' : '—';
+
+    const setF = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setF('f-pending',       fPending);
+    setF('f-confirmed',     fConfirmed);
+    setF('f-completed',     fCompleted);
+    setF('f-cancelled',     fCancelled);
+    setF('f-pending-pct',   pct(fPending));
+    setF('f-confirmed-pct', pct(fConfirmed));
+    setF('f-completed-pct', pct(fCompleted));
+    setF('f-cancelled-pct', pct(fCancelled));
 
     // Summary chips
     const totalEvents    = completed.length;

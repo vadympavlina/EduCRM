@@ -596,6 +596,26 @@ function initCalendar() {
   refreshCalendar(); 
 }
 
+
+// ── TEACHER COLOR PALETTE ────────────────────────────────────
+const TEACHER_COLORS = [
+  { bg: '#4f6ef7', border: '#3b5be8', text: '#fff' },
+  { bg: '#059669', border: '#047857', text: '#fff' },
+  { bg: '#d97706', border: '#b45309', text: '#fff' },
+  { bg: '#7c3aed', border: '#6d28d9', text: '#fff' },
+  { bg: '#db2777', border: '#be185d', text: '#fff' },
+  { bg: '#0891b2', border: '#0e7490', text: '#fff' },
+  { bg: '#dc2626', border: '#b91c1c', text: '#fff' },
+  { bg: '#65a30d', border: '#4d7c0f', text: '#fff' },
+];
+
+function getTeacherColor(teacherId) {
+  if (!teacherId) return null;
+  const keys = Object.keys(teachers).sort();
+  const idx  = keys.indexOf(teacherId);
+  return idx >= 0 ? TEACHER_COLORS[idx % TEACHER_COLORS.length] : null;
+}
+
 function refreshCalendar() {
   if (!calendarInstance) return;
   
@@ -607,13 +627,20 @@ function refreshCalendar() {
     const end   = parseDateTime(ev.date, ev.endTime   || '10:00');
     const title = ev.title + (teacherName(ev.assignedPersonId) ? ' · ' + teacherName(ev.assignedPersonId) : '');
 
-    eventsArray.push({
+    const tColor = getTeacherColor(ev.assignedPersonId);
+    const evObj = {
       id:         ev.id,
       title,
       start,
       end,
       classNames: [`status-${ev.status}`]
-    });
+    };
+    if (tColor && ev.status !== 'cancelled') {
+      evObj.backgroundColor = tColor.bg;
+      evObj.borderColor     = tColor.border;
+      evObj.textColor       = tColor.text;
+    }
+    eventsArray.push(evObj);
   });
 
   // 2. Формуємо масив блокувань

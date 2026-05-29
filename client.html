@@ -114,6 +114,21 @@
 
     /* ════ RIGHT ════ */
     .right-col { background: var(--bg2); }
+    .viber-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 13px;
+      background: #7360f2;
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-family: var(--font-main);
+      font-size: 13px; font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      flex-shrink: 0;
+    }
+    .viber-btn:hover { opacity: 0.88; }
     .right-inner { padding: 22px 16px; display: flex; flex-direction: column; gap: 14px; }
     .right-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.7px; color: var(--text3); }
     .author-row { display: flex; align-items: center; gap: 10px; padding: 10px 13px; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; }
@@ -259,7 +274,18 @@
         </div>
         <div class="info-block">
           <div class="ib-head">Контакт</div>
-          <div class="ib-row"><span class="ib-label">Телефон</span><span class="ib-val" id="info-phone">—</span></div>
+          <div class="ib-row">
+            <span class="ib-label">Телефон</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="ib-val" id="info-phone">—</span>
+              <a id="viber-btn" class="viber-btn" href="#" target="_blank" style="display:none">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M21.8 7.4C21.5 5.4 20.5 3.8 18.8 2.7 17.2 1.6 15.2 1 12.9 1h-.2C10.4 1 8.3 1.7 6.6 2.9 4.9 4.1 3.8 5.8 3.4 7.9c-.2 1-.3 2-.3 3 0 1.1.1 2.2.4 3.2.6 2.2 2 4 3.9 5.2l.1.1v2.8c0 .5.3.9.7 1 .1 0 .2.1.3.1.3 0 .5-.1.7-.3l2.2-2.2c.5 0 1 .1 1.5.1h.2c2.3 0 4.4-.7 6-1.9 1.7-1.3 2.8-3.1 3.1-5.2.1-.9.2-1.8.2-2.7-.1-1.2-.2-2.2-.4-3.2zm-9.5 9.3c-.5 0-1-.1-1.5-.2l-.4-.1-2.8 2.8V17l-.4-.2C5.9 15.7 4.6 14 4.1 12c-.3-.9-.4-1.9-.4-2.9 0-.9.1-1.8.3-2.7.3-1.7 1.2-3.1 2.6-4.1C8 1.5 9.8.9 11.8.9h.2c2 0 3.8.5 5.2 1.5 1.4 1 2.3 2.4 2.6 4.1.2.9.3 1.8.3 2.7 0 .8-.1 1.7-.2 2.5-.3 1.8-1.2 3.3-2.6 4.3-1.4 1-3.2 1.7-5 1.7z"/>
+                </svg>
+                Viber
+              </a>
+            </div>
+          </div>
           <div class="ib-row"><span class="ib-label">Доданий</span><span class="ib-val text" id="info-created">—</span></div>
         </div>
         <div class="info-block">
@@ -366,6 +392,13 @@
     document.getElementById('topbar-phone').textContent = clientData.phone || phoneKey;
     document.getElementById('cl-phone').textContent     = clientData.phone || phoneKey;
     document.getElementById('info-phone').textContent   = clientData.phone || phoneKey;
+    // Viber deeplink
+    const viberBtn = document.getElementById('viber-btn');
+    if (viberBtn && clientData.phone) {
+      const digits = clientData.phone.replace(/\D/g, '');
+      viberBtn.href = 'viber://chat?number=' + digits;
+      viberBtn.style.display = 'inline-flex';
+    }
     document.getElementById('info-created').textContent = fmtDate(clientData.createdAt);
     document.getElementById('cl-av').textContent        = name ? ini(name) : (clientData.phone || phoneKey).slice(-2);
   }
