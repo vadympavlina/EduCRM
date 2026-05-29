@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function startApp() {
   try { await loadConfig(); } catch (error) { console.error("Помилка завантаження токена:", error); }
 
-  initPresence(); 
+  initPresence();
   listenTeachers();
   listenPricing();
   listenEvents();
@@ -94,24 +94,6 @@ async function startApp() {
   listenReviews();
 
   setTimeout(initCalendar, 200);
-
-  const now = new Date();
-  const monthSel = document.getElementById('stats-month');
-  if (monthSel) {
-    monthSel.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    monthSel.addEventListener('change', renderStats);
-  }
-
-  const teacherSel = document.getElementById('stats-teacher');
-  if (teacherSel) {
-    teacherSel.addEventListener('change', renderStats);
-  }
-
-  const monthFilter = document.getElementById('confirmed-month-filter');
-  if (monthFilter) {
-    monthFilter.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    monthFilter.addEventListener('change', renderConfirmedList);
-  }
 }
 
 // ── PRESENCE (ОНЛАЙН СТАТУС) ─────────────────────────────────
@@ -245,14 +227,8 @@ function renderNotifPanel() {
     const time   = d.toLocaleString('uk-UA', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
     const safeTitle   = (r.eventTitle || 'Захід').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const safeComment = (r.comment    || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    // Get phone for this event to open client card
-    const ev = events[r.id];
-    const phone = ev ? normalizePhone(ev.phone) : null;
-    const clientUrl = phone ? `client.html?id=${encodeURIComponent(phone)}` : null;
     return `
-      <div class="notif-item ${isRead ? 'read' : 'unread'}"
-           onmouseenter="markNotifRead('${r.id}')"
-           onclick="${clientUrl ? `openClientFromNotif('${clientUrl}')` : ''}">
+      <div class="notif-item ${isRead ? 'read' : 'unread'}" onclick="markNotifRead('${r.id}')">
         <div class="notif-item-icon">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -263,12 +239,7 @@ function renderNotifPanel() {
           <div class="notif-item-text">${safeComment}</div>
           <div class="notif-item-time">${time}</div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
-          ${!isRead ? '<div class="notif-dot"></div>' : ''}
-          ${clientUrl ? `<div title="Відкрити картку клієнта" style="color:var(--accent);opacity:0.7">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          </div>` : ''}
-        </div>
+        ${!isRead ? '<div class="notif-dot"></div>' : ''}
       </div>`;
   }).join('');
 }
@@ -414,25 +385,29 @@ function showLoginError(msg) {
 }
 
 function renderUserInfo() {
-  // Name / email (hidden span kept for compat)
-  const nameEl = document.getElementById('user-name-display');
-  if (nameEl) nameEl.textContent = currentUser;
-  const emailEl = document.getElementById('user-email-display');
-  if (emailEl) emailEl.textContent = currentEmail;
+  document.getElementById('user-name-display').textContent  = currentUser;
+  document.getElementById('user-email-display').textContent = currentEmail;
 
-  const initial = currentUser.charAt(0).toUpperCase();
+  const letterEl  = document.getElementById('user-avatar-letter');
+  const avatarDiv = letterEl.closest('.user-avatar');
 
-  // Sidebar icon-only avatar
-  const sbAv = document.querySelector('.sb-user-av');
-  if (sbAv) sbAv.textContent = initial;
-
-  // Sidebar tooltip
-  const sbTip = document.querySelector('.sb-user-item .sb-tip');
-  if (sbTip) sbTip.textContent = currentUser;
-
-  // Legacy letter element (якщо ще десь є)
-  const letterEl = document.getElementById('user-avatar-letter');
-  if (letterEl) letterEl.textContent = initial;
+  if (currentPhotoURL) {
+    // Показуємо фото з Google
+    let img = avatarDiv.querySelector('img.user-photo');
+    if (!img) {
+      img = document.createElement('img');
+      img.className = 'user-photo';
+      img.style.cssText = 'width:100%;height:100%;border-radius:25%;object-fit:cover;';
+      avatarDiv.appendChild(img);
+    }
+    img.src = currentPhotoURL;
+    letterEl.style.display = 'none';
+  } else {
+    letterEl.textContent   = currentUser.charAt(0).toUpperCase();
+    letterEl.style.display = '';
+    const oldImg = avatarDiv.querySelector('img.user-photo');
+    if (oldImg) oldImg.remove();
+  }
 }
 
 document.getElementById('btn-change-name').addEventListener('click', async () => {
@@ -449,44 +424,31 @@ document.getElementById('btn-change-name').addEventListener('click', async () =>
 
 // ── NAVIGATION ───────────────────────────────────────────────
 function setupNav() {
-  document.querySelectorAll('.sb-item[data-page]').forEach(item => {
-    item.addEventListener('click', () => {
-      navigateTo(item.dataset.page);
-    });
-  });
+  // Sidebar is icon-only — no nav-items to wire up
+  // Navigation is handled via <a href> links in sidebar.js
 }
 
-function navigateTo(page) {
-  document.querySelectorAll('.sb-item[data-page]').forEach(n =>
-    n.classList.toggle('active', n.dataset.page === page));
-  document.querySelectorAll('.page').forEach(p =>
-    p.classList.toggle('active', p.id === page + '-page'));
-
-  if (page === 'stats')          renderStats();
-  if (page === 'completed')      renderCompleted();
-  if (page === 'pricing')        renderPricing();
-  if (page === 'teachers')       renderTeachers();
-  if (page === 'confirmed-list') renderConfirmedList();
-  if (page === 'schedule')       renderBlockedTimes(); 
-  if (page === 'calendar')       setTimeout(() => calendarInstance && calendarInstance.render(), 50);
+function goToToday() {
+  if (calendarInstance) calendarInstance.today();
 }
 
-// ── HAMBURGER ────────────────────────────────────────────────
+// ── HAMBURGER (mobile fallback) ──────────────────────────────
 function setupHamburger() {
   document.querySelectorAll('.hamburger-btn').forEach(btn => {
     btn.addEventListener('click', toggleSidebar);
   });
-  const ov = document.getElementById('sidebar-overlay'); if (ov) ov.addEventListener('click', closeSidebar);
+  const ov = document.getElementById('sidebar-overlay');
+  if (ov) ov.addEventListener('click', closeSidebar);
 }
 
 function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('sidebar-overlay').classList.toggle('open');
+  document.getElementById('sidebar')?.classList.toggle('open');
+  document.getElementById('sidebar-overlay')?.classList.toggle('open');
 }
 
 function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebar-overlay').classList.remove('open');
+  document.getElementById('sidebar')?.classList.remove('open');
+  document.getElementById('sidebar-overlay')?.classList.remove('open');
 }
 
 // ── FIREBASE LISTENERS ───────────────────────────────────────
@@ -525,13 +487,6 @@ function renderDashboardCounters() {
   animate('cnt-cancelled', cntCancelled);
 }
 
-function goToToday() {
-  navigateTo('calendar');
-  setTimeout(() => {
-    if (calendarInstance) calendarInstance.today();
-  }, 60);
-}
-
 function listenEvents() {
   db.ref('events').on('value', snap => {
     const data = snap.val() || {};
@@ -539,14 +494,8 @@ function listenEvents() {
     Object.keys(data).forEach(key => {
       events[key] = { id: key, ...data[key] };
     });
-
     refreshCalendar();
     renderDashboardCounters();
-
-    const activePage = document.querySelector('.page.active')?.id;
-    if (activePage === 'completed-page') renderCompleted();
-    if (activePage === 'stats-page')     renderStats();
-    if (activePage === 'confirmed-list-page') renderConfirmedList();
   });
 }
 
@@ -557,27 +506,8 @@ function listenTeachers() {
     Object.keys(data).forEach(key => {
       teachers[key] = { id: key, ...data[key] };
     });
-
-    populateStatsTeacherSelect();
-    const activePage = document.querySelector('.page.active')?.id;
-    if (activePage === 'teachers-page') renderTeachers();
-    if (activePage === 'pricing-page')  renderPricing();
-    if (activePage === 'stats-page')    renderStats();
-    populateOverrideSelect();
-    
-    const bts = document.getElementById('block-teacher-select');
-    if (bts) {
-      const cur = bts.value;
-      bts.innerHTML = '<option value="">Всі (загальне блокування)</option>';
-      Object.values(teachers).forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t.id; opt.textContent = t.name; bts.appendChild(opt);
-      });
-      bts.value = cur;
-    }
-    
-    const ap = document.querySelector('.page.active')?.id;
-    if (ap === 'schedule-page') renderBlockedTimes();
+    populateTeacherSelect();
+    refreshCalendar();
   });
 }
 
@@ -589,8 +519,6 @@ function listenPricing() {
       if (!pricing.default)   pricing.default   = { baseReward: 50, contractBonus: 100 };
       if (!pricing.overrides) pricing.overrides = {};
     }
-    const activePage = document.querySelector('.page.active')?.id;
-    if (activePage === 'pricing-page') renderPricing();
   });
 }
 
@@ -833,14 +761,6 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
     showToast("Заповніть обов'язкові поля", 'error'); return;
   }
 
-  if (!phone) {
-    const phoneEl = document.getElementById('event-phone');
-    phoneEl.style.borderColor = 'var(--red)';
-    phoneEl.focus();
-    setTimeout(() => phoneEl.style.borderColor = '', 2000);
-    showToast('Вкажіть номер телефону клієнта', 'error'); return;
-  }
-
   const checkStart = parseDateTime(date, startTime);
   const checkEnd   = parseDateTime(date, endTime);
 
@@ -859,12 +779,10 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
     data.createdAt = new Date().toISOString();
     const newRef = db.ref('events').push();
     await newRef.set(data);
-    sendTelegram('СТВОРЕНО', { ...data, id: newRef.key });
-    if (phone) upsertClient(phone, title);
+    sendTelegram('СТВОРЕНО', { ...data, id: newRef.key }); 
     showToast('Подію створено', 'success');
   } else {
     await db.ref('events/' + id).update(data);
-    if (phone) upsertClient(phone, title);
     showToast('Подію оновлено', 'success');
   }
   closeModal('event-modal');
@@ -925,310 +843,12 @@ function deleteEvent(id) {
 document.getElementById('event-cancel-btn').addEventListener('click', () => closeModal('event-modal'));
 
 // ── CONFIRMED LIST ───────────────────────────────────────────
-function renderConfirmedList() {
-  const tbody = document.getElementById('confirmed-list-tbody');
-  const emptyState = document.getElementById('confirmed-list-empty');
-  const selectedMonth = document.getElementById('confirmed-month-filter').value;
-
-  const list = Object.values(events).filter(ev => {
-    return ev.status === 'confirmed' && ev.date && ev.date.startsWith(selectedMonth);
-  }).sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
-
-  tbody.innerHTML = '';
-  if (list.length === 0) {
-    tbody.parentElement.parentElement.style.display = 'none';
-    emptyState.style.display = 'flex';
-    return;
-  }
-  tbody.parentElement.parentElement.style.display = 'block';
-  emptyState.style.display = 'none';
-
-  list.forEach(ev => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><strong>${ev.title}</strong></td>
-      <td>${ev.date} <span style="color:var(--text3)">${ev.startTime}–${ev.endTime}</span></td>
-      <td>${teacherName(ev.assignedPersonId) || '—'}</td>
-      <td>
-        <div style="display:flex; gap:8px;">
-          <button class="btn btn-success btn-sm" onclick="completeEvent('${ev.id}')">Проведено</button>
-          <button class="btn btn-ghost btn-sm" onclick="cancelEvent('${ev.id}')" style="color:var(--red)">Ні</button>
-        </div>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-// ── COMPLETED & STATS ────────────────────────────────────────
-function renderCompleted() {
-  const list = Object.values(events).filter(e => e.status === 'completed')
-    .sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0));
-
-  let totalEarnings = 0, totalContracts = 0;
-  const tbody = document.getElementById('completed-tbody');
-  tbody.innerHTML = '';
-
-  if (list.length === 0) {
-    document.getElementById('completed-empty').style.display = 'flex';
-    document.getElementById('completed-table-wrap').style.display = 'none';
-  } else {
-    document.getElementById('completed-empty').style.display = 'none';
-    document.getElementById('completed-table-wrap').style.display = 'block';
-
-    list.forEach(ev => {
-      const p = getPricing(ev.assignedPersonId);
-      const earnings = ev.contractSigned ? p.baseReward + p.contractBonus : p.baseReward;
-      totalEarnings += earnings;
-      if (ev.contractSigned) totalContracts++;
-
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${ev.title}</td><td>${ev.date}</td><td>${ev.startTime}–${ev.endTime}</td>
-        <td>${teacherName(ev.assignedPersonId)}</td><td>${ev.phone || '—'}</td>
-        <td><input type="checkbox" ${ev.contractSigned ? 'checked' : ''} onchange="toggleContract('${ev.id}', this.checked)"></td>
-        <td class="earnings-value">₴${earnings}</td><td>${ev.completedBy || '—'}</td>`;
-      tbody.appendChild(tr);
-    });
-  }
-  document.getElementById('completed-total').textContent = list.length;
-  document.getElementById('completed-earnings').textContent = '₴' + totalEarnings;
-  document.getElementById('completed-contracts').textContent = totalContracts;
-}
-
-function toggleContract(id, checked) {
-  db.ref('events/' + id).update({ contractSigned: checked }).then(() => renderCompleted());
-}
-
-function populateStatsTeacherSelect() {
-  const sel = document.getElementById('stats-teacher');
-  if(!sel) return;
-  const currentVal = sel.value; 
-  sel.innerHTML = '<option value="">Всі вчителі</option>';
-  Object.values(teachers).forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t.id; opt.textContent = t.name; sel.appendChild(opt);
-  });
-  sel.value = currentVal; 
-}
-
-function renderStats() {
-  const selectedMonth = document.getElementById('stats-month').value;
-  const selectedTeacher = document.getElementById('stats-teacher').value;
-
-  const completed = Object.values(events).filter(e => {
-    if (e.status !== 'completed') return false;
-    if (selectedMonth && !e.date.startsWith(selectedMonth)) return false;
-    if (selectedTeacher && e.assignedPersonId !== selectedTeacher) return false;
-    return true;
-  });
-
-  const byTeacher = {};
-  completed.forEach(ev => {
-    const tid = ev.assignedPersonId || '__none__';
-    if (!byTeacher[tid]) byTeacher[tid] = { count: 0, contracts: 0, earnings: 0 };
-    const p = getPricing(ev.assignedPersonId);
-    byTeacher[tid].count++;
-    if (ev.contractSigned) byTeacher[tid].contracts++;
-    byTeacher[tid].earnings += ev.contractSigned ? p.baseReward + p.contractBonus : p.baseReward;
-  });
-
-  const tbody = document.getElementById('stats-tbody');
-  tbody.innerHTML = '';
-  Object.entries(byTeacher).forEach(([tid, data]) => {
-    const name = tid === '__none__' ? 'Не призначено' : (teachers[tid]?.name || 'Невідомо');
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${name}</td><td>${data.count}</td><td>${data.contracts}</td><td class="earnings-value">₴${data.earnings}</td>`;
-    tbody.appendChild(tr);
-  });
-  const tfoot = document.getElementById('stats-tfoot');
-  if (tfoot) tfoot.innerHTML = ''; 
-}
-
-function printStats() {
-  const selectedMonth = document.getElementById('stats-month').value || 'Всі місяці';
-  const teacherSelect = document.getElementById('stats-teacher');
-  const selectedTeacherName = teacherSelect.options[teacherSelect.selectedIndex].text;
-  const tableHTML = document.querySelector('#stats-page table').outerHTML;
-  const printWindow = window.open('', '_blank');
-  printWindow.document.write(`
-    <html><head><title>Звіт - EduCRM</title><style>
-    body { font-family: sans-serif; padding: 20px; color: #111; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
-    .earnings-value { color: #059669; font-weight: bold; }
-    </style></head><body>
-    <h2>Звіт: Статистика подій</h2><p>Місяць: ${selectedMonth} | Вчитель: ${selectedTeacherName}</p>
-    ${tableHTML}<script>window.onload = function() { setTimeout(() => { window.print(); window.close(); }, 250); }</script></body></html>`);
-  printWindow.document.close();
-}
-
 // ── BLOCKED TIMES LOGIC ───────────────────────────────────────
 function listenBlockedTimes() {
   db.ref('settings/blockedTimes').on('value', snap => {
     blockedTimes = snap.val() || {};
     refreshCalendar();
-    renderBlockedTimes();
   });
-}
-
-function saveBlockedTime() {
-  const title     = document.getElementById('block-title').value.trim();
-  const until     = document.getElementById('block-until').value;
-  const start     = document.getElementById('block-start').value;
-  const end       = document.getElementById('block-end').value;
-  const teacherId = document.getElementById('block-teacher-select').value || '';
-  const days = [];
-  document.querySelectorAll('.day-checkbox:checked').forEach(cb => days.push(parseInt(cb.value)));
-
-  if (!title)               { showToast("Введіть назву блокування", 'error'); return; }
-  if (days.length === 0)    { showToast('Оберіть хоча б один день', 'error'); return; }
-  if (!start || !end)       { showToast('Вкажіть час початку і кінця', 'error'); return; }
-
-  const data = { title, until: until || '', start, end, days, teacherId };
-  db.ref('settings/blockedTimes').push(data).then(() => {
-    showToast('Блокування додано', 'success');
-    document.getElementById('block-title').value = '';
-    document.getElementById('block-until').value = '';
-    document.getElementById('block-start').value = '';
-    document.getElementById('block-end').value   = '';
-    document.getElementById('block-teacher-select').value = '';
-    document.querySelectorAll('.day-checkbox').forEach(cb => cb.checked = false);
-  });
-}
-
-function deleteBlockedTime(id) {
-  if(confirm('Видалити це обмеження?')) {
-    db.ref('settings/blockedTimes/' + id).remove().then(() => showToast('Видалено', 'info'));
-  }
-}
-
-function renderBlockedTimes() {
-  const tbody = document.getElementById('blocked-times-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-  const dayNames = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-
-  const sel = document.getElementById('block-teacher-select');
-  if (sel) {
-    const cur = sel.value;
-    sel.innerHTML = '<option value="">Всі (загальне блокування)</option>';
-    Object.values(teachers).forEach(t => {
-      const opt = document.createElement('option');
-      opt.value = t.id; opt.textContent = t.name; sel.appendChild(opt);
-    });
-    sel.value = cur;
-  }
-
-  if (Object.keys(blockedTimes).length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">Блокувань ще немає</td></tr>';
-    return;
-  }
-
-  Object.entries(blockedTimes).forEach(([id, b]) => {
-    const tr = document.createElement('tr');
-    const daysStr = (b.days || []).map(d => dayNames[d]).join(', ');
-    const scope = b.teacherId
-      ? `<span class="badge" style="background:var(--blue-bg);color:var(--blue-text);border:1px solid var(--blue)">${teachers[b.teacherId]?.name || 'Невідомо'}</span>`
-      : `<span class="badge" style="background:var(--red-bg);color:var(--red-text);border:1px solid var(--red)">Всі</span>`;
-    tr.innerHTML = `
-      <td><strong>${b.title || 'Зайнято'}</strong></td>
-      <td>${scope}</td>
-      <td>${daysStr}</td>
-      <td>${b.start} – ${b.end}</td>
-      <td>${b.until || '∞'}</td>
-      <td><button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteBlockedTime('${id}')">Видалити</button></td>`;
-    tbody.appendChild(tr);
-  });
-}
-
-// ── PRICING & TEACHERS ───────────────────────────────────────
-function renderPricing() {
-  document.getElementById('pricing-default-base').value  = pricing.default.baseReward;
-  document.getElementById('pricing-default-bonus').value = pricing.default.contractBonus;
-  const container = document.getElementById('pricing-overrides');
-  container.innerHTML = '';
-  Object.entries(pricing.overrides || {}).forEach(([tid, vals]) => {
-    const teacher = teachers[tid]; if (!teacher) return;
-    const row = document.createElement('div'); row.className = 'pricing-row';
-    row.innerHTML = `<span class="pricing-teacher-name">${teacher.name}</span>
-      <div class="pricing-input-group"><label>Базова ₴</label><input class="pricing-input" type="number" value="${vals.baseReward}" onchange="updateOverride('${tid}','baseReward',this.value)"></div>
-      <div class="pricing-input-group"><label>Бонус ₴</label><input class="pricing-input" type="number" value="${vals.contractBonus}" onchange="updateOverride('${tid}','contractBonus',this.value)"></div>
-      <button class="btn btn-danger btn-sm" onclick="removeOverride('${tid}')">Видалити</button>`;
-    container.appendChild(row);
-  });
-}
-
-document.getElementById('pricing-save-default').addEventListener('click', () => {
-  const base  = parseInt(document.getElementById('pricing-default-base').value)  || 0;
-  const bonus = parseInt(document.getElementById('pricing-default-bonus').value) || 0;
-  db.ref('pricing/config').set({ ...pricing, default: { baseReward: base, contractBonus: bonus } }).then(() => showToast('Збережено', 'success'));
-});
-
-document.getElementById('btn-add-override').addEventListener('click', () => {
-  const tid = document.getElementById('override-teacher-select').value;
-  if (!tid) return;
-  const base = parseInt(document.getElementById('override-base').value) || 50;
-  const bonus = parseInt(document.getElementById('override-bonus').value) || 100;
-  const newPricing = { ...pricing, overrides: { ...pricing.overrides, [tid]: { baseReward: base, contractBonus: bonus } } };
-  db.ref('pricing/config').set(newPricing).then(() => showToast('Додано', 'success'));
-});
-
-function updateOverride(tid, field, value) {
-  const newPricing = { ...pricing, overrides: { ...pricing.overrides, [tid]: { ...pricing.overrides[tid], [field]: parseInt(value) || 0 } } };
-  db.ref('pricing/config').set(newPricing);
-}
-
-function removeOverride(tid) {
-  const newOverrides = { ...pricing.overrides }; delete newOverrides[tid];
-  db.ref('pricing/config').set({ ...pricing, overrides: newOverrides }).then(() => showToast('Видалено', 'info'));
-}
-
-function renderTeachers() {
-  const list = document.getElementById('teachers-list');
-  list.innerHTML = '';
-  Object.values(teachers).forEach(t => {
-    const item = document.createElement('div'); item.className = 'teacher-item';
-    item.innerHTML = `
-      <div style="display:flex; align-items:center; gap:14px; flex:1; min-width:0;">
-        <div class="teacher-avatar">${t.name.charAt(0).toUpperCase()}</div>
-        <div class="teacher-name">${t.name}</div>
-      </div>
-      <div class="teacher-actions">
-        <button class="btn btn-ghost btn-sm" onclick="editTeacher('${t.id}','${escStr(t.name)}')">Ред.</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteTeacher('${t.id}','${escStr(t.name)}')">Вид.</button>
-      </div>`;
-    list.appendChild(item);
-  });
-}
-
-document.getElementById('btn-add-teacher').addEventListener('click', () => {
-  document.getElementById('teacher-modal-title').textContent = 'Додати вчителя';
-  document.getElementById('teacher-id').value = '';
-  document.getElementById('teacher-name-input').value = '';
-  document.getElementById('teacher-modal').classList.add('open');
-  setTimeout(() => document.getElementById('teacher-name-input').focus(), 100);
-});
-
-function editTeacher(id, name) {
-  document.getElementById('teacher-modal-title').textContent = 'Редагувати вчителя';
-  document.getElementById('teacher-id').value = id;
-  document.getElementById('teacher-name-input').value = name;
-  document.getElementById('teacher-modal').classList.add('open');
-  setTimeout(() => document.getElementById('teacher-name-input').focus(), 100);
-}
-
-document.getElementById('teacher-save-btn').addEventListener('click', async () => {
-  const id = document.getElementById('teacher-id').value;
-  const name = document.getElementById('teacher-name-input').value.trim();
-  if (!name) return;
-  if (id) { await db.ref('people/' + id).update({ name }); showToast('Оновлено', 'success'); }
-  else { await db.ref('people').push({ name }); showToast('Додано', 'success'); }
-  closeModal('teacher-modal');
-});
-
-function deleteTeacher(id, name) {
-  showConfirm(`Видалити вчителя "${name}"?`, async () => { await db.ref('people/' + id).remove(); showToast('Видалено', 'info'); });
 }
 
 function isTimeBlocked(startDT, endDT, teacherId, globalOnly) {
@@ -1256,12 +876,6 @@ function isTimeBlocked(startDT, endDT, teacherId, globalOnly) {
 }
 
 // ── HELPERS ──────────────────────────────────────────────────
-function populateOverrideSelect() {
-  const sel = document.getElementById('override-teacher-select');
-  if(!sel) return;
-  sel.innerHTML = '<option value="">— Оберіть вчителя —</option>';
-  Object.values(teachers).forEach(t => { const opt = document.createElement('option'); opt.value = t.id; opt.textContent = t.name; sel.appendChild(opt); });
-}
 
 function teacherName(id) { return id ? (teachers[id]?.name || '') : ''; }
 function getPricing(tid) { return (tid && pricing.overrides[tid]) ? pricing.overrides[tid] : pricing.default; }
@@ -1323,40 +937,8 @@ async function sendTelegram(status, ev) {
 // ── EXPORTS ──────────────────────────────────────────────────
 window.openCreateModal = openCreateModal;
 window.openEventModal = openEventModal;
-window.toggleContract = toggleContract;
-window.editTeacher = editTeacher;
-window.deleteTeacher = deleteTeacher;
-window.updateOverride = updateOverride;
-window.removeOverride = removeOverride;
 window.completeEvent = completeEvent;
 window.cancelEvent = cancelEvent;
-window.renderConfirmedList = renderConfirmedList;
-window.printStats = printStats;
-window.saveBlockedTime = saveBlockedTime;
-window.deleteBlockedTime = deleteBlockedTime;
-function openClientFromNotif(url) {
-  window.open(url, '_blank');
-}
-
-function normalizePhone(p) {
-  if (!p) return null;
-  const d = p.replace(/\D/g, '');
-  return d.length >= 9 ? d : null;
-}
-
-async function upsertClient(rawPhone, eventTitle) {
-  const key = normalizePhone(rawPhone);
-  if (!key) return;
-  const ref  = db.ref('clients/' + key);
-  const snap = await ref.once('value');
-  if (!snap.exists()) {
-    await ref.set({ phone: rawPhone, name: eventTitle || '', createdAt: Date.now(), lastEventAt: Date.now() });
-  } else {
-    await ref.update({ lastEventAt: Date.now() });
-  }
-}
-
 window.toggleNotifPanel = toggleNotifPanel;
-window.closeNotifPanel      = closeNotifPanel;
-window.markNotifRead        = markNotifRead;
-window.openClientFromNotif  = openClientFromNotif;
+window.closeNotifPanel  = closeNotifPanel;
+window.markNotifRead    = markNotifRead;

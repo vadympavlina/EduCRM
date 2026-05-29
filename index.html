@@ -37,51 +37,40 @@
     <div class="sb-divider"></div>
 
     <nav class="sb-nav">
-
       <div class="sb-item active" data-page="calendar">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         <span class="sb-tip">Календар</span>
       </div>
-
-      <div class="sb-item" data-page="confirmed-list">
+      <a class="sb-item" href="confirmed.html">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         <span class="sb-tip">Підтверджені</span>
-      </div>
-
-      <div class="sb-item" data-page="schedule">
+      </a>
+      <a class="sb-item" href="schedule.html">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg>
         <span class="sb-tip">Графік роботи</span>
-      </div>
-
-      <div class="sb-item" data-page="completed">
+      </a>
+      <a class="sb-item" href="completed.html">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         <span class="sb-tip">Завершені</span>
-      </div>
-
-      <div class="sb-item" data-page="stats">
+      </a>
+      <a class="sb-item" href="stats.html">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         <span class="sb-tip">Статистика</span>
-      </div>
-
+      </a>
       <div class="sb-divider"></div>
-
-      <div class="sb-item" data-page="pricing">
+      <a class="sb-item" href="pricing.html">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
         <span class="sb-tip">Ціноутворення</span>
-      </div>
-
-      <div class="sb-item" data-page="teachers">
+      </a>
+      <a class="sb-item" href="teachers.html">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <span class="sb-tip">Вчителі</span>
-      </div>
-
+      </a>
       <div class="sb-divider"></div>
-
-      <a href="clients.html" class="sb-item" style="text-decoration:none">
+      <a class="sb-item" href="clients.html">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <span class="sb-tip">Клієнти</span>
       </a>
-
     </nav>
 
     <div class="sb-bottom">
@@ -100,8 +89,7 @@
 
   </aside>
 
-  <div id="sidebar-overlay"></div>
-
+  
   <main id="main">
 
     <!-- ── TOPBAR COUNTERS (всі сторінки) ── -->
@@ -121,7 +109,7 @@
 
       <div class="tbar-divider"></div>
 
-      <button class="tbar-item" id="cnt-btn-completed" onclick="navigateTo('completed')">
+      <button class="tbar-item" id="cnt-btn-completed" onclick="window.location.href='completed.html'">
         <span class="tbar-icon tbar-icon-completed">
           <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
@@ -134,7 +122,7 @@
 
       <div class="tbar-divider"></div>
 
-      <button class="tbar-item" id="cnt-btn-contracts" onclick="navigateTo('stats')">
+      <button class="tbar-item" id="cnt-btn-contracts" onclick="window.location.href='stats.html'">
         <span class="tbar-icon tbar-icon-contracts">
           <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -196,324 +184,7 @@
       <div class="page-content">
         <div id="calendar"></div>
       </div>
-    </div>
 
-    <div class="page" id="confirmed-list-page">
-      <div class="page-header">
-        <div class="page-header-left">
-          <button class="hamburger-btn" aria-label="Меню">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-              <line x1="3" y1="6" x2="21" y2="6"/>
-              <line x1="3" y1="12" x2="21" y2="12"/>
-              <line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-          </button>
-          <h2>Підтверджені</h2>
-        </div>
-        <div style="display:flex; gap:10px; align-items:center;">
-          <input type="month" id="confirmed-month-filter" class="form-control" style="width:auto">
-        </div>
-      </div>
-      <div class="page-content">
-        <div id="confirmed-list-empty" class="empty-state" style="display:none">
-          <div class="empty-state-icon">
-            <svg width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-              <path d="M9 11l3 3L22 4"/>
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-            </svg>
-          </div>
-          <div class="empty-state-title">Немає підтверджених подій</div>
-          <div class="empty-state-text">Спробуйте обрати інший місяць</div>
-        </div>
-        <div class="table-wrap mobile-cards">
-          <table>
-            <thead>
-              <tr>
-                <th>Назва</th>
-                <th>Дата та час</th>
-                <th>Вчитель</th>
-                <th>Дії</th>
-              </tr>
-            </thead>
-            <tbody id="confirmed-list-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <div class="page" id="schedule-page">
-      <div class="page-header">
-        <div class="page-header-left">
-          <button class="hamburger-btn" aria-label="Меню">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-              <line x1="3" y1="6" x2="21" y2="6"/>
-              <line x1="3" y1="12" x2="21" y2="12"/>
-              <line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-          </button>
-          <h2>Графік та блокування</h2>
-        </div>
-      </div>
-      <div class="page-content">
-        <div class="pricing-section">
-          <div class="pricing-section-title">Додати заборонений час</div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Назва (напр. Обід)</label>
-              <input type="text" class="form-control" id="block-title" placeholder="Обід, заняття...">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Діє до (необов'язково)</label>
-              <input type="date" class="form-control" id="block-until">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Початок *</label>
-              <input type="time" class="form-control" id="block-start">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Кінець *</label>
-              <input type="time" class="form-control" id="block-end">
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Для кого</label>
-            <select class="form-control" id="block-teacher-select">
-              <option value="">Всі (загальне блокування)</option>
-            </select>
-            <p style="font-size:11px;color:var(--text3);margin-top:4px">
-              «Всі» — ніхто не може поставити подію в цей час.<br>
-              Конкретний вчитель — тільки йому заблоковано цей час.
-            </p>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Дні тижня *</label>
-            <div class="days-selector">
-              <label class="day-label"><input type="checkbox" class="day-checkbox" value="1"><span class="day-pill">Пн</span></label>
-              <label class="day-label"><input type="checkbox" class="day-checkbox" value="2"><span class="day-pill">Вт</span></label>
-              <label class="day-label"><input type="checkbox" class="day-checkbox" value="3"><span class="day-pill">Ср</span></label>
-              <label class="day-label"><input type="checkbox" class="day-checkbox" value="4"><span class="day-pill">Чт</span></label>
-              <label class="day-label"><input type="checkbox" class="day-checkbox" value="5"><span class="day-pill">Пт</span></label>
-              <label class="day-label"><input type="checkbox" class="day-checkbox" value="6"><span class="day-pill">Сб</span></label>
-              <label class="day-label"><input type="checkbox" class="day-checkbox" value="0"><span class="day-pill">Нд</span></label>
-            </div>
-          </div>
-          <button class="btn btn-danger btn-sm" onclick="saveBlockedTime()">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            Заблокувати час
-          </button>
-        </div>
-
-        <div class="pricing-section" style="margin-top: 28px;">
-          <div class="pricing-section-title">Активні блокування</div>
-          <div class="table-wrap mobile-cards">
-            <table>
-              <thead>
-                <tr>
-                  <th>Назва</th>
-                  <th>Для кого</th>
-                  <th>Дні</th>
-                  <th>Час</th>
-                  <th>Діє до</th>
-                  <th>Дії</th>
-                </tr>
-              </thead>
-              <tbody id="blocked-times-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="page" id="completed-page">
-      <div class="completed-header">
-        <div class="completed-header-top">
-          <div class="page-header-left">
-            <button class="hamburger-btn" aria-label="Меню">
-              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                <line x1="3" y1="6" x2="21" y2="6"/>
-                <line x1="3" y1="12" x2="21" y2="12"/>
-                <line x1="3" y1="18" x2="21" y2="18"/>
-              </svg>
-            </button>
-            <h2>Завершені</h2>
-          </div>
-          <input type="month" id="completed-month-filter" class="form-control completed-month-input">
-        </div>
-        <div class="completed-stats-row">
-          <div class="completed-stat">
-            <div class="completed-stat-label">Подій</div>
-            <div class="completed-stat-value" id="completed-total">0</div>
-          </div>
-          <div class="completed-stat-divider"></div>
-          <div class="completed-stat">
-            <div class="completed-stat-label">Заробіток</div>
-            <div class="completed-stat-value" id="completed-earnings" style="color:var(--green)">₴0</div>
-          </div>
-          <div class="completed-stat-divider"></div>
-          <div class="completed-stat">
-            <div class="completed-stat-label">Договори</div>
-            <div class="completed-stat-value" id="completed-contracts" style="color:var(--blue)">0</div>
-          </div>
-        </div>
-      </div>
-      <div class="page-content">
-        <div class="empty-state" id="completed-empty">
-          <div class="empty-state-icon">
-            <svg width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-              <polyline points="22 4 12 14.01 9 11.01"/>
-            </svg>
-          </div>
-          <div class="empty-state-title">Завершених подій ще немає</div>
-          <div class="empty-state-text">Вони з'являться тут після завершення</div>
-        </div>
-        <div id="completed-table-wrap" class="table-wrap mobile-cards" style="display:none">
-          <table>
-            <thead>
-              <tr>
-                <th>Назва</th>
-                <th>Дата</th>
-                <th>Час</th>
-                <th>Вчитель</th>
-                <th>Телефон</th>
-                <th>Договір</th>
-                <th>Заробіток</th>
-                <th>Завершив</th>
-              </tr>
-            </thead>
-            <tbody id="completed-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <div class="page" id="stats-page">
-      <div class="page-header">
-        <div class="page-header-left">
-          <button class="hamburger-btn" aria-label="Меню">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-              <line x1="3" y1="6" x2="21" y2="6"/>
-              <line x1="3" y1="12" x2="21" y2="12"/>
-              <line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-          </button>
-          <h2>Статистика</h2>
-        </div>
-        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-          <select id="stats-teacher" class="form-control" style="width:auto">
-            <option value="">Всі вчителі</option>
-          </select>
-          <input type="month" id="stats-month" class="form-control" style="width:auto">
-          <button class="btn btn-ghost btn-sm" onclick="printStats()">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
-            </svg>
-            Друк
-          </button>
-        </div>
-      </div>
-      <div class="page-content">
-        <div class="table-wrap stats-table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Вчитель</th>
-                <th>Подій</th>
-                <th>Договорів</th>
-                <th>Заробіток</th>
-              </tr>
-            </thead>
-            <tbody id="stats-tbody"></tbody>
-            <tfoot id="stats-tfoot" style="background: var(--bg3); border-top: 2px solid var(--border);"></tfoot>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <div class="page" id="pricing-page">
-      <div class="page-header">
-        <div class="page-header-left">
-          <button class="hamburger-btn" aria-label="Меню">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-              <line x1="3" y1="6" x2="21" y2="6"/>
-              <line x1="3" y1="12" x2="21" y2="12"/>
-              <line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-          </button>
-          <h2>Ціноутворення</h2>
-        </div>
-      </div>
-      <div class="page-content">
-        <div class="pricing-section">
-          <div class="pricing-section-title">Стандартні налаштування</div>
-          <div class="pricing-row">
-            <span class="pricing-teacher-name">Всі вчителі</span>
-            <div class="pricing-input-group">
-              <label>Базова ₴</label>
-              <input class="pricing-input" type="number" min="0" id="pricing-default-base" value="50">
-            </div>
-            <div class="pricing-input-group">
-              <label>Бонус за договір ₴</label>
-              <input class="pricing-input" type="number" min="0" id="pricing-default-bonus" value="100">
-            </div>
-            <button class="btn btn-primary btn-sm" id="pricing-save-default">Зберегти</button>
-          </div>
-        </div>
-
-        <div class="pricing-section" style="margin-top: 28px;">
-          <div class="pricing-section-title">Індивідуальні налаштування</div>
-          <div id="pricing-overrides"></div>
-          <div class="pricing-row" style="border:1.5px dashed var(--border2);background:transparent;margin-top:12px">
-            <select class="form-control" id="override-teacher-select" style="width:auto;flex:1;min-width:140px">
-              <option value="">— Додати для вчителя —</option>
-            </select>
-            <div class="pricing-input-group">
-              <label>Базова ₴</label>
-              <input class="pricing-input" type="number" min="0" id="override-base" value="50">
-            </div>
-            <div class="pricing-input-group">
-              <label>Бонус ₴</label>
-              <input class="pricing-input" type="number" min="0" id="override-bonus" value="100">
-            </div>
-            <button class="btn btn-success btn-sm" id="btn-add-override">
-              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              Додати
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="page" id="teachers-page">
-      <div class="page-header">
-        <div class="page-header-left">
-          <button class="hamburger-btn" aria-label="Меню">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-              <line x1="3" y1="6" x2="21" y2="6"/>
-              <line x1="3" y1="12" x2="21" y2="12"/>
-              <line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-          </button>
-          <h2>Вчителі</h2>
-        </div>
-        <button class="btn btn-primary btn-sm" id="btn-add-teacher">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          Додати
-        </button>
-      </div>
-      <div class="page-content">
-        <div class="teacher-list" id="teachers-list"></div>
-      </div>
-    </div>
 
   </main>
 </div>
@@ -605,8 +276,8 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">Телефон <span style="color:var(--red)">*</span></label>
-        <input type="tel" class="form-control" id="event-phone" placeholder="+380 XX XXX XX XX" autocomplete="tel" required>
+        <label class="form-label">Телефон</label>
+        <input type="tel" class="form-control" id="event-phone" placeholder="+380 XX XXX XX XX" autocomplete="tel">
       </div>
 
       <div class="form-row">
@@ -637,28 +308,6 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" id="event-cancel-btn">Скасувати</button>
       <button class="btn btn-primary" id="event-save-btn">Зберегти</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="teacher-modal">
-  <div class="modal" style="max-width:400px">
-    <div class="modal-header">
-      <span class="modal-title" id="teacher-modal-title">Додати вчителя</span>
-      <button class="modal-close" onclick="closeModal('teacher-modal')" aria-label="Закрити">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="teacher-id">
-      <div class="form-group">
-        <label class="form-label">Повне ім'я *</label>
-        <input type="text" class="form-control" id="teacher-name-input" placeholder="напр. Анна Коваль" autocomplete="off">
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" id="teacher-cancel-btn">Скасувати</button>
-      <button class="btn btn-primary" id="teacher-save-btn">Зберегти</button>
     </div>
   </div>
 </div>
@@ -706,96 +355,6 @@
 <div id="toast-container"></div>
 
 <script src="app.js"></script>
-<script>
-  function closeModal(id) {
-    document.getElementById(id).classList.remove('open');
-  }
-
-  // ── Закриття модальних вікон при кліку на фон ──
-  document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', function(e) {
-      if (e.target === this) {
-        if (this.id !== 'name-modal') this.classList.remove('open');
-      }
-    });
-  });
-
-  // ── Патч для фільтрації завершених подій по місяцю ──
-  const _origRenderCompleted = window.renderCompleted || null;
-
-  function renderCompleted() {
-    const filterEl = document.getElementById('completed-month-filter');
-    const selectedMonth = filterEl ? filterEl.value : '';
-
-    const list = Object.values(events).filter(e => {
-      if (e.status !== 'completed') return false;
-      if (selectedMonth && e.date && !e.date.startsWith(selectedMonth)) return false;
-      return true;
-    }).sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0));
-
-    let totalEarnings = 0, totalContracts = 0;
-    const tbody = document.getElementById('completed-tbody');
-    tbody.innerHTML = '';
-
-    function fmtDate(d) {
-      if (!d) return '—';
-      const parts = d.split('-');
-      if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
-      return d;
-    }
-
-    if (list.length === 0) {
-      document.getElementById('completed-empty').style.display = 'flex';
-      document.getElementById('completed-table-wrap').style.display = 'none';
-    } else {
-      document.getElementById('completed-empty').style.display = 'none';
-      document.getElementById('completed-table-wrap').style.display = 'block';
-      list.forEach(ev => {
-        const p = getPricing(ev.assignedPersonId);
-        const earnings = ev.contractSigned ? p.baseReward + p.contractBonus : p.baseReward;
-        totalEarnings += earnings;
-        if (ev.contractSigned) totalContracts++;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td data-label="Назва">${ev.title}</td>
-          <td data-label="Дата">${fmtDate(ev.date)}</td>
-          <td data-label="Час">${ev.startTime}–${ev.endTime}</td>
-          <td data-label="Вчитель">${teacherName(ev.assignedPersonId) || '—'}</td>
-          <td data-label="Телефон">${ev.phone ? `<span class="phone-copy" onclick="copyPhone(this, '${ev.phone}')" title="Натисни щоб скопіювати">${ev.phone}</span>` : '—'}</td>
-          <td data-label="Договір"><input type="checkbox" ${ev.contractSigned ? 'checked' : ''} onchange="toggleContract('${ev.id}', this.checked)"></td>
-          <td data-label="Заробіток" class="earnings-value">₴${earnings}</td>
-          <td data-label="Завершив">${ev.completedBy || '—'}</td>`;
-        tbody.appendChild(tr);
-      });
-    }
-    document.getElementById('completed-total').textContent = list.length;
-    document.getElementById('completed-earnings').textContent = '₴' + totalEarnings;
-    document.getElementById('completed-contracts').textContent = totalContracts;
-  }
-  window.renderCompleted = renderCompleted;
-
-  window.copyPhone = function(el, phone) {
-    navigator.clipboard.writeText(phone).then(() => {
-      const prev = el.textContent;
-      el.textContent = 'Скопійовано!';
-      el.classList.add('phone-copied');
-      setTimeout(() => {
-        el.textContent = prev;
-        el.classList.remove('phone-copied');
-      }, 1500);
-    });
-  };
-
-  // Ініціалізація фільтра поточним місяцем
-  document.addEventListener('DOMContentLoaded', () => {
-    const filterEl = document.getElementById('completed-month-filter');
-    if (filterEl) {
-      const now = new Date();
-      filterEl.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      filterEl.addEventListener('change', renderCompleted);
-    }
-  });
-</script>
 
 </body>
 </html>
