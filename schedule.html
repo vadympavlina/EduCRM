@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Графік роботи — EduCRM</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f6ef7'/><stop offset='1' stop-color='%233b5be8'/></linearGradient></defs><rect width='32' height='32' rx='9' fill='url(%23g)'/><rect x='7' y='9' width='11' height='2.5' rx='1.25' fill='white'/><rect x='7' y='14.75' width='18' height='2.5' rx='1.25' fill='white'/><rect x='7' y='20.5' width='8' height='2.5' rx='1.25' fill='white'/></svg>">
+  <link rel="stylesheet" href="styles.css">
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="firebase.js"></script>
+  <script src="shared/sidebar.js"></script>
+  <script src="shared/ui.js"></script>
+  <script src="shared/auth.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-main);
+      background: var(--bg);
+      color: var(--text);
+      height: 100dvh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .page-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      height: 56px; background: var(--bg2); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 20px;
+      flex-shrink: 0; box-shadow: var(--shadow-xs);
+    }
+    .topbar-title { font-size: 16px; font-weight: 800; color: var(--text); }
+
+    /* ── CONTENT ── */
+    .content { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+    .content-inner { max-width: 780px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* ── SECTION CARD ── */
+    .section-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-xs);
+    }
+    .section-head {
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+      font-size: 11px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.6px; color: var(--text3); background: var(--bg3);
+    }
+    .section-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* ── FORM ── */
+    .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
+    .form-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--text3);
+    }
+    .form-control {
+      padding: 8px 11px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: var(--font-main); font-size: 13.5px; color: var(--text);
+      background: var(--bg3); outline: none; transition: border-color 0.15s;
+    }
+    .form-control:focus { border-color: var(--accent); background: var(--bg2); }
+
+    /* ── DAYS SELECTOR ── */
+    .days-selector { display: flex; gap: 6px; flex-wrap: wrap; }
+    .day-label { cursor: pointer; }
+    .day-label input[type="checkbox"] { display: none; }
+    .day-pill {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 38px; height: 38px;
+      border: 1.5px solid var(--border); border-radius: 9px;
+      font-size: 12.5px; font-weight: 700; color: var(--text2);
+      background: var(--bg3); transition: all 0.15s; user-select: none;
+    }
+    .day-label input:checked + .day-pill {
+      background: var(--accent); border-color: var(--accent); color: #fff;
+    }
+    .day-pill:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── SUBMIT BTN ── */
+    .btn-block {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 10px 18px; background: var(--red); color: #fff;
+      border: none; border-radius: 9px;
+      font-family: var(--font-main); font-size: 13.5px; font-weight: 700;
+      cursor: pointer; transition: opacity 0.15s; width: fit-content;
+    }
+    .btn-block:hover { opacity: 0.88; }
+
+    /* ── TABLE ── */
+    table.bt { width: 100%; border-collapse: collapse; }
+    .bt thead th {
+      padding: 11px 14px; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--text3); background: var(--bg3);
+      border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap;
+    }
+    .bt tbody tr { border-bottom: 1px solid var(--border); transition: background 0.12s; }
+    .bt tbody tr:last-child { border-bottom: none; }
+    .bt tbody tr:hover { background: var(--bg3); }
+    .bt tbody td { padding: 12px 14px; font-size: 13px; color: var(--text); vertical-align: middle; }
+
+    .scope-badge {
+      display: inline-flex; align-items: center;
+      padding: 3px 9px; border-radius: 6px;
+      font-size: 10.5px; font-weight: 800;
+    }
+    .scope-all      { background: var(--red-bg);  color: var(--red-text);  border: 1px solid var(--red); }
+    .scope-teacher  { background: var(--blue-bg); color: var(--blue-text); border: 1px solid var(--blue); }
+
+    .days-chips { display: flex; gap: 4px; flex-wrap: wrap; }
+    .day-chip {
+      padding: 2px 7px; border-radius: 5px; font-size: 11px; font-weight: 700;
+      background: var(--bg3); color: var(--text2); border: 1px solid var(--border);
+    }
+
+    .time-range {
+      font-family: var(--font-mono); font-size: 12.5px;
+      color: var(--text2); font-weight: 600;
+    }
+
+    .btn-del {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 10px; background: transparent; color: var(--red);
+      border: 1.5px solid var(--red); border-radius: 7px;
+      font-family: var(--font-main); font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-del:hover { background: var(--red-bg); }
+
+    .empty-row td {
+      text-align: center; color: var(--text3);
+      padding: 36px 16px !important; font-weight: 600;
+    }
+
+    /* ── AUTH LOADER ── */
+    #auth-loader {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--bg); display: flex; align-items: center; justify-content: center;
+    }
+    .auth-spinner {
+      width: 40px; height: 40px; border: 3px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── CONFIRM ── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(15,22,35,0.45);
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow-lg);
+      width: 100%; max-width: 400px;
+      transform: translateY(8px); transition: transform 0.2s;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+    .modal-header { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
+    .modal-title  { font-size: 16px; font-weight: 800; color: var(--text); }
+    .modal-body   { padding: 18px 20px; }
+    .modal-body p { color: var(--text2); line-height: 1.65; font-size: 14.5px; font-weight: 500; }
+    .modal-footer {
+      display: flex; gap: 10px; justify-content: flex-end;
+      padding: 14px 20px 18px; border-top: 1px solid var(--border);
+    }
+    .btn-ghost {
+      display: inline-flex; align-items: center; padding: 8px 14px;
+      background: var(--bg3); color: var(--text2);
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: var(--font-main); font-size: 13px; font-weight: 700; cursor: pointer;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; padding: 8px 14px;
+      background: var(--accent); color: #fff; border: none; border-radius: 8px;
+      font-family: var(--font-main); font-size: 13px; font-weight: 700; cursor: pointer;
+    }
+
+    @media (max-width: 640px) {
+      .content { padding: 12px; }
+      .section-body { padding: 14px; }
+      .form-row { flex-direction: column; }
+      .bt thead th:nth-child(5), .bt tbody td:nth-child(5) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="auth-loader"><div class="auth-spinner"></div></div>
+
+<aside id="sidebar"></aside>
+
+<div class="page-wrap">
+  <header class="topbar">
+    <span class="topbar-title">Графік роботи</span>
+  </header>
+
+  <div class="content">
+    <div class="content-inner">
+
+      <!-- Add form -->
+      <div class="section-card">
+        <div class="section-head">Додати заборонений час</div>
+        <div class="section-body">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Назва *</label>
+              <input class="form-control" type="text" id="block-title" placeholder="напр. Обід, Збори...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Діє до</label>
+              <input class="form-control" type="date" id="block-until">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Початок *</label>
+              <input class="form-control" type="time" id="block-start">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Кінець *</label>
+              <input class="form-control" type="time" id="block-end">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Для кого</label>
+            <select class="form-control" id="block-teacher-select">
+              <option value="">Всі (загальне блокування)</option>
+            </select>
+            <p style="font-size:11px;color:var(--text3);margin-top:5px;line-height:1.5">
+              «Всі» — ніхто не може поставити подію в цей час.<br>
+              Конкретний вчитель — тільки йому заблоковано цей час.
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Дні тижня *</label>
+            <div class="days-selector">
+              <label class="day-label"><input type="checkbox" class="day-checkbox" value="1"><span class="day-pill">Пн</span></label>
+              <label class="day-label"><input type="checkbox" class="day-checkbox" value="2"><span class="day-pill">Вт</span></label>
+              <label class="day-label"><input type="checkbox" class="day-checkbox" value="3"><span class="day-pill">Ср</span></label>
+              <label class="day-label"><input type="checkbox" class="day-checkbox" value="4"><span class="day-pill">Чт</span></label>
+              <label class="day-label"><input type="checkbox" class="day-checkbox" value="5"><span class="day-pill">Пт</span></label>
+              <label class="day-label"><input type="checkbox" class="day-checkbox" value="6"><span class="day-pill">Сб</span></label>
+              <label class="day-label"><input type="checkbox" class="day-checkbox" value="0"><span class="day-pill">Нд</span></label>
+            </div>
+          </div>
+
+          <button class="btn-block" onclick="saveBlockedTime()">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            Заблокувати час
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Active blocks table -->
+      <div class="section-card">
+        <div class="section-head">Активні блокування</div>
+        <table class="bt">
+          <thead>
+            <tr>
+              <th>Назва</th>
+              <th>Для кого</th>
+              <th>Дні</th>
+              <th>Час</th>
+              <th>Діє до</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="blocked-tbody">
+            <tr class="empty-row"><td colspan="6">Завантаження…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Confirm dialog -->
+<div class="modal-overlay" id="confirm-dialog">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Підтвердження</span></div>
+    <div class="modal-body"><p id="confirm-message"></p></div>
+    <div class="modal-footer">
+      <button class="btn-ghost" id="confirm-cancel">Скасувати</button>
+      <button class="btn-primary" id="confirm-ok">Підтвердити</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+  Sidebar.initNow('schedule');
+
+  let teachers     = {};
+  let blockedTimes = {};
+  const DAY_NAMES  = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+
+  function onAuthReady() {
+    listenTeachers();
+    listenBlockedTimes();
+  }
+
+  // ── LISTENERS ─────────────────────────────────────────────
+  function listenTeachers() {
+    db.ref('people').on('value', snap => {
+      teachers = {};
+      if (snap.exists()) snap.forEach(c => { teachers[c.key] = { id: c.key, ...c.val() }; });
+      populateTeacherSelect();
+      renderBlocked();
+    });
+  }
+
+  function listenBlockedTimes() {
+    db.ref('settings/blockedTimes').on('value', snap => {
+      blockedTimes = snap.val() || {};
+      renderBlocked();
+    });
+  }
+
+  // ── SELECT ────────────────────────────────────────────────
+  function populateTeacherSelect() {
+    const sel = document.getElementById('block-teacher-select');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Всі (загальне блокування)</option>';
+    Object.values(teachers).sort((a,b) => a.name.localeCompare(b.name,'uk')).forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id; opt.textContent = t.name;
+      sel.appendChild(opt);
+    });
+    sel.value = cur;
+  }
+
+  // ── RENDER TABLE ──────────────────────────────────────────
+  function renderBlocked() {
+    const tbody = document.getElementById('blocked-tbody');
+
+    if (Object.keys(blockedTimes).length === 0) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Блокувань ще немає</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = Object.entries(blockedTimes).map(([id, b]) => {
+      const daysStr  = (b.days || []).sort().map(d => DAY_NAMES[d]);
+      const daysHTML = daysStr.map(d => `<span class="day-chip">${d}</span>`).join('');
+      const scope = b.teacherId
+        ? `<span class="scope-badge scope-teacher">${escapeHTML(teachers[b.teacherId]?.name || 'Невідомо')}</span>`
+        : `<span class="scope-badge scope-all">Всі</span>`;
+      return `<tr>
+        <td><strong>${escapeHTML(b.title || 'Зайнято')}</strong></td>
+        <td>${scope}</td>
+        <td><div class="days-chips">${daysHTML}</div></td>
+        <td><span class="time-range">${b.start} – ${b.end}</span></td>
+        <td>${b.until || '∞'}</td>
+        <td>
+          <button class="btn-del" onclick="deleteBlockedTime('${id}')">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            </svg>
+            Видалити
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── SAVE ──────────────────────────────────────────────────
+  function saveBlockedTime() {
+    const title     = document.getElementById('block-title').value.trim();
+    const until     = document.getElementById('block-until').value;
+    const start     = document.getElementById('block-start').value;
+    const end       = document.getElementById('block-end').value;
+    const teacherId = document.getElementById('block-teacher-select').value || '';
+    const days      = [];
+    document.querySelectorAll('.day-checkbox:checked').forEach(cb => days.push(parseInt(cb.value)));
+
+    if (!title)            { showToast('Введіть назву блокування', 'error'); return; }
+    if (days.length === 0) { showToast('Оберіть хоча б один день', 'error'); return; }
+    if (!start || !end)    { showToast('Вкажіть час початку і кінця', 'error'); return; }
+    if (start >= end)      { showToast('Кінець має бути пізніше початку', 'error'); return; }
+
+    db.ref('settings/blockedTimes').push({ title, until: until || '', start, end, days, teacherId })
+      .then(() => {
+        showToast('Блокування додано', 'success');
+        document.getElementById('block-title').value = '';
+        document.getElementById('block-until').value = '';
+        document.getElementById('block-start').value = '';
+        document.getElementById('block-end').value   = '';
+        document.getElementById('block-teacher-select').value = '';
+        document.querySelectorAll('.day-checkbox').forEach(cb => cb.checked = false);
+      });
+  }
+
+  function deleteBlockedTime(id) {
+    showConfirm('Видалити це блокування?', () => {
+      db.ref('settings/blockedTimes/' + id).remove()
+        .then(() => showToast('Видалено', 'info'));
+    });
+  }
+
+  window.saveBlockedTime   = saveBlockedTime;
+  window.deleteBlockedTime = deleteBlockedTime;
+</script>
+</body>
+</html>
