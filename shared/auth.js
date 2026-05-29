@@ -1,6 +1,5 @@
 // ============================================================
 //  shared/auth.js
-//  Підключай на кожній захищеній сторінці після firebase.js
 // ============================================================
 
 let currentUser     = '';
@@ -11,18 +10,12 @@ let _authResolve;
 const authReady = new Promise(res => { _authResolve = res; });
 function waitForAuth() { return authReady; }
 
-// ── AUTH CHECK ───────────────────────────────────────────────
 auth.onAuthStateChanged(async firebaseUser => {
   const loader = document.getElementById('auth-loader');
 
   if (!firebaseUser) {
-    // Firebase може тимчасово повернути null під час ініціалізації.
-    // Чекаємо 600ms і перевіряємо ще раз перш ніж редіректити.
-    await new Promise(r => setTimeout(r, 600));
-    if (!auth.currentUser) {
-      if (loader) loader.style.display = 'none';
-      _showLoginOrRedirect();
-    }
+    if (loader) loader.style.display = 'none';
+    _showLoginOrRedirect();
     return;
   }
 
@@ -54,20 +47,11 @@ auth.onAuthStateChanged(async firebaseUser => {
 
   } catch (err) {
     console.error('Auth error:', err);
-    // Не редіректимо при мережевій помилці — просто ховаємо лоадер
     if (loader) loader.style.display = 'none';
-    // Повторна спроба через 1с
-    setTimeout(async () => {
-      if (auth.currentUser) {
-        window.location.reload();
-      } else {
-        _showLoginOrRedirect();
-      }
-    }, 1000);
+    // Не редіректимо при помилці — просто логуємо
   }
 });
 
-// ── REDIRECT / LOGIN ─────────────────────────────────────────
 function _showLoginOrRedirect() {
   if (typeof showLoginModal === 'function') {
     showLoginModal(true);
@@ -76,7 +60,6 @@ function _showLoginOrRedirect() {
   }
 }
 
-// ── PRESENCE ─────────────────────────────────────────────────
 function _initPresence() {
   if (!currentUser) return;
   const safeKey = currentUser.replace(/[.#$[\]]/g, '_');
@@ -88,25 +71,20 @@ function _initPresence() {
   }, 30000);
 }
 
-// ── SIDEBAR USER ─────────────────────────────────────────────
 function _renderSidebarUser() {
   const initial = currentUser.charAt(0).toUpperCase();
-
-  const sbAv = document.querySelector('.sb-user-av');
-  if (sbAv) sbAv.textContent = initial;
-
+  const sbAv  = document.querySelector('.sb-user-av');
+  if (sbAv)  sbAv.textContent  = initial;
   const sbTip = document.querySelector('.sb-user-item .sb-tip');
   if (sbTip) sbTip.textContent = currentUser;
-
   const letterEl = document.getElementById('user-avatar-letter');
-  if (letterEl) letterEl.textContent = initial;
-  const nameEl = document.getElementById('user-name-display');
-  if (nameEl) nameEl.textContent = currentUser;
+  if (letterEl)  letterEl.textContent = initial;
+  const nameEl  = document.getElementById('user-name-display');
+  if (nameEl)  nameEl.textContent  = currentUser;
   const emailEl = document.getElementById('user-email-display');
   if (emailEl) emailEl.textContent = currentEmail;
 }
 
-// ── LOGOUT ───────────────────────────────────────────────────
 async function logout() {
   if (currentUser) {
     const safeKey = currentUser.replace(/[.#$[\]]/g, '_');
