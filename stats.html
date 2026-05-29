@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Статистика — EduCRM</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f6ef7'/><stop offset='1' stop-color='%233b5be8'/></linearGradient></defs><rect width='32' height='32' rx='9' fill='url(%23g)'/><rect x='7' y='9' width='11' height='2.5' rx='1.25' fill='white'/><rect x='7' y='14.75' width='18' height='2.5' rx='1.25' fill='white'/><rect x='7' y='20.5' width='8' height='2.5' rx='1.25' fill='white'/></svg>">
+  <link rel="stylesheet" href="styles.css">
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="firebase.js"></script>
+  <script src="shared/sidebar.js"></script>
+  <script src="shared/ui.js"></script>
+  <script src="shared/auth.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-main);
+      background: var(--bg);
+      color: var(--text);
+      height: 100dvh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── PAGE WRAP ── */
+    .page-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      height: 56px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 20px;
+      flex-shrink: 0;
+      box-shadow: var(--shadow-xs);
+    }
+    .topbar-title { font-size: 16px; font-weight: 800; color: var(--text); }
+    .topbar-spacer { flex: 1; }
+    .topbar-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    /* ── CONTENT ── */
+    .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+    /* ── SUMMARY CHIPS ── */
+    .summary-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .summary-chip {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 20px;
+      min-width: 140px;
+      box-shadow: var(--shadow-xs);
+    }
+    .summary-chip-val {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text);
+      font-family: var(--font-mono);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .summary-chip-val.green { color: var(--green); }
+    .summary-chip-val.blue  { color: var(--accent); }
+    .summary-chip-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── TABLE ── */
+    .table-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow-xs);
+    }
+    table.stats-table { width: 100%; border-collapse: collapse; }
+    .stats-table thead th {
+      padding: 11px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text3);
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+    .stats-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.13s; }
+    .stats-table tbody tr:last-child { border-bottom: none; }
+    .stats-table tbody tr:hover { background: var(--bg3); }
+    .stats-table tbody td { padding: 13px 16px; font-size: 13.5px; color: var(--text); }
+    .stats-table tfoot td {
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text);
+      border-top: 2px solid var(--border);
+      background: var(--bg3);
+    }
+    .earnings-val { color: var(--green); font-weight: 800; font-family: var(--font-mono); }
+    .empty-row td { text-align: center; color: var(--text3); padding: 48px 16px !important; font-weight: 600; }
+
+    /* ── PRINT BTN ── */
+    .btn-print {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 14px;
+      background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-main);
+      font-size: 13px; font-weight: 700;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-print:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+    /* ── FORM CONTROLS ── */
+    .form-control {
+      padding: 7px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-main);
+      font-size: 13px;
+      color: var(--text);
+      background: var(--bg2);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-control:focus { border-color: var(--accent); }
+
+    /* ── AUTH LOADER ── */
+    #auth-loader {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .auth-spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 640px) {
+      .topbar { padding: 0 12px; }
+      .content { padding: 14px; }
+      .summary-row { gap: 8px; }
+      .summary-chip { min-width: 100px; padding: 12px 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="auth-loader"><div class="auth-spinner"></div></div>
+
+<!-- Sidebar рендериться через sidebar.js -->
+<aside id="sidebar"></aside>
+
+<div class="page-wrap">
+  <header class="topbar">
+    <span class="topbar-title">Статистика</span>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-controls">
+      <select id="stats-teacher" class="form-control">
+        <option value="">Всі вчителі</option>
+      </select>
+      <input type="month" id="stats-month" class="form-control">
+      <button class="btn-print" onclick="printStats()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polyline points="6 9 6 2 18 2 18 9"/>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+          <rect x="6" y="14" width="12" height="8"/>
+        </svg>
+        Друк
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+    <!-- Summary chips -->
+    <div class="summary-row">
+      <div class="summary-chip">
+        <div class="summary-chip-val" id="sum-events">—</div>
+        <div class="summary-chip-label">Подій</div>
+      </div>
+      <div class="summary-chip">
+        <div class="summary-chip-val green" id="sum-earnings">—</div>
+        <div class="summary-chip-label">Заробіток</div>
+      </div>
+      <div class="summary-chip">
+        <div class="summary-chip-val blue" id="sum-contracts">—</div>
+        <div class="summary-chip-label">Договорів</div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+      <table class="stats-table" id="stats-table">
+        <thead>
+          <tr>
+            <th>Вчитель</th>
+            <th>Подій</th>
+            <th>Договорів</th>
+            <th>Заробіток</th>
+          </tr>
+        </thead>
+        <tbody id="stats-tbody">
+          <tr class="empty-row"><td colspan="4">Завантаження…</td></tr>
+        </tbody>
+        <tfoot id="stats-tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+  // ── Ініціалізуємо sidebar з активним пунктом "stats" ──────
+  Sidebar.initNow('stats');
+
+  // ── Стан ──────────────────────────────────────────────────
+  let events   = {};
+  let teachers = {};
+  let pricing  = { default: { baseReward: 50, contractBonus: 100 }, overrides: {} };
+
+  // ── auth.js викличе цю функцію після логіну ───────────────
+  function onAuthReady() {
+    listenTeachers();
+    listenPricing();
+    listenEvents();
+    initFilters();
+  }
+
+  // ── LISTENERS ─────────────────────────────────────────────
+  function listenTeachers() {
+    db.ref('people').on('value', snap => {
+      teachers = {};
+      if (snap.exists()) {
+        snap.forEach(c => { teachers[c.key] = { id: c.key, ...c.val() }; });
+      }
+      populateTeacherSelect();
+      renderStats();
+    });
+  }
+
+  function listenPricing() {
+    db.ref('pricing').on('value', snap => {
+      if (snap.exists()) {
+        const d = snap.val();
+        pricing.default   = d.default   || pricing.default;
+        pricing.overrides = d.overrides || {};
+      }
+      renderStats();
+    });
+  }
+
+  function listenEvents() {
+    db.ref('events').on('value', snap => {
+      events = snap.val() || {};
+      renderStats();
+    });
+  }
+
+  // ── FILTERS ───────────────────────────────────────────────
+  function initFilters() {
+    const now = new Date();
+    const monthSel = document.getElementById('stats-month');
+    monthSel.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    monthSel.addEventListener('change', renderStats);
+    document.getElementById('stats-teacher').addEventListener('change', renderStats);
+  }
+
+  function populateTeacherSelect() {
+    const sel = document.getElementById('stats-teacher');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Всі вчителі</option>';
+    Object.values(teachers).forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id; opt.textContent = t.name;
+      sel.appendChild(opt);
+    });
+    sel.value = cur;
+  }
+
+  // ── RENDER ────────────────────────────────────────────────
+  function getPricing(tid) {
+    return (tid && pricing.overrides[tid]) ? pricing.overrides[tid] : pricing.default;
+  }
+
+  function renderStats() {
+    const selectedMonth   = document.getElementById('stats-month').value;
+    const selectedTeacher = document.getElementById('stats-teacher').value;
+
+    const completed = Object.values(events).filter(e => {
+      if (e.status !== 'completed') return false;
+      if (selectedMonth && !e.date.startsWith(selectedMonth)) return false;
+      if (selectedTeacher && e.assignedPersonId !== selectedTeacher) return false;
+      return true;
+    });
+
+    // Group by teacher
+    const byTeacher = {};
+    completed.forEach(ev => {
+      const tid = ev.assignedPersonId || '__none__';
+      if (!byTeacher[tid]) byTeacher[tid] = { count: 0, contracts: 0, earnings: 0 };
+      const p = getPricing(ev.assignedPersonId);
+      byTeacher[tid].count++;
+      if (ev.contractSigned) byTeacher[tid].contracts++;
+      byTeacher[tid].earnings += ev.contractSigned
+        ? p.baseReward + p.contractBonus
+        : p.baseReward;
+    });
+
+    // Summary chips
+    const totalEvents    = completed.length;
+    const totalContracts = completed.filter(e => e.contractSigned).length;
+    const totalEarnings  = Object.values(byTeacher).reduce((s, d) => s + d.earnings, 0);
+    document.getElementById('sum-events').textContent    = totalEvents;
+    document.getElementById('sum-earnings').textContent  = `₴${totalEarnings}`;
+    document.getElementById('sum-contracts').textContent = totalContracts;
+
+    // Table body
+    const tbody = document.getElementById('stats-tbody');
+    if (Object.keys(byTeacher).length === 0) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Немає завершених подій за вибраний період</td></tr>';
+      document.getElementById('stats-tfoot').innerHTML = '';
+      return;
+    }
+
+    tbody.innerHTML = Object.entries(byTeacher).map(([tid, data]) => {
+      const name = tid === '__none__'
+        ? 'Не призначено'
+        : (teachers[tid]?.name || 'Невідомо');
+      return `<tr>
+        <td>${escapeHTML(name)}</td>
+        <td>${data.count}</td>
+        <td>${data.contracts}</td>
+        <td class="earnings-val">₴${data.earnings}</td>
+      </tr>`;
+    }).join('');
+
+    // Tfoot totals
+    document.getElementById('stats-tfoot').innerHTML = `<tr>
+      <td>Разом</td>
+      <td>${totalEvents}</td>
+      <td>${totalContracts}</td>
+      <td class="earnings-val">₴${totalEarnings}</td>
+    </tr>`;
+  }
+
+  // ── PRINT ─────────────────────────────────────────────────
+  function printStats() {
+    const selectedMonth = document.getElementById('stats-month').value || 'Всі місяці';
+    const sel = document.getElementById('stats-teacher');
+    const teacherName = sel.options[sel.selectedIndex].text;
+    const tableHTML = document.getElementById('stats-table').outerHTML;
+    const pw = window.open('', '_blank');
+    pw.document.write(`<html><head><title>Звіт — EduCRM</title><style>
+      body { font-family: sans-serif; padding: 20px; color: #111; }
+      table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+      th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+      tfoot td { font-weight: bold; background: #f5f5f5; }
+      .earnings-val { color: #059669; font-weight: bold; }
+    </style></head><body>
+    <h2>Статистика — EduCRM</h2>
+    <p>Місяць: ${selectedMonth} | Вчитель: ${teacherName}</p>
+    ${tableHTML}
+    <script>window.onload=()=>{setTimeout(()=>{window.print();window.close();},250)}<\/script>
+    </body></html>`);
+    pw.document.close();
+  }
+
+  window.printStats = printStats;
+</script>
+</body>
+</html>
