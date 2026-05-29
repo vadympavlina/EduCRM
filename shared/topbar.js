@@ -12,6 +12,7 @@ const Topbar = (() => {
 
   let _allReviews  = {};
   let _notifReads  = {};
+  let _events      = {};
   let _appInitTime = Date.now();
 
   // ── INJECT HTML ───────────────────────────────────────────
@@ -57,7 +58,14 @@ const Topbar = (() => {
     }
   }
 
-  // ── LISTENERS ─────────────────────────────────────────────
+  // ── LISTENERS ─────────────────────────────────────────
+  function _listenEvents() {
+    db.ref('events').on('value', snap => {
+      _events = {};
+      if (snap.exists()) snap.forEach(c => { _events[c.key] = { id: c.key, ...c.val() }; });
+    });
+  }
+────
   function _listenEvents() {
     db.ref('events').on('value', snap => {
       _events = {};
@@ -182,6 +190,7 @@ const Topbar = (() => {
   // ── PUBLIC API ────────────────────────────────────────────
   function init() {
     _injectHTML();
+    _listenEvents();
     _listenReviews();
   }
 
