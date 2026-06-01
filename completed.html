@@ -202,7 +202,10 @@
   function listenTeachers() {
     db.ref('people').on('value', snap => {
       teachers = {};
-      if (snap.exists()) snap.forEach(c => { teachers[c.key] = { id: c.key, ...c.val() }; });
+      if (snap.exists()) snap.forEach(c => { teachers[c.key] = { id: c.key, ...c.val() }; }, err => {
+    console.error('Firebase error:', err);
+    if (typeof showToast === 'function') showToast('Помилка Firebase: ' + (err.code || err.message), 'error');
+  });
       renderCompleted();
     });
   }
@@ -215,14 +218,20 @@
         pricing.overrides = d.overrides || {};
       }
       renderCompleted();
-    });
+    }, err => {
+    console.error('Firebase error:', err);
+    if (typeof showToast === 'function') showToast('Помилка Firebase: ' + (err.code || err.message), 'error');
+  });
   }
 
   function listenEvents() {
     db.ref('events').on('value', snap => {
       events = snap.val() || {};
       renderCompleted();
-    });
+    }, err => {
+    console.error('Firebase error:', err);
+    if (typeof showToast === 'function') showToast('Помилка Firebase: ' + (err.code || err.message), 'error');
+  });
   }
 
   // ── HELPERS ───────────────────────────────────────────────
@@ -285,7 +294,7 @@
         <td>${escapeHTML(teacherName(ev.assignedPersonId))}</td>
         <td>${phone}</td>
         <td><input type="checkbox" ${ev.contractSigned ? 'checked' : ''}
-          onchange="toggleContract('${ev.id}', this.checked)"></td>
+          onchange="toggleContract('${ev.id}', this.checked, this)"></td>
         <td class="earnings-val">₴${earn}</td>
         <td>${escapeHTML(ev.completedBy || '—')}</td>
       </tr>`;
@@ -303,11 +312,20 @@
     </div>`;
   }
 
-  function toggleContract(id, checked) {
+  function toggleContract(id, checked, checkboxEl) {
+    // Optimistic: UI вже оновлено браузером через checkbox
     const upd = { contractSigned: checked };
     if (checked) upd.contractSignedAt = Date.now();
     else upd.contractSignedAt = null;
-    db.ref('events/' + id).update(upd).then(() => renderCompleted());
+
+    db.ref('events/' + id).update(upd)
+      .then(() => renderCompleted())
+      .catch(err => {
+        // Rollback: повертаємо checkbox назад
+        if (checkboxEl) checkboxEl.checked = !checked;
+        showToast('Помилка збереження: ' + (err.code || err.message), 'error');
+        console.error('toggleContract error:', err);
+      });
   }
 
   function copyPhone(el, phone) {

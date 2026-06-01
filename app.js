@@ -92,6 +92,7 @@ async function startApp() {
   }
 
   initPresence();
+  initOfflineIndicator();
   listenTeachers();
   listenPricing();
   listenEvents();
@@ -102,6 +103,47 @@ async function startApp() {
 }
 
 // ── PRESENCE (ОНЛАЙН СТАТУС) ─────────────────────────────────
+// ── OFFLINE INDICATOR ────────────────────────────────────────
+function initOfflineIndicator() {
+  db.ref('.info/connected').on('value', snap => {
+    const isOnline = snap.val() === true;
+    let bar = document.getElementById('offline-bar');
+
+    if (!isOnline) {
+      if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'offline-bar';
+        bar.innerHTML = `
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <line x1="1" y1="1" x2="23" y2="23"/>
+            <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+            <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+            <path d="M10.71 5.05A16 16 0 0 1 22.56 9"/>
+            <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+            <line x1="12" y1="20" x2="12.01" y2="20"/>
+          </svg>
+          Немає з'єднання з сервером`;
+        bar.style.cssText = [
+          'position:fixed', 'bottom:0', 'left:0', 'right:0', 'z-index:9998',
+          'background:#1e293b', 'color:#f8fafc',
+          'display:flex', 'align-items:center', 'justify-content:center', 'gap:8px',
+          'padding:10px 16px', 'font-size:13px', 'font-weight:600',
+          'transition:transform 0.3s ease',
+          'transform:translateY(100%)'
+        ].join(';');
+        document.body.appendChild(bar);
+      }
+      requestAnimationFrame(() => { bar.style.transform = 'translateY(0)'; });
+    } else {
+      if (bar) {
+        bar.style.transform = 'translateY(100%)';
+        setTimeout(() => bar?.remove(), 350);
+      }
+    }
+  });
+}
+
 function initPresence() {
   if (!currentUser) return;
   
@@ -534,6 +576,9 @@ function listenEvents() {
     });
     refreshCalendar();
     renderDashboardCounters();
+  }, err => {
+    showToast('Помилка завантаження подій: ' + err.code, 'error');
+    console.error('Events listener error:', err);
   });
 }
 
@@ -546,6 +591,9 @@ function listenTeachers() {
     });
     populateTeacherSelect();
     refreshCalendar();
+  }, err => {
+    showToast('Помилка завантаження вчителів: ' + err.code, 'error');
+    console.error('Teachers listener error:', err);
   });
 }
 
@@ -995,7 +1043,7 @@ function listenBlockedTimes() {
   db.ref('settings/blockedTimes').on('value', snap => {
     blockedTimes = snap.val() || {};
     refreshCalendar();
-  });
+  }, err => console.error('BlockedTimes error:', err));
 }
 
 function isTimeBlocked(startDT, endDT, teacherId, globalOnly) {

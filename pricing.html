@@ -251,7 +251,10 @@
   function listenTeachers() {
     db.ref('people').on('value', snap => {
       teachers = {};
-      if (snap.exists()) snap.forEach(c => { teachers[c.key] = { id: c.key, ...c.val() }; });
+      if (snap.exists()) snap.forEach(c => { teachers[c.key] = { id: c.key, ...c.val() }; }, err => {
+    console.error('Firebase error:', err);
+    if (typeof showToast === 'function') showToast('Помилка Firebase: ' + (err.code || err.message), 'error');
+  });
       populateOverrideSelect();
       renderOverrides();
     });
@@ -266,7 +269,10 @@
       }
       renderDefault();
       renderOverrides();
-    });
+    }, err => {
+    console.error('Firebase error:', err);
+    if (typeof showToast === 'function') showToast('Помилка Firebase: ' + (err.code || err.message), 'error');
+  });
   }
 
   // ── RENDER ─────────────────────────────────────────────────
