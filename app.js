@@ -1000,6 +1000,29 @@ function openEventModal(eventId) {
   if (ev.status === 'confirmed') {
     actions.appendChild(makeBtn('Завершити', 'btn btn-info btn-sm', () => completeEvent(ev.id)));
   }
+  // Кнопка копіювання посилання на відгук
+  if (ev.status === 'completed') {
+    const reviewUrl = `${location.origin}${location.pathname.replace(/[^/]*$/, '')}review.html?eventId=${ev.id}`;
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'btn btn-ghost btn-sm';
+    copyBtn.innerHTML = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+    </svg> Посилання на відгук`;
+    copyBtn.onclick = () => {
+      navigator.clipboard.writeText(reviewUrl).then(() => {
+        copyBtn.textContent = '✓ Скопійовано!';
+        setTimeout(() => {
+          copyBtn.innerHTML = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg> Посилання на відгук`;
+        }, 2000);
+      });
+    };
+    actions.appendChild(copyBtn);
+  }
+
   actions.appendChild(makeBtn('Видалити', 'btn btn-ghost btn-sm', () => deleteEvent(ev.id)));
 
   // Показуємо відгук якщо є
@@ -1347,12 +1370,145 @@ async function upsertClient(rawPhone, eventTitle) {
   }
 }
 
+// ── QUICK SEARCH ─────────────────────────────────────────────
+let _searchTimeout = null;
+
+function onQuickSearch(q) {
+  clearTimeout(_searchTimeout);
+  const resultsEl = document.getElementById('tbar-search-results');
+  if (!resultsEl) return;
+
+  q = q.trim().toLowerCase();
+  if (!q) { resultsEl.classList.remove('open'); return; }
+
+  _searchTimeout = setTimeout(() => {
+    const results = { events: [], clients: [] };
+
+    // Search events
+    Object.values(events).forEach(ev => {
+      const titleMatch = (ev.title || '').toLowerCase().includes(q);
+      const phoneMatch = (ev.phone || '').replace(/\D/g,'').includes(q.replace(/\D/g,''));
+      if (titleMatch || phoneMatch) {
+        results.events.push(ev);
+      }
+    });
+
+    // Search clients from Firebase (cached in memory if already loaded)
+    // We search events for phone match and show client info
+    const clientPhones = new Set();
+    Object.values(events).forEach(ev => {
+      if (!ev.phone) return;
+      const norm = ev.phone.replace(/\D/g,'');
+      if (norm.includes(q.replace(/\D/g,''))) clientPhones.add(norm);
+    });
+
+    // Also search by phone directly in events results
+    renderSearchResults(results.events.slice(0,6));
+  }, 200);
+}
+
+function renderSearchResults(evList) {
+  const el = document.getElementById('tbar-search-results');
+  if (!el) return;
+
+  if (evList.length === 0) {
+    el.innerHTML = '<div class="sr-empty">Нічого не знайдено</div>';
+    el.classList.add('open');
+    return;
+  }
+
+  // Group: unique clients (by phone) + events
+  const clientsSeen = new Set();
+  const clientItems = [];
+  const eventItems  = [];
+
+  evList.forEach(ev => {
+    // Client row
+    if (ev.phone) {
+      const norm = ev.phone.replace(/\D/g,'');
+      if (!clientsSeen.has(norm)) {
+        clientsSeen.add(norm);
+        clientItems.push(ev);
+      }
+    }
+    eventItems.push(ev);
+  });
+
+  let html = '';
+
+  // Clients section
+  if (clientItems.length > 0) {
+    html += '<div class="sr-section-title">Клієнти</div>';
+    html += clientItems.slice(0,4).map(ev => {
+      const norm = ev.phone?.replace(/\D/g,'') || '';
+      const url  = norm ? `client.html?id=${encodeURIComponent(norm)}` : '#';
+      return `<div class="sr-item" onclick="window.open('${url}','_blank');closeSearch()">
+        <div class="sr-item-icon sr-icon-client">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+        <div class="sr-item-body">
+          <div class="sr-item-title">${escapeHTML(ev.title || 'Без імені')}</div>
+          <div class="sr-item-sub">${ev.phone || ''}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Events section
+  if (eventItems.length > 0) {
+    html += '<div class="sr-section-title">Події</div>';
+    html += eventItems.slice(0,5).map(ev => {
+      const statusColors = { pending:'var(--yellow-text)', confirmed:'var(--blue)', completed:'var(--green)', cancelled:'var(--red)' };
+      const statusNames  = { pending:'Очікує', confirmed:'Підтверджено', completed:'Проведено', cancelled:'Скасовано' };
+      return `<div class="sr-item" onclick="openEventModal('${ev.id}');closeSearch()">
+        <div class="sr-item-icon sr-icon-event">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+        <div class="sr-item-body">
+          <div class="sr-item-title">${escapeHTML(ev.title || '—')}</div>
+          <div class="sr-item-sub" style="display:flex;gap:8px">
+            <span>${ev.date || ''}</span>
+            <span style="color:${statusColors[ev.status]||'var(--text3)'}">${statusNames[ev.status]||''}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  el.innerHTML = html;
+  el.classList.add('open');
+}
+
+function closeSearch() {
+  const el = document.getElementById('tbar-search-results');
+  const inp = document.getElementById('tbar-search');
+  if (el)  el.classList.remove('open');
+  if (inp) inp.value = '';
+}
+
+// Close search on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('#tbar-search-wrap') && !e.target.closest('#tbar-search-results')) {
+    document.getElementById('tbar-search-results')?.classList.remove('open');
+  }
+});
+
 // ── EXPORTS ──────────────────────────────────────────────────
 window.openCreateModal = openCreateModal;
 window.openEventModal = openEventModal;
 window.completeEvent = completeEvent;
 window.cancelEvent = cancelEvent;
 window.saveBlockModal   = saveBlockModal;
+window.onQuickSearch    = onQuickSearch;
+window.closeSearch      = closeSearch;
 window.closeSlotChoice  = closeSlotChoice;
 window.toggleNotifPanel = toggleNotifPanel;
 window.closeNotifPanel  = closeNotifPanel;
