@@ -526,6 +526,19 @@ function setupNav() {
       if (e.key === 'Escape') { e.target.value = ''; onQuickSearch(''); }
     });
   }
+
+  // Show tags when phone typed in event modal
+  const phoneInput = document.getElementById('event-phone');
+  if (phoneInput) {
+    phoneInput.addEventListener('input', e => {
+      const val = e.target.value.replace(/\D/g,'');
+      if (val.length >= 9) renderEventTags(e.target.value);
+      else {
+        const group = document.getElementById('event-tags-group');
+        if (group) group.style.display = 'none';
+      }
+    });
+  }
 }
 
 function goToToday() {

@@ -116,21 +116,33 @@
     .right-col { background: var(--bg2); }
 
     /* Tags */
-    .tags-section { display: flex; flex-direction: column; gap: 8px; }
-    .tags-section-label {
+    .tags-section {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      overflow: hidden;
+    }
+    .tags-section-head {
+      padding: 8px 13px;
       font-size: 10px; font-weight: 800; text-transform: uppercase;
       letter-spacing: 0.7px; color: var(--text3);
+      background: var(--bg4); border-bottom: 1px solid var(--border);
     }
-    .tags-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px; }
+    .tags-chips {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      padding: 10px 13px; min-height: 38px;
+    }
     .tag-chip-sm {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 3px 10px; border-radius: 20px;
+      display: inline-flex; align-items: center;
+      padding: 4px 11px; border-radius: 20px;
       font-size: 12px; font-weight: 700; color: #fff;
-      cursor: pointer; transition: opacity 0.15s;
+      cursor: pointer; transition: opacity 0.15s, transform 0.1s;
+      border: 2px solid transparent;
     }
-    .tag-chip-sm:hover { opacity: 0.8; }
-    .tag-chip-sm.inactive { opacity: 0.3; filter: grayscale(0.5); }
-    .tags-empty { font-size: 12px; color: var(--text3); font-style: italic; }
+    .tag-chip-sm:hover { transform: scale(1.05); }
+    .tag-chip-sm.inactive { opacity: 0.28; }
+    .tag-chip-sm.inactive:hover { opacity: 0.5; }
+    .tags-empty { font-size: 12px; color: var(--text3); font-style: italic; padding: 4px 0; }
     .viber-btn {
       display: inline-flex; align-items: center; gap: 6px;
       padding: 7px 13px;
@@ -295,7 +307,7 @@
         </div>
         <!-- Tags -->
         <div class="tags-section">
-          <div class="tags-section-label">Теги</div>
+          <div class="tags-section-head">Теги</div>
           <div class="tags-chips" id="cl-tags-chips">
             <span class="tags-empty">Завантаження…</span>
           </div>
