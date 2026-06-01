@@ -706,8 +706,9 @@ function refreshCalendar() {
 
   // 1. Формуємо масив подій
   Object.values(events).forEach(ev => {
-    const start = parseDateTime(ev.date, ev.startTime || '09:00');
-    const end   = parseDateTime(ev.date, ev.endTime   || '10:00');
+    if (!ev.date || !ev.startTime) return; // пропускаємо неповні події
+    const start = parseDateTime(ev.date, ev.startTime);
+    const end   = parseDateTime(ev.date, ev.endTime || ev.startTime);
     const title = ev.title + (teacherName(ev.assignedPersonId) ? ' · ' + teacherName(ev.assignedPersonId) : '');
 
     const tColor = getTeacherColor(ev.assignedPersonId);
