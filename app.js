@@ -508,6 +508,15 @@ document.getElementById('btn-change-name').addEventListener('click', async () =>
 function setupNav() {
   // Sidebar is icon-only — no nav-items to wire up
   // Navigation is handled via <a href> links in sidebar.js
+
+  // Wire up quick search
+  const searchInput = document.getElementById('tbar-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', e => onQuickSearch(e.target.value));
+    searchInput.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { e.target.value = ''; onQuickSearch(''); }
+    });
+  }
 }
 
 function goToToday() {
