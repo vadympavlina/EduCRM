@@ -1370,6 +1370,10 @@ async function upsertClient(rawPhone, eventTitle) {
   }
 }
 
+function escapeHTML(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 // ── QUICK SEARCH ─────────────────────────────────────────────
 let _searchTimeout = null;
 
