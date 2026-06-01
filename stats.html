@@ -350,10 +350,7 @@
     db.ref('people').on('value', snap => {
       teachers = {};
       if (snap.exists()) {
-        snap.forEach(c => { teachers[c.key] = { id: c.key, ...c.val() }; }, err => {
-    console.error('Firebase error:', err);
-    if (typeof showToast === 'function') showToast('Помилка Firebase: ' + (err.code || err.message), 'error');
-  });
+        snap.forEach(c => { teachers[c.key] = { id: c.key, ...c.val() }; });
       }
       populateTeacherSelect();
       renderStats();
@@ -368,20 +365,14 @@
         pricing.overrides = d.overrides || {};
       }
       renderStats();
-    }, err => {
-    console.error('Firebase error:', err);
-    if (typeof showToast === 'function') showToast('Помилка Firebase: ' + (err.code || err.message), 'error');
-  });
+    });
   }
 
   function listenEvents() {
     db.ref('events').on('value', snap => {
       events = snap.val() || {};
       renderStats();
-    }, err => {
-    console.error('Firebase error:', err);
-    if (typeof showToast === 'function') showToast('Помилка Firebase: ' + (err.code || err.message), 'error');
-  });
+    });
   }
 
   // ── FILTERS ───────────────────────────────────────────────

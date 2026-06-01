@@ -202,12 +202,7 @@
   function listenTeachers() {
     db.ref('people').on('value', snap => {
       teachers = {};
-      if (snap.exists()) snap.forEach(c => { teachers[c.key] = { id: c.key, ...c.val() }; }, err => {
-    console.error('Firebase error:', err);
-    if (typeof showToast === 'function') showToast('Помилка Firebase: ' + (err.code || err.message), 'error');
-  });
-      renderCompleted();
-    });
+      if (snap.exists()) snap.forEach(c => { teachers[c.key] = { id: c.key, ...c.val() }; });
   }
 
   function listenPricing() {
@@ -218,20 +213,14 @@
         pricing.overrides = d.overrides || {};
       }
       renderCompleted();
-    }, err => {
-    console.error('Firebase error:', err);
-    if (typeof showToast === 'function') showToast('Помилка Firebase: ' + (err.code || err.message), 'error');
-  });
+    });
   }
 
   function listenEvents() {
     db.ref('events').on('value', snap => {
       events = snap.val() || {};
       renderCompleted();
-    }, err => {
-    console.error('Firebase error:', err);
-    if (typeof showToast === 'function') showToast('Помилка Firebase: ' + (err.code || err.message), 'error');
-  });
+    });
   }
 
   // ── HELPERS ───────────────────────────────────────────────
