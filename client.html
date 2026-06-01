@@ -114,6 +114,23 @@
 
     /* ════ RIGHT ════ */
     .right-col { background: var(--bg2); }
+
+    /* Tags */
+    .tags-section { display: flex; flex-direction: column; gap: 8px; }
+    .tags-section-label {
+      font-size: 10px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.7px; color: var(--text3);
+    }
+    .tags-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px; }
+    .tag-chip-sm {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 12px; font-weight: 700; color: #fff;
+      cursor: pointer; transition: opacity 0.15s;
+    }
+    .tag-chip-sm:hover { opacity: 0.8; }
+    .tag-chip-sm.inactive { opacity: 0.3; filter: grayscale(0.5); }
+    .tags-empty { font-size: 12px; color: var(--text3); font-style: italic; }
     .viber-btn {
       display: inline-flex; align-items: center; gap: 6px;
       padding: 7px 13px;
@@ -226,6 +243,10 @@
       <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <span class="sb-tip">Клієнти</span>
     </a>
+    <a class="sb-item" href="tags.html">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+      <span class="sb-tip">Теги</span>
+    </a>
   </nav>
   <div class="sb-bottom">
     <div class="sb-divider"></div>
@@ -272,6 +293,14 @@
           <div class="stat-chip"><div class="stat-val" id="stat-total">—</div><div class="stat-lbl">Подій</div></div>
           <div class="stat-chip"><div class="stat-val green" id="stat-done">—</div><div class="stat-lbl">Проведено</div></div>
         </div>
+        <!-- Tags -->
+        <div class="tags-section">
+          <div class="tags-section-label">Теги</div>
+          <div class="tags-chips" id="cl-tags-chips">
+            <span class="tags-empty">Завантаження…</span>
+          </div>
+        </div>
+
         <div class="info-block">
           <div class="ib-head">Контакт</div>
           <div class="ib-row">
@@ -371,6 +400,9 @@
   });
 
   // ── INIT ──────────────────────────────────────────────────
+  let allTags     = {};
+  let clientTags  = [];
+
   async function initPage() {
     // Load teachers once
     const tSnap = await db.ref('people').once('value');
@@ -378,12 +410,48 @@
       tSnap.forEach(t => { teachersMap[t.key] = t.val().name || ''; });
     }
 
+    // Load tags
+    db.ref('tags').on('value', snap => {
+      allTags = snap.val() || {};
+      renderTagsSection();
+    });
+
     db.ref('clients/' + phoneKey).on('value', snap => {
       if (!snap.exists()) return;
       clientData = snap.val();
+      clientTags = clientData.tags || [];
       renderLeft();
+      renderTagsSection();
     });
     db.ref('clientTimeline/' + phoneKey).on('value', () => loadTimeline());
+  }
+
+  // ── TAGS ──────────────────────────────────────────────────
+  function renderTagsSection() {
+    const wrap = document.getElementById('cl-tags-chips');
+    if (!wrap) return;
+    const tagEntries = Object.entries(allTags);
+    if (tagEntries.length === 0) {
+      wrap.innerHTML = '<span class="tags-empty">Тегів ще немає — <a href="tags.html" style="color:var(--accent)">створіть</a></span>';
+      return;
+    }
+    wrap.innerHTML = tagEntries.map(([id, tag]) => {
+      const active = (clientTags || []).includes(id);
+      return `<span class="tag-chip-sm ${active ? '' : 'inactive'}"
+        style="background:${tag.color || '#4f6ef7'}"
+        onclick="toggleTag('${id}')"
+        title="${active ? 'Прибрати тег' : 'Додати тег'}">${escH(tag.name)}</span>`;
+    }).join('');
+  }
+
+  async function toggleTag(tagId) {
+    const current = clientTags || [];
+    const updated = current.includes(tagId)
+      ? current.filter(t => t !== tagId)
+      : [...current, tagId];
+    clientTags = updated;
+    await db.ref('clients/' + phoneKey).update({ tags: updated });
+    renderTagsSection();
   }
 
   // ── LEFT ──────────────────────────────────────────────────
@@ -645,6 +713,8 @@
       showToast('Помилка: ' + (err.code || err.message), false);
     }
   }
+
+  window.toggleTag = toggleTag;
 
   function showToast(msg, ok) {
     const el = document.getElementById('toast');

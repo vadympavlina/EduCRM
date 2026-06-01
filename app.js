@@ -35,6 +35,7 @@ let busySlots     = {};
 let calendarInstance = null;
 let confirmCallback  = null;
 let allReviews  = {};
+let allTags     = {};
 let notifReads  = {};
 const appInitTime = Date.now();
 
@@ -100,6 +101,7 @@ async function startApp() {
   listenBlockedTimes();
   listenBusySlots();
   listenReviews();
+  listenTags();
 
   setTimeout(initCalendar, 200);
 }
@@ -200,6 +202,13 @@ function renderPresence(data) {
       header.appendChild(container);
     }
     container.innerHTML = html;
+  });
+}
+
+// ── TAGS ─────────────────────────────────────────────────────
+function listenTags() {
+  db.ref('tags').on('value', snap => {
+    allTags = snap.val() || {};
   });
 }
 
@@ -968,6 +977,7 @@ function openCreateModal(startStr, endStr) {
   populateTeacherSelect('');
   document.getElementById('event-status-section').innerHTML = '';
   const cs = document.getElementById('event-client-section'); if (cs) cs.innerHTML = '';
+  renderEventTags(null);
   document.getElementById('event-actions').innerHTML = '';
   document.getElementById('event-modal').classList.add('open');
 }
@@ -996,6 +1006,9 @@ function openEventModal(eventId) {
 
   // ── Client block ──────────────────────────────────────────
   renderEventClientBlock(ev);
+
+  // ── Tags ────────────────────────────────────────────────
+  renderEventTags(ev.phone);
 
   const actions = document.getElementById('event-actions');
   actions.innerHTML = '';
@@ -1058,6 +1071,48 @@ function openEventModal(eventId) {
   }
 
   document.getElementById('event-modal').classList.add('open');
+}
+
+function renderEventTags(phone) {
+  const group = document.getElementById('event-tags-group');
+  const chips = document.getElementById('event-tags-chips');
+  if (!group || !chips) return;
+
+  const tagEntries = Object.entries(allTags);
+  if (!phone || tagEntries.length === 0) {
+    group.style.display = 'none';
+    return;
+  }
+
+  const norm = phone.replace(/\D/g, '');
+  if (norm.length < 9) { group.style.display = 'none'; return; }
+
+  group.style.display = 'block';
+
+  // Load current client tags
+  db.ref('clients/' + norm + '/tags').once('value').then(snap => {
+    const clientTags = snap.val() || [];
+    chips.innerHTML = tagEntries.map(([id, tag]) => {
+      const active = clientTags.includes(id);
+      return `<span class="tag-chip-sm ${active ? '' : 'inactive'}"
+        style="background:${tag.color || '#4f6ef7'};padding:3px 10px;border-radius:20px;
+               font-size:12px;font-weight:700;color:#fff;cursor:pointer;
+               opacity:${active ? 1 : 0.35};transition:opacity 0.15s"
+        onclick="toggleEventTag('${norm}','${id}',this)">${tag.name}</span>`;
+    }).join('');
+  });
+}
+
+async function toggleEventTag(norm, tagId, el) {
+  const snap = await db.ref('clients/' + norm + '/tags').once('value');
+  const current = snap.val() || [];
+  const updated = current.includes(tagId)
+    ? current.filter(t => t !== tagId)
+    : [...current, tagId];
+  await db.ref('clients/' + norm + '/tags').set(updated);
+  // Update chip visual
+  const isActive = updated.includes(tagId);
+  el.style.opacity = isActive ? '1' : '0.35';
 }
 
 async function renderEventClientBlock(ev) {
@@ -1519,7 +1574,8 @@ window.openCreateModal = openCreateModal;
 window.openEventModal = openEventModal;
 window.completeEvent = completeEvent;
 window.cancelEvent = cancelEvent;
-window.saveBlockModal   = saveBlockModal;
+window.saveBlockModal     = saveBlockModal;
+window.toggleEventTag     = toggleEventTag;
 window.onQuickSearch    = onQuickSearch;
 window.closeSearch      = closeSearch;
 window.closeSlotChoice  = closeSlotChoice;

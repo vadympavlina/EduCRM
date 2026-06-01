@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Теги — EduCRM</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f6ef7'/><stop offset='1' stop-color='%233b5be8'/></linearGradient></defs><rect width='32' height='32' rx='9' fill='url(%23g)'/><rect x='7' y='9' width='11' height='2.5' rx='1.25' fill='white'/><rect x='7' y='14.75' width='18' height='2.5' rx='1.25' fill='white'/><rect x='7' y='20.5' width='8' height='2.5' rx='1.25' fill='white'/></svg>">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="firebase.js"></script>
+  <script src="shared/sidebar.js"></script>
+  <script src="shared/ui.js"></script>
+  <script src="shared/auth.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-main); background: var(--bg); color: var(--text); height: 100dvh; display: flex; overflow: hidden; }
+    .page-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    .topbar {
+      height: 56px; background: var(--bg2); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 20px;
+      flex-shrink: 0; box-shadow: var(--shadow-xs);
+    }
+    .topbar-title { font-size: 16px; font-weight: 800; color: var(--text); }
+    .topbar-spacer { flex: 1; }
+
+    .content { flex: 1; overflow-y: auto; padding: 24px; max-width: 680px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* ── ADD FORM ── */
+    .add-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+      box-shadow: var(--shadow-xs);
+    }
+    .add-card-title {
+      font-size: 11px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.6px; color: var(--text3); margin-bottom: 14px;
+    }
+    .add-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+    .field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 160px; }
+    .field label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--text3);
+    }
+    .field input[type="text"] {
+      padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 9px;
+      font-family: var(--font-main); font-size: 14px; color: var(--text);
+      background: var(--bg3); outline: none; transition: border-color 0.15s;
+    }
+    .field input[type="text"]:focus { border-color: var(--accent); background: var(--bg2); }
+
+    /* Color picker row */
+    .color-field { display: flex; flex-direction: column; gap: 5px; }
+    .color-field label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--text3);
+    }
+    .color-swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+    .color-swatch {
+      width: 28px; height: 28px; border-radius: 7px;
+      cursor: pointer; border: 2.5px solid transparent;
+      transition: transform 0.15s, border-color 0.15s;
+      flex-shrink: 0;
+    }
+    .color-swatch:hover { transform: scale(1.15); }
+    .color-swatch.selected { border-color: var(--text); transform: scale(1.1); }
+
+    .btn-add {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 18px; background: var(--accent); color: #fff;
+      border: none; border-radius: 9px;
+      font-family: var(--font-main); font-size: 13.5px; font-weight: 700;
+      cursor: pointer; transition: background 0.15s; white-space: nowrap;
+      height: 40px;
+    }
+    .btn-add:hover { background: var(--accent-hover); }
+
+    /* ── TAGS LIST ── */
+    .tags-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-xs);
+    }
+    .tags-card-head {
+      padding: 11px 18px; font-size: 11px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--text3); background: var(--bg3); border-bottom: 1px solid var(--border);
+    }
+    .tag-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 18px; border-bottom: 1px solid var(--border);
+      transition: background 0.13s;
+    }
+    .tag-row:last-child { border-bottom: none; }
+    .tag-row:hover { background: var(--bg3); }
+    .tag-chip {
+      display: inline-flex; align-items: center;
+      padding: 4px 12px; border-radius: 20px;
+      font-size: 13px; font-weight: 700;
+      color: #fff; flex-shrink: 0;
+    }
+    .tag-name-edit {
+      flex: 1; border: none; background: transparent;
+      font-family: var(--font-main); font-size: 13.5px; font-weight: 700;
+      color: var(--text); outline: none; cursor: text;
+    }
+    .tag-name-edit:focus { background: var(--bg3); border-radius: 6px; padding: 2px 6px; }
+    .tag-usage { font-size: 12px; color: var(--text3); font-family: var(--font-mono); }
+    .btn-del-tag {
+      display: flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px;
+      background: transparent; border: none; cursor: pointer;
+      color: var(--text3); border-radius: 7px; transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .btn-del-tag:hover { background: var(--red-bg); color: var(--red); }
+
+    .empty-tags {
+      padding: 40px 20px; text-align: center;
+      color: var(--text3); font-size: 13px; font-weight: 600;
+    }
+
+    /* ── CONFIRM ── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(15,22,35,0.45);
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow-lg);
+      width: 100%; max-width: 380px;
+      transform: translateY(8px); transition: transform 0.2s;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+    .modal-header { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
+    .modal-title { font-size: 16px; font-weight: 800; color: var(--text); }
+    .modal-body { padding: 18px 20px; }
+    .modal-body p { color: var(--text2); line-height: 1.65; font-size: 14px; }
+    .modal-footer {
+      display: flex; gap: 10px; justify-content: flex-end;
+      padding: 14px 20px 18px; border-top: 1px solid var(--border);
+    }
+    .btn-ghost { display: inline-flex; align-items: center; padding: 8px 14px; background: var(--bg3); color: var(--text2); border: 1.5px solid var(--border); border-radius: 8px; font-family: var(--font-main); font-size: 13px; font-weight: 700; cursor: pointer; }
+    .btn-primary { display: inline-flex; align-items: center; padding: 8px 14px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-family: var(--font-main); font-size: 13px; font-weight: 700; cursor: pointer; }
+
+    #auth-loader { position: fixed; inset: 0; z-index: 9999; background: var(--bg); display: flex; align-items: center; justify-content: center; }
+    .auth-spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.75s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div id="auth-loader"><div class="auth-spinner"></div></div>
+<aside id="sidebar"></aside>
+
+<div class="page-wrap">
+  <header class="topbar">
+    <span class="topbar-title">Теги клієнтів</span>
+    <div class="topbar-spacer"></div>
+  </header>
+
+  <div class="content">
+
+    <!-- Add tag form -->
+    <div class="add-card">
+      <div class="add-card-title">Новий тег</div>
+      <div class="add-row">
+        <div class="field">
+          <label>Назва</label>
+          <input type="text" id="tag-name" placeholder="напр. МА, ПС, 3Д…"
+            onkeydown="if(event.key==='Enter') addTag()">
+        </div>
+        <div class="color-field">
+          <label>Колір</label>
+          <div class="color-swatches" id="color-swatches"></div>
+        </div>
+        <button class="btn-add" onclick="addTag()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Додати
+        </button>
+      </div>
+    </div>
+
+    <!-- Tags list -->
+    <div class="tags-card">
+      <div class="tags-card-head">Всі теги</div>
+      <div id="tags-list"><div class="empty-tags">Тегів ще немає</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Confirm -->
+<div class="modal-overlay" id="confirm-dialog">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Підтвердження</span></div>
+    <div class="modal-body"><p id="confirm-message"></p></div>
+    <div class="modal-footer">
+      <button class="btn-ghost" id="confirm-cancel">Скасувати</button>
+      <button class="btn-primary" id="confirm-ok">Підтвердити</button>
+    </div>
+  </div>
+</div>
+<div id="toast-container"></div>
+
+<script>
+  Sidebar.initNow('tags');
+
+  const COLORS = [
+    '#4f6ef7','#059669','#d97706','#7c3aed',
+    '#db2777','#0891b2','#dc2626','#65a30d',
+    '#9333ea','#0ea5e9','#f59e0b','#10b981'
+  ];
+
+  let selectedColor = COLORS[0];
+  let tags = {};
+  let clientsSnap = {};
+
+  function onAuthReady() {
+    renderSwatches();
+    listenTags();
+    // Load clients to count usage
+    db.ref('clients').once('value').then(s => {
+      clientsSnap = s.val() || {};
+      renderTags();
+    });
+  }
+
+  function renderSwatches() {
+    const wrap = document.getElementById('color-swatches');
+    wrap.innerHTML = COLORS.map(col => `
+      <div class="color-swatch ${col === selectedColor ? 'selected' : ''}"
+           style="background:${col}"
+           onclick="selectColor('${col}')"></div>
+    `).join('');
+  }
+
+  function selectColor(col) {
+    selectedColor = col;
+    renderSwatches();
+  }
+
+  function listenTags() {
+    db.ref('tags').on('value', snap => {
+      tags = snap.val() || {};
+      renderTags();
+    });
+  }
+
+  function renderTags() {
+    const list = document.getElementById('tags-list');
+    const entries = Object.entries(tags);
+    if (entries.length === 0) {
+      list.innerHTML = '<div class="empty-tags">Тегів ще немає. Додайте перший!</div>';
+      return;
+    }
+
+    // Count usage per tag
+    const usage = {};
+    Object.values(clientsSnap).forEach(cl => {
+      (cl.tags || []).forEach(tid => { usage[tid] = (usage[tid] || 0) + 1; });
+    });
+
+    list.innerHTML = entries.map(([id, tag]) => `
+      <div class="tag-row">
+        <span class="tag-chip" style="background:${tag.color || '#4f6ef7'}">${escH(tag.name)}</span>
+        <input class="tag-name-edit" value="${escH(tag.name)}"
+          onblur="renameTag('${id}', this.value)"
+          onkeydown="if(event.key==='Enter') this.blur()">
+        <span class="tag-usage">${usage[id] || 0} клієнт${usageSuffix(usage[id] || 0)}</span>
+        <button class="btn-del-tag" onclick="deleteTag('${id}', '${escH(tag.name)}')" title="Видалити тег">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          </svg>
+        </button>
+      </div>`).join('');
+  }
+
+  function usageSuffix(n) {
+    if (n === 1) return '';
+    if (n >= 2 && n <= 4) return 'и';
+    return 'ів';
+  }
+
+  async function addTag() {
+    const name = document.getElementById('tag-name').value.trim();
+    if (!name) {
+      document.getElementById('tag-name').style.borderColor = 'var(--red)';
+      setTimeout(() => document.getElementById('tag-name').style.borderColor = '', 1500);
+      return;
+    }
+    await db.ref('tags').push({ name, color: selectedColor });
+    document.getElementById('tag-name').value = '';
+    showToast('Тег додано', 'success');
+  }
+
+  async function renameTag(id, newName) {
+    const name = newName.trim();
+    if (!name || name === tags[id]?.name) return;
+    await db.ref('tags/' + id).update({ name });
+  }
+
+  function deleteTag(id, name) {
+    showConfirm(`Видалити тег "${name}"? Він зникне у всіх клієнтів.`, async () => {
+      // Remove from all clients
+      const updates = {};
+      Object.entries(clientsSnap).forEach(([phone, cl]) => {
+        if ((cl.tags || []).includes(id)) {
+          updates['clients/' + phone + '/tags'] = (cl.tags || []).filter(t => t !== id);
+        }
+      });
+      if (Object.keys(updates).length) await db.ref().update(updates);
+      await db.ref('tags/' + id).remove();
+      showToast('Тег видалено', 'info');
+    });
+  }
+
+  function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  window.addTag = addTag; window.selectColor = selectColor;
+  window.renameTag = renameTag; window.deleteTag = deleteTag;
+</script>
+</body>
+</html>
