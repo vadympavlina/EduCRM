@@ -639,7 +639,7 @@ function initCalendar() {
     },
 
     select(info) {
-      openCreateModal(info.startStr, info.endStr);
+      showSlotChoice(info.startStr, info.endStr);
       calendarInstance.unselect();
     },
 
@@ -751,6 +751,150 @@ function parseDateTime(date, time) {
   const [y, m, d]   = date.split('-').map(Number);
   const [hh, mm]    = time.split(':').map(Number);
   return new Date(y, m - 1, d, hh, mm);
+}
+
+// ── SLOT CHOICE ──────────────────────────────────────────────
+function showSlotChoice(startStr, endStr) {
+  // Remove existing popup if any
+  document.getElementById('slot-choice-popup')?.remove();
+
+  const popup = document.createElement('div');
+  popup.id = 'slot-choice-popup';
+  popup.style.cssText = [
+    'position:fixed', 'top:50%', 'left:50%',
+    'transform:translate(-50%,-50%)',
+    'z-index:600',
+    'background:var(--bg2)',
+    'border:1px solid var(--border)',
+    'border-radius:14px',
+    'box-shadow:0 8px 40px rgba(0,0,0,0.18)',
+    'padding:20px',
+    'display:flex', 'flex-direction:column', 'gap:10px',
+    'min-width:240px',
+    'font-family:var(--font-main)',
+    'animation:popup-in 0.15s ease',
+  ].join(';');
+
+  const start = new Date(startStr);
+  const end   = new Date(endStr);
+  const timeLabel = `${formatTime(start)} – ${formatTime(end)}`;
+
+  popup.innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;
+                letter-spacing:0.5px;margin-bottom:2px">${timeLabel}</div>
+    <button id="scp-event" style="
+      display:flex;align-items:center;gap:10px;padding:11px 14px;
+      background:var(--accent);color:#fff;border:none;border-radius:10px;
+      font-size:13.5px;font-weight:700;cursor:pointer;width:100%;text-align:left;
+      font-family:var(--font-main);transition:opacity 0.15s">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      Нова подія
+    </button>
+    <button id="scp-block" style="
+      display:flex;align-items:center;gap:10px;padding:11px 14px;
+      background:var(--bg3);color:var(--text2);
+      border:1.5px solid var(--border);border-radius:10px;
+      font-size:13.5px;font-weight:700;cursor:pointer;width:100%;text-align:left;
+      font-family:var(--font-main);transition:all 0.15s">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+      </svg>
+      Зайнятий час
+    </button>
+    <button id="scp-close" style="
+      background:none;border:none;cursor:pointer;
+      font-size:12px;color:var(--text3);font-family:var(--font-main);
+      padding:4px;align-self:center">Скасувати</button>`;
+
+  // Backdrop
+  const backdrop = document.createElement('div');
+  backdrop.id = 'slot-choice-backdrop';
+  backdrop.style.cssText = 'position:fixed;inset:0;z-index:599;';
+  backdrop.onclick = () => closeSlotChoice();
+  document.body.appendChild(backdrop);
+  document.body.appendChild(popup);
+
+  popup.querySelector('#scp-event').onclick = () => {
+    closeSlotChoice();
+    openCreateModal(startStr, endStr);
+  };
+  popup.querySelector('#scp-block').onclick = () => {
+    closeSlotChoice();
+    openBlockModal(startStr, endStr);
+  };
+  popup.querySelector('#scp-close').onclick = () => closeSlotChoice();
+}
+
+function closeSlotChoice() {
+  document.getElementById('slot-choice-popup')?.remove();
+  document.getElementById('slot-choice-backdrop')?.remove();
+}
+
+// ── BLOCK TIME MODAL ─────────────────────────────────────────
+function openBlockModal(startStr, endStr) {
+  const start = new Date(startStr);
+  const end   = new Date(endStr);
+
+  // Populate teacher select
+  const teacherOptions = Object.values(teachers)
+    .sort((a,b) => a.name.localeCompare(b.name, 'uk'))
+    .map(t => `<option value="${t.id}">${t.name.replace(/</g,'&lt;')}</option>`)
+    .join('');
+
+  document.getElementById('bm-title').value = '';
+  document.getElementById('bm-start').value = formatTime(start);
+  document.getElementById('bm-end').value   = formatTime(end);
+  document.getElementById('bm-date').value  = formatDate(start);
+
+  const sel = document.getElementById('bm-teacher');
+  sel.innerHTML = '<option value="">Всі (загальне)</option>' + teacherOptions;
+  sel.value = '';
+
+  document.getElementById('block-modal').classList.add('open');
+}
+
+async function saveBlockModal() {
+  const title  = document.getElementById('bm-title').value.trim() || 'Зайнято';
+  const start  = document.getElementById('bm-start').value;
+  const end    = document.getElementById('bm-end').value;
+  const date   = document.getElementById('bm-date').value;
+  const tid    = document.getElementById('bm-teacher').value;
+
+  if (!start || !end) { showToast('Вкажіть час', 'error'); return; }
+  if (start >= end)   { showToast('Кінець має бути пізніше початку', 'error'); return; }
+
+  const d = new Date(date);
+  const dayOfWeek = d.getDay(); // 0=Sun..6=Sat
+
+  const btn = document.getElementById('bm-save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Збереження…';
+
+  try {
+    await db.ref('settings/blockedTimes').push({
+      title,
+      start,
+      end,
+      days:      [dayOfWeek],
+      until:     date,       // блокує тільки цей день
+      teacherId: tid || '',
+      createdBy: currentUser,
+      createdAt: Date.now()
+    });
+    closeModal('block-modal');
+    showToast('Час заблоковано', 'success');
+  } catch (err) {
+    showToast('Помилка: ' + (err.code || err.message), 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Заблокувати';
 }
 
 // ── EVENT MODAL ──────────────────────────────────────────────
@@ -1152,6 +1296,8 @@ window.openCreateModal = openCreateModal;
 window.openEventModal = openEventModal;
 window.completeEvent = completeEvent;
 window.cancelEvent = cancelEvent;
+window.saveBlockModal   = saveBlockModal;
+window.closeSlotChoice  = closeSlotChoice;
 window.toggleNotifPanel = toggleNotifPanel;
 window.closeNotifPanel  = closeNotifPanel;
 window.markNotifRead    = markNotifRead;

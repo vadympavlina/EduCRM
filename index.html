@@ -60,7 +60,40 @@
       flex-shrink: 0;
     }
     .event-client-btn:hover { background: var(--accent-light); }
-  </style>
+  
+    @keyframes popup-in {
+      from { opacity:0; transform:translate(-50%,-48%) scale(0.96); }
+      to   { opacity:1; transform:translate(-50%,-50%) scale(1); }
+    }
+
+    /* ── BLOCK MODAL ── */
+    #block-modal .modal-body { display:flex; flex-direction:column; gap:14px; }
+    .bm-row { display:flex; gap:12px; }
+    .bm-field { display:flex; flex-direction:column; gap:5px; flex:1; }
+    .bm-label {
+      font-size:11px; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.5px; color:var(--text3);
+    }
+    .bm-input {
+      padding:8px 11px; border:1.5px solid var(--border); border-radius:8px;
+      font-family:var(--font-main); font-size:13.5px; color:var(--text);
+      background:var(--bg3); outline:none; transition:border-color 0.15s; width:100%;
+    }
+    .bm-input:focus { border-color:var(--accent); background:var(--bg2); }
+    .bm-select {
+      padding:8px 11px; border:1.5px solid var(--border); border-radius:8px;
+      font-family:var(--font-main); font-size:13.5px; color:var(--text);
+      background:var(--bg3); outline:none; cursor:pointer; width:100%;
+    }
+    .btn-block-save {
+      width:100%; padding:11px; background:var(--red); color:#fff;
+      border:none; border-radius:9px;
+      font-family:var(--font-main); font-size:14px; font-weight:700;
+      cursor:pointer; transition:opacity 0.15s;
+    }
+    .btn-block-save:hover { opacity:0.88; }
+    .btn-block-save:disabled { opacity:0.55; cursor:not-allowed; }
+</style>
 </head>
 <body>
 
@@ -369,6 +402,54 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" id="confirm-cancel">Скасувати</button>
       <button class="btn btn-danger" id="confirm-ok">Підтвердити</button>
+    </div>
+  </div>
+</div>
+
+<!-- Block time modal -->
+<div class="modal-overlay" id="block-modal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <span class="modal-title">Заблокувати час</span>
+      <button class="modal-close" onclick="closeModal('block-modal')">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="bm-field">
+        <label class="bm-label">Назва</label>
+        <input class="bm-input" id="bm-title" type="text" placeholder="напр. Обід, Збори…">
+      </div>
+      <div class="bm-row">
+        <div class="bm-field">
+          <label class="bm-label">Початок</label>
+          <input class="bm-input" id="bm-start" type="time">
+        </div>
+        <div class="bm-field">
+          <label class="bm-label">Кінець</label>
+          <input class="bm-input" id="bm-end" type="time">
+        </div>
+      </div>
+      <input type="hidden" id="bm-date">
+      <div class="bm-field">
+        <label class="bm-label">Для кого</label>
+        <select class="bm-select" id="bm-teacher">
+          <option value="">Всі (загальне)</option>
+        </select>
+        <p style="font-size:11px;color:var(--text3);margin-top:4px;line-height:1.5">
+          «Всі» — ніхто не може поставити подію в цей час.<br>
+          Конкретний вчитель — тільки йому заблоковано.
+        </p>
+      </div>
+      <button class="btn-block-save" id="bm-save-btn" onclick="saveBlockModal()">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:6px">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+        </svg>
+        Заблокувати
+      </button>
     </div>
   </div>
 </div>
