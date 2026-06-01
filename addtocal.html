@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Додати в календар — EduCRM</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f6ef7'/><stop offset='1' stop-color='%233b5be8'/></linearGradient></defs><rect width='32' height='32' rx='9' fill='url(%23g)'/><rect x='7' y='9' width='11' height='2.5' rx='1.25' fill='white'/><rect x='7' y='14.75' width='18' height='2.5' rx='1.25' fill='white'/><rect x='7' y='20.5' width='8' height='2.5' rx='1.25' fill='white'/></svg>">
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <script src="firebase.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --accent: #4f6ef7;
+      --bg: #f5f6fa;
+      --card: #ffffff;
+      --border: #e4e6ef;
+      --text: #1a1d2e;
+      --text2: #4b5068;
+      --text3: #9094ab;
+      --green: #22c55e;
+      --red: #ef4444;
+      --radius: 16px;
+      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      min-height: 100dvh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px 16px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      width: 100%; max-width: 440px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+      text-align: center;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 12px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+    .brand-icon {
+      width: 44px; height: 44px;
+      background: var(--accent); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .brand-title { font-size: 18px; font-weight: 800; color: var(--text); }
+
+    /* States */
+    .state { display: none; flex-direction: column; align-items: center; gap: 16px; }
+    .state.active { display: flex; }
+
+    .state-icon {
+      width: 64px; height: 64px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .icon-loading { background: rgba(79,110,247,0.1); color: var(--accent); }
+    .icon-success { background: rgba(34,197,94,0.12); color: var(--green); }
+    .icon-error   { background: rgba(239,68,68,0.12);  color: var(--red); }
+
+    .state-title { font-size: 18px; font-weight: 800; color: var(--text); }
+    .state-text  { font-size: 14px; color: var(--text3); line-height: 1.6; }
+
+    /* Event info card */
+    .event-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      text-align: left;
+      width: 100%;
+    }
+    .event-card-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .event-card-meta  { font-size: 13px; color: var(--text3); font-weight: 500; }
+    .event-card-meta span { margin-right: 8px; }
+
+    .btn-download {
+      width: 100%; padding: 13px;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 700;
+      font-family: var(--font);
+      cursor: pointer; transition: background 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      text-decoration: none;
+    }
+    .btn-download:hover { background: #3b5be8; }
+
+    .hint {
+      font-size: 12px; color: var(--text3);
+      line-height: 1.6;
+    }
+
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 480px) {
+      .card { padding: 28px 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg width="22" height="22" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+    </div>
+    <span class="brand-title">EduCRM</span>
+  </div>
+
+  <!-- Loading -->
+  <div class="state active" id="state-loading">
+    <div class="state-icon icon-loading"><div class="spinner"></div></div>
+    <div class="state-text">Завантаження події…</div>
+  </div>
+
+  <!-- Ready to download -->
+  <div class="state" id="state-ready">
+    <div class="state-icon icon-success">
+      <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+    </div>
+    <div class="state-title">Подія знайдена!</div>
+    <div class="event-card" id="event-info"></div>
+    <a id="btn-ics" class="btn-download" download="event.ics">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Додати в календар
+    </a>
+    <div class="hint">
+      Відкриється файл .ics — натисніть "Додати" у вашому Calendar.<br>
+      Працює з Google Calendar, Apple Calendar, Outlook.
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div class="state" id="state-error">
+    <div class="state-icon icon-error">
+      <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    </div>
+    <div class="state-title">Помилка</div>
+    <div class="state-text" id="error-text">Подію не знайдено або посилання застаріло.</div>
+  </div>
+</div>
+
+<script>
+  function showState(id) {
+    document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function toICSDate(date, time) {
+    // date: "2026-06-01", time: "14:00"
+    const [y, m, d]   = date.split('-');
+    const [hh, mm]    = (time || '00:00').split(':');
+    return `${y}${pad(m)}${pad(d)}T${pad(hh)}${pad(mm)}00`;
+  }
+
+  function generateICS(ev) {
+    const start = toICSDate(ev.date, ev.startTime);
+    const end   = toICSDate(ev.date, ev.endTime || ev.startTime);
+    const now   = new Date();
+    const stamp = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}T${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}Z`;
+
+    const title = (ev.title || 'Захід').replace(/[\\,;]/g, '\\$&');
+    const desc  = (ev.description || '').replace(/[\\,;]/g, '\\$&').replace(/\n/g, '\\n');
+
+    return [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//EduCRM//EduCRM//UK',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'BEGIN:VEVENT',
+      `UID:${ev.id || stamp}@educrm`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART:${start}`,
+      `DTEND:${end}`,
+      `SUMMARY:${title}`,
+      desc ? `DESCRIPTION:${desc}` : '',
+      'STATUS:CONFIRMED',
+      'TRANSP:OPAQUE',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].filter(Boolean).join('\r\n');
+  }
+
+  // ── Main ──────────────────────────────────────────────────
+  const params  = new URLSearchParams(window.location.search);
+  const eventId = params.get('eventId');
+
+  if (!eventId) {
+    showState('state-error');
+    document.getElementById('error-text').textContent = 'Не вказано подію у посиланні.';
+  } else {
+    db.ref('events/' + eventId).once('value').then(snap => {
+      if (!snap.exists()) {
+        showState('state-error');
+        document.getElementById('error-text').textContent = 'Подію не знайдено. Посилання може бути застарілим.';
+        return;
+      }
+
+      const ev = { id: snap.key, ...snap.val() };
+
+      // Show event info
+      document.getElementById('event-info').innerHTML = `
+        <div class="event-card-title">${(ev.title||'Захід').replace(/</g,'&lt;')}</div>
+        <div class="event-card-meta">
+          <span>📅 ${ev.date || ''}</span>
+          <span>🕐 ${ev.startTime || ''}–${ev.endTime || ''}</span>
+        </div>`;
+
+      // Generate ICS and create download link
+      const icsContent = generateICS(ev);
+      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const url  = URL.createObjectURL(blob);
+
+      const btn = document.getElementById('btn-ics');
+      btn.href     = url;
+      btn.download = `${(ev.title || 'event').replace(/[^a-zA-Zа-яА-ЯіІїЇєЄ0-9]/g, '_')}.ics`;
+
+      showState('state-ready');
+
+      // Auto-trigger download on mobile after short delay
+      if (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
+        setTimeout(() => btn.click(), 600);
+      }
+
+    }).catch(err => {
+      showState('state-error');
+      document.getElementById('error-text').textContent = 'Помилка завантаження: ' + err.message;
+    });
+  }
+</script>
+</body>
+</html>

@@ -1414,10 +1414,12 @@ async function sendTelegram(status, ev) {
 
   // Кнопка відгуку — тільки для підтверджених подій
   if (status === 'ПІДТВЕРДЖЕНО' && ev.id) {
-    const reviewUrl = `${SITE_URL}/review.html?eventId=${ev.id}`;
+    const reviewUrl  = `${SITE_URL}/review.html?eventId=${ev.id}`;
+    const calUrl     = `${SITE_URL}/addtocal.html?eventId=${ev.id}`;
     payload.reply_markup = {
       inline_keyboard: [[
-        { text: 'Залишити відгук', url: reviewUrl }
+        { text: '✍️ Залишити відгук', url: reviewUrl },
+        { text: '📅 Додати в календар', url: calUrl }
       ]]
     };
   }
