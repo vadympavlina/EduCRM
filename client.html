@@ -622,7 +622,10 @@
   }
 
   async function clientToggleContract(id, value) {
-    await db.ref('events/' + id).update({ contractSigned: value });
+    const upd = { contractSigned: value };
+    if (value) upd.contractSignedAt = Date.now();
+    else upd.contractSignedAt = null;
+    await db.ref('events/' + id).update(upd);
     showToast(value ? 'Договір відмічено' : 'Договір знято', true);
     loadTimeline();
   }

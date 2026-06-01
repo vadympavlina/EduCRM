@@ -304,8 +304,10 @@
   }
 
   function toggleContract(id, checked) {
-    db.ref('events/' + id).update({ contractSigned: checked })
-      .then(() => renderCompleted());
+    const upd = { contractSigned: checked };
+    if (checked) upd.contractSignedAt = Date.now();
+    else upd.contractSignedAt = null;
+    db.ref('events/' + id).update(upd).then(() => renderCompleted());
   }
 
   function copyPhone(el, phone) {

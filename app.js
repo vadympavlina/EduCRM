@@ -86,6 +86,11 @@ document.addEventListener('DOMContentLoaded', () => {
 async function startApp() {
   try { await loadConfig(); } catch (error) { console.error("Помилка завантаження токена:", error); }
 
+  // Request browser notification permission
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
   initPresence();
   listenTeachers();
   listenPricing();
@@ -173,6 +178,7 @@ function listenReviews() {
     // Справді новий відгук (прийшов поки застосунок відкритий і не прочитаний)
     if (review.createdAt > appInitTime && !notifReads[snap.key]) {
       playBloop();
+      showBrowserNotification(review);
     }
 
     renderNotifBadge();
@@ -284,6 +290,35 @@ function updateFavicon(hasUnread) {
       </svg>`
     );
   }
+}
+
+function showBrowserNotification(review) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const title = review.eventTitle || 'Новий відгук';
+  const body  = review.comment   || '';
+  const ev    = events[review.id];
+  const phone = ev ? (ev.phone || '').replace(/\D/g, '') : '';
+  const url   = phone.length >= 9
+    ? `${location.origin}${location.pathname.replace(/[^/]+$/, '')}client.html?id=${encodeURIComponent(phone)}`
+    : null;
+
+  const notif = new Notification('EduCRM — Новий відгук', {
+    body:    `${title}\n${body}`,
+    icon:    "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f6ef7'/><stop offset='1' stop-color='%233b5be8'/></linearGradient></defs><rect width='32' height='32' rx='9' fill='url(%23g)'/><rect x='7' y='9' width='11' height='2.5' rx='1.25' fill='white'/><rect x='7' y='14.75' width='18' height='2.5' rx='1.25' fill='white'/><rect x='7' y='20.5' width='8' height='2.5' rx='1.25' fill='white'/></svg>",
+    tag:     'educrm-review-' + review.id,
+    silent:  false,
+  });
+
+  if (url) {
+    notif.onclick = () => {
+      window.open(url, '_blank');
+      notif.close();
+    };
+  }
+
+  // Auto-close after 8 seconds
+  setTimeout(() => notif.close(), 8000);
 }
 
 function playBloop() {

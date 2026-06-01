@@ -412,6 +412,25 @@
       return true;
     });
 
+    // Договори — рахуємо по contractSignedAt (місяць підписання, не проведення)
+    const contractsThisMonth = new Set(
+      Object.values(events).filter(ev => {
+        if (!ev.contractSigned) return false;
+        if (selectedTeacher && ev.assignedPersonId !== selectedTeacher) return false;
+        if (selectedMonth) {
+          // Є дата підписання — фільтруємо по ній
+          if (ev.contractSignedAt) {
+            const d = new Date(ev.contractSignedAt);
+            const m = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+            return m === selectedMonth;
+          }
+          // Fallback: по даті події
+          return ev.date && ev.date.startsWith(selectedMonth);
+        }
+        return true;
+      }).map(ev => ev.id)
+    );
+
     // Group by teacher
     const byTeacher = {};
     completed.forEach(ev => {
@@ -419,8 +438,9 @@
       if (!byTeacher[tid]) byTeacher[tid] = { count: 0, contracts: 0, earnings: 0 };
       const p = getPricing(ev.assignedPersonId);
       byTeacher[tid].count++;
-      if (ev.contractSigned) byTeacher[tid].contracts++;
-      byTeacher[tid].earnings += ev.contractSigned
+      const hasContract = contractsThisMonth.has(ev.id);
+      if (hasContract) byTeacher[tid].contracts++;
+      byTeacher[tid].earnings += hasContract
         ? p.baseReward + p.contractBonus
         : p.baseReward;
     });
@@ -451,7 +471,7 @@
 
     // Summary chips
     const totalEvents    = completed.length;
-    const totalContracts = completed.filter(e => e.contractSigned).length;
+    const totalContracts = contractsThisMonth.size;
     const totalEarnings  = Object.values(byTeacher).reduce((s, d) => s + d.earnings, 0);
     document.getElementById('sum-events').textContent    = totalEvents;
     document.getElementById('sum-earnings').textContent  = `₴${totalEarnings}`;
