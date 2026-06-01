@@ -241,7 +241,7 @@
     const list = Object.values(events).filter(ev =>
       ev.status === 'confirmed' &&
       ev.date &&
-      (!selectedMonth || ev.date.startsWith(selectedMonth))
+      (!selectedMonth || ev.date && ev.date && ev.date.startsWith(selectedMonth))
     ).sort((a, b) =>
       a.date.localeCompare(b.date) || (a.startTime||'').localeCompare(b.startTime||'')
     );

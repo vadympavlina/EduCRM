@@ -242,7 +242,7 @@
 
     const list = Object.values(events).filter(e => {
       if (e.status !== 'completed') return false;
-      if (selectedMonth && e.date && !e.date.startsWith(selectedMonth)) return false;
+      if (selectedMonth && e.date && (!e.date || !e.date && e.date && e.date.startsWith(selectedMonth))) return false;
       return true;
     }).sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0));
 
