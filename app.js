@@ -31,6 +31,7 @@ let events       = {};
 let teachers     = {};
 let pricing      = { default: { baseReward: 50, contractBonus: 100 }, overrides: {} };
 let blockedTimes = {};
+let busySlots     = {};
 let calendarInstance = null;
 let confirmCallback  = null;
 let allReviews  = {};
@@ -97,6 +98,7 @@ async function startApp() {
   listenPricing();
   listenEvents();
   listenBlockedTimes();
+  listenBusySlots();
   listenReviews();
 
   setTimeout(initCalendar, 200);
@@ -644,7 +646,16 @@ function initCalendar() {
     },
 
     eventClick(info) {
-      if (info.event.display === 'background') return; 
+      if (info.event.display === 'background') return;
+      if (info.event.id.startsWith('busy_')) {
+        const busyId = info.event.extendedProps.busyId;
+        const title  = info.event.title;
+        showConfirm(`Видалити "${title}"?`, async () => {
+          await db.ref('busySlots/' + busyId).remove();
+          showToast('Слот видалено', 'info');
+        });
+        return;
+      }
       openEventModal(info.event.id);
     },
 
@@ -741,6 +752,25 @@ function refreshCalendar() {
       display:   'background',
       classNames: isGlobal ? ['fc-block-global'] : ['fc-block-teacher'],
       overlap:   false
+    });
+  });
+
+  // 3. busySlots — одноразові зайняті слоти з календаря
+  Object.entries(busySlots).forEach(([id, b]) => {
+    const isGlobal = !b.teacherId;
+    const tName = b.teacherId ? (teachers[b.teacherId]?.name || '') : '';
+    eventsArray.push({
+      id:              'busy_' + id,
+      title:           isGlobal
+        ? (b.title || 'Зайнято')
+        : `${b.title || 'Зайнято'}${tName ? ' · ' + tName : ''}`,
+      start:           b.date + 'T' + b.startTime,
+      end:             b.date + 'T' + b.endTime,
+      backgroundColor: '#64748b',
+      borderColor:     '#475569',
+      textColor:       '#fff',
+      classNames:      ['status-busy'],
+      extendedProps:   { busyId: id, teacherId: b.teacherId || '' }
     });
   });
 
@@ -878,12 +908,11 @@ async function saveBlockModal() {
   btn.textContent = 'Збереження…';
 
   try {
-    await db.ref('settings/blockedTimes').push({
+    await db.ref('busySlots').push({
       title,
-      start,
-      end,
-      days:      [dayOfWeek],
-      until:     date,       // блокує тільки цей день
+      date,
+      startTime: start,
+      endTime:   end,
       teacherId: tid || '',
       createdBy: currentUser,
       createdAt: Date.now()
@@ -1191,28 +1220,40 @@ function listenBlockedTimes() {
   }, err => console.error('BlockedTimes error:', err));
 }
 
+function listenBusySlots() {
+  db.ref('busySlots').on('value', snap => {
+    busySlots = snap.val() || {};
+    refreshCalendar();
+  });
+}
+
 function isTimeBlocked(startDT, endDT, teacherId, globalOnly) {
-  return Object.values(blockedTimes).some(b => {
+  const selStart = startDT.getHours() * 60 + startDT.getMinutes();
+  const selEnd   = endDT.getHours()   * 60 + endDT.getMinutes();
+  const selDate  = formatDate(startDT);
+
+  // Check recurring blocked times (settings/blockedTimes)
+  const inRecurring = Object.values(blockedTimes).some(b => {
     if (globalOnly && b.teacherId) return false;
     if (!globalOnly && b.teacherId && b.teacherId !== teacherId) return false;
-
-    const dayMatches = (b.days || []).includes(startDT.getDay());
-    if (!dayMatches) return false;
-
-    if (b.until) {
-      const untilDate = new Date(b.until + 'T23:59:59');
-      if (startDT > untilDate) return false;
-    }
-
-    const selStart = startDT.getHours() * 60 + startDT.getMinutes();
-    const selEnd   = endDT.getHours()   * 60 + endDT.getMinutes();
+    if (!(b.days || []).includes(startDT.getDay())) return false;
+    if (b.until && startDT > new Date(b.until + 'T23:59:59')) return false;
     const [bSH, bSM] = b.start.split(':').map(Number);
     const [bEH, bEM] = b.end.split(':').map(Number);
-    const blockStart = bSH * 60 + bSM;
-    const blockEnd   = bEH * 60 + bEM;
-
-    return selStart < blockEnd && selEnd > blockStart;
+    return selStart < (bEH*60+bEM) && selEnd > (bSH*60+bSM);
   });
+  if (inRecurring) return true;
+
+  // Check one-off busy slots (busySlots/)
+  const inBusy = Object.values(busySlots).some(b => {
+    if (b.date !== selDate) return false;
+    if (globalOnly && b.teacherId) return false;
+    if (!globalOnly && b.teacherId && b.teacherId !== teacherId) return false;
+    const [bSH, bSM] = b.startTime.split(':').map(Number);
+    const [bEH, bEM] = b.endTime.split(':').map(Number);
+    return selStart < (bEH*60+bEM) && selEnd > (bSH*60+bSM);
+  });
+  return inBusy;
 }
 
 // ── HELPERS ──────────────────────────────────────────────────
