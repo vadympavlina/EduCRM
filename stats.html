@@ -478,7 +478,12 @@
 
   function listenEvents() {
     db.ref('events').on('value', snap => {
-      events = snap.val() || {};
+      events = {};
+      if (snap.exists()) {
+        snap.forEach(child => {
+          events[child.key] = { id: child.key, ...child.val() };
+        });
+      }
       renderStats();
     });
   }
