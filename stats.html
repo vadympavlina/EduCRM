@@ -407,7 +407,7 @@
 
     const completed = Object.values(events).filter(e => {
       if (e.status !== 'completed') return false;
-      if (selectedMonth && (!e.date || (!e.date || !e.date && e.date && e.date.startsWith(selectedMonth)))) return false;
+      if (selectedMonth && (!e.date || !e.date.startsWith(selectedMonth))) return false;
       if (selectedTeacher && e.assignedPersonId !== selectedTeacher) return false;
       return true;
     });
@@ -425,7 +425,7 @@
             return m === selectedMonth;
           }
           // Fallback: по даті події
-          return ev.date && ev.date && ev.date && ev.date.startsWith(selectedMonth);
+          return ev.date && ev.date.startsWith(selectedMonth);
         }
         return true;
       }).map(ev => ev.id)
@@ -447,7 +447,7 @@
 
     // ── Funnel (all events for selected teacher, all statuses) ──
     const allForPeriod = Object.values(events).filter(ev => {
-      if (selectedMonth && ev.date && (!ev.date || !ev.date && ev.date && ev.date.startsWith(selectedMonth))) return false;
+      if (selectedMonth && (!ev.date || !ev.date.startsWith(selectedMonth))) return false;
       if (selectedTeacher && ev.assignedPersonId !== selectedTeacher) return false;
       return true;
     });
