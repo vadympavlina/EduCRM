@@ -1418,8 +1418,8 @@ async function sendTelegram(status, ev) {
     const calUrl     = `${SITE_URL}/addtocal.html?eventId=${ev.id}`;
     payload.reply_markup = {
       inline_keyboard: [[
-        { text: '✍️ Залишити відгук', url: reviewUrl },
-        { text: '📅 Додати в календар', url: calUrl }
+        { text: 'Відгук', url: reviewUrl },
+        { text: '📅', url: calUrl }
       ]]
     };
   }
