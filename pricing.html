@@ -252,6 +252,9 @@
     db.ref('people').on('value', snap => {
       teachers = {};
       if (snap.exists()) snap.forEach(c => { teachers[c.key] = { id: c.key, ...c.val() }; });
+      populateOverrideSelect();
+      renderOverrides();
+    });
   }
 
   function listenPricing() {
