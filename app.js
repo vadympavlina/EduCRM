@@ -656,6 +656,10 @@ function initCalendar() {
         });
         return;
       }
+      if (info.event.id.startsWith('block_')) {
+        showToast('Повторюване блокування. Керуй у розділі "Графік роботи"', 'info');
+        return;
+      }
       openEventModal(info.event.id);
     },
 
@@ -738,20 +742,34 @@ function refreshCalendar() {
     eventsArray.push(evObj);
   });
 
-  // 2. Формуємо масив блокувань
+  // 2. Формуємо масив блокувань (повторювані з розкладу)
   Object.entries(blockedTimes).forEach(([id, b]) => {
     const isGlobal = !b.teacherId;
+    const tName    = b.teacherId ? (teachers[b.teacherId]?.name || '') : '';
+
+    // endRecur is EXCLUSIVE in FullCalendar — add 1 day so "until" date is included
+    let endRecur = null;
+    if (b.until) {
+      const d = new Date(b.until + 'T00:00:00');
+      d.setDate(d.getDate() + 1);
+      endRecur = formatDate(d);
+    }
+
     eventsArray.push({
-      id: 'block_' + id,
-      groupId: 'blocked_zone',
-      title: isGlobal ? (b.title || 'ЗАЙНЯТО') : `${b.title || 'ЗАЙНЯТО'} (${teachers[b.teacherId]?.name || ''})`,
-      startTime: b.start,
-      endTime:   b.end,
-      daysOfWeek: b.days,
-      endRecur:  b.until || null,
-      display:   'background',
-      classNames: isGlobal ? ['fc-block-global'] : ['fc-block-teacher'],
-      overlap:   false
+      id:              'block_' + id,
+      groupId:         'blocked_zone',
+      title:           isGlobal
+        ? (b.title || 'Зайнято')
+        : `${b.title || 'Зайнято'} · ${tName}`,
+      startTime:       b.start,
+      endTime:         b.end,
+      daysOfWeek:      b.days,
+      endRecur,
+      backgroundColor: isGlobal ? '#fca5a5' : '#bfdbfe',
+      borderColor:     isGlobal ? '#ef4444' : '#3b82f6',
+      textColor:       isGlobal ? '#7f1d1d' : '#1e3a5f',
+      classNames:      ['fc-block-recurring'],
+      editable:        false,
     });
   });
 
