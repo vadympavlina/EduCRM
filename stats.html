@@ -172,59 +172,110 @@
       margin-bottom: 20px;
     }
     .funnel-head {
+      display: flex; align-items: center; justify-content: space-between;
       padding: 12px 18px;
       font-size: 11px; font-weight: 800;
       text-transform: uppercase; letter-spacing: 0.6px;
       color: var(--text3); background: var(--bg3);
       border-bottom: 1px solid var(--border);
     }
-    .funnel-body {
-      display: flex;
-      align-items: stretch;
-      padding: 20px 24px;
-      gap: 0;
+    .funnel-subtitle { font-size: 11px; font-weight: 600; color: var(--text3); }
+
+    /* Main funnel steps */
+    .funnel-main {
+      display: flex; align-items: stretch;
+      border-bottom: 1px solid var(--border);
     }
     .funnel-step {
       flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 20px 12px 16px;
+      gap: 4px;
       position: relative;
+      border-right: 1px solid var(--border);
       text-align: center;
     }
-    .funnel-step:not(:last-child)::after {
-      content: '→';
-      position: absolute;
-      right: -12px;
-      top: 50%;
-      transform: translateY(-80%);
-      font-size: 18px;
-      color: var(--text3);
-      font-weight: 300;
+    .funnel-step:last-child { border-right: none; }
+
+    .funnel-step-icon {
+      width: 32px; height: 32px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 4px; flex-shrink: 0;
     }
+    .icon-pending   { background: var(--yellow-bg);  color: var(--yellow-text); }
+    .icon-confirmed { background: var(--blue-bg);     color: var(--blue); }
+    .icon-completed { background: var(--green-bg);    color: var(--green); }
+    .icon-contract  { background: var(--accent-light); color: var(--accent); }
+
     .funnel-count {
-      font-size: 28px; font-weight: 800;
+      font-size: 30px; font-weight: 800;
       font-family: var(--font-mono); line-height: 1;
     }
-    .funnel-count.pending   { color: var(--yellow-text); }
-    .funnel-count.confirmed { color: var(--blue); }
-    .funnel-count.completed { color: var(--green); }
-    .funnel-count.cancelled { color: var(--red); }
+    .funnel-count.c-pending   { color: var(--yellow-text); }
+    .funnel-count.c-confirmed { color: var(--blue); }
+    .funnel-count.c-completed { color: var(--green); }
+    .funnel-count.c-contract  { color: var(--accent); }
+
     .funnel-label {
-      font-size: 11px; font-weight: 700;
+      font-size: 10.5px; font-weight: 700;
       text-transform: uppercase; letter-spacing: 0.5px;
-      color: var(--text3);
+      color: var(--text3); margin-top: 2px;
     }
-    .funnel-pct {
-      font-size: 12px; font-weight: 700;
-      color: var(--text2);
-      background: var(--bg3);
+
+    /* From-total badge */
+    .funnel-from-total {
+      font-size: 13px; font-weight: 800;
+      margin-top: 4px;
+    }
+    /* From-prev badge */
+    .funnel-from-prev {
+      font-size: 11px; font-weight: 600;
+      color: var(--text3); margin-top: 1px;
+    }
+    .funnel-from-prev span { color: var(--text2); }
+
+    /* Arrow between steps */
+    .funnel-arrow {
+      position: absolute;
+      right: -14px; top: 50%;
+      transform: translateY(-50%);
+      width: 28px; height: 28px;
+      background: var(--bg2);
       border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 2px 8px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1;
+      font-size: 12px; color: var(--text3);
     }
-    .funnel-pct.good { color: var(--green); border-color: var(--green-bg); background: var(--green-bg); }
+
+    /* Bottom stats row */
+    .funnel-bottom {
+      display: flex; align-items: center;
+      padding: 12px 20px; gap: 24px; flex-wrap: wrap;
+    }
+    .funnel-stat {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px;
+    }
+    .funnel-stat-label { color: var(--text3); font-weight: 600; }
+    .funnel-stat-val   { font-weight: 800; font-family: var(--font-mono); }
+    .funnel-stat-val.red  { color: var(--red); }
+    .funnel-stat-val.blue { color: var(--accent); }
+
+    /* Bar under steps showing relative width */
+    .funnel-bar-wrap {
+      padding: 0 18px 14px;
+    }
+    .funnel-bar-track {
+      height: 6px; background: var(--bg3);
+      border-radius: 3px; overflow: hidden;
+      display: flex; gap: 2px;
+    }
+    .funnel-bar-seg {
+      height: 100%; border-radius: 3px;
+      transition: width 0.4s ease;
+      min-width: 2px;
+    }
 
     @media (max-width: 640px) {
       .topbar { padding: 0 12px; }
@@ -280,27 +331,84 @@
 
     <!-- Conversion funnel -->
     <div class="funnel-section">
-      <div class="funnel-head">Конверсія</div>
-      <div class="funnel-body" id="funnel-body">
+      <div class="funnel-head">
+        <span>Конверсія</span>
+        <span class="funnel-subtitle">% від загальної кількості · % від попереднього кроку</span>
+      </div>
+
+      <div class="funnel-main">
+
+        <!-- Pending -->
         <div class="funnel-step">
-          <div class="funnel-count pending" id="f-pending">—</div>
-          <div class="funnel-label">Очікують</div>
-          <div class="funnel-pct" id="f-pending-pct">—</div>
+          <div class="funnel-step-icon icon-pending">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="funnel-count c-pending" id="f-pending">—</div>
+          <div class="funnel-label">Створено</div>
+          <div class="funnel-from-total" style="color:var(--text2)">100%</div>
+          <div class="funnel-from-prev">база</div>
+          <div class="funnel-arrow">→</div>
         </div>
+
+        <!-- Confirmed -->
         <div class="funnel-step">
-          <div class="funnel-count confirmed" id="f-confirmed">—</div>
-          <div class="funnel-label">Підтверджені</div>
-          <div class="funnel-pct" id="f-confirmed-pct">—</div>
+          <div class="funnel-step-icon icon-confirmed">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <div class="funnel-count c-confirmed" id="f-confirmed">—</div>
+          <div class="funnel-label">Підтверджено</div>
+          <div class="funnel-from-total" id="f-confirmed-total" style="color:var(--blue)">—</div>
+          <div class="funnel-from-prev" id="f-confirmed-prev">з попер.: <span>—</span></div>
+          <div class="funnel-arrow">→</div>
         </div>
+
+        <!-- Completed -->
         <div class="funnel-step">
-          <div class="funnel-count completed" id="f-completed">—</div>
-          <div class="funnel-label">Проведені</div>
-          <div class="funnel-pct good" id="f-completed-pct">—</div>
+          <div class="funnel-step-icon icon-completed">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div class="funnel-count c-completed" id="f-completed">—</div>
+          <div class="funnel-label">Проведено</div>
+          <div class="funnel-from-total" id="f-completed-total" style="color:var(--green)">—</div>
+          <div class="funnel-from-prev" id="f-completed-prev">з попер.: <span>—</span></div>
+          <div class="funnel-arrow">→</div>
         </div>
+
+        <!-- Contract -->
         <div class="funnel-step">
-          <div class="funnel-count cancelled" id="f-cancelled">—</div>
-          <div class="funnel-label">Скасовані</div>
-          <div class="funnel-pct" id="f-cancelled-pct">—</div>
+          <div class="funnel-step-icon icon-contract">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
+          </div>
+          <div class="funnel-count c-contract" id="f-contract">—</div>
+          <div class="funnel-label">Договір</div>
+          <div class="funnel-from-total" id="f-contract-total" style="color:var(--accent)">—</div>
+          <div class="funnel-from-prev" id="f-contract-prev">з проведених: <span>—</span></div>
+        </div>
+
+      </div>
+
+      <!-- Progress bars -->
+      <div class="funnel-bar-wrap">
+        <div class="funnel-bar-track" id="funnel-bar-track"></div>
+      </div>
+
+      <!-- Bottom stats -->
+      <div class="funnel-bottom">
+        <div class="funnel-stat">
+          <div style="width:10px;height:10px;border-radius:3px;background:var(--red);flex-shrink:0"></div>
+          <span class="funnel-stat-label">Скасовано:</span>
+          <span class="funnel-stat-val red" id="f-cancelled">—</span>
+          <span class="funnel-stat-label" id="f-cancelled-pct"></span>
+        </div>
+        <div class="funnel-stat">
+          <div style="width:10px;height:10px;border-radius:3px;background:var(--accent);flex-shrink:0"></div>
+          <span class="funnel-stat-label">Середній чек:</span>
+          <span class="funnel-stat-val blue" id="f-avg-check">—</span>
+        </div>
+        <div class="funnel-stat">
+          <div style="width:10px;height:10px;border-radius:3px;background:var(--green);flex-shrink:0"></div>
+          <span class="funnel-stat-label">Конверсія в договір:</span>
+          <span class="funnel-stat-val" id="f-contract-rate" style="color:var(--green)">—</span>
         </div>
       </div>
     </div>
@@ -445,29 +553,40 @@
         : p.baseReward;
     });
 
-    // ── Funnel (all events for selected teacher, all statuses) ──
+    // ── Funnel — всі події за вибраний період/вчителя ──────────
     const allForPeriod = Object.values(events).filter(ev => {
       if (selectedMonth && (!ev.date || !ev.date.startsWith(selectedMonth))) return false;
       if (selectedTeacher && ev.assignedPersonId !== selectedTeacher) return false;
       return true;
     });
+
     const fTotal     = allForPeriod.length;
-    const fPending   = allForPeriod.filter(e => e.status === 'pending').length;
-    const fConfirmed = allForPeriod.filter(e => e.status === 'confirmed').length;
+    const fCreated   = allForPeriod.filter(e => e.status !== 'cancelled').length;
+    const fConfirmed = allForPeriod.filter(e => ['confirmed','completed'].includes(e.status)).length;
     const fCompleted = allForPeriod.filter(e => e.status === 'completed').length;
     const fCancelled = allForPeriod.filter(e => e.status === 'cancelled').length;
+    const fContract  = contractsThisMonth.size;
 
-    const pct = (n) => fTotal > 0 ? Math.round(n / fTotal * 100) + '%' : '—';
+    const pctOf  = (n, base) => base > 0 ? Math.round(n / base * 100) + '%' : '—';
+    const setEl  = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    const setElH = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
 
-    const setF = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    setF('f-pending',       fPending);
-    setF('f-confirmed',     fConfirmed);
-    setF('f-completed',     fCompleted);
-    setF('f-cancelled',     fCancelled);
-    setF('f-pending-pct',   pct(fPending));
-    setF('f-confirmed-pct', pct(fConfirmed));
-    setF('f-completed-pct', pct(fCompleted));
-    setF('f-cancelled-pct', pct(fCancelled));
+    setEl('f-pending',   fCreated);
+    setEl('f-confirmed', fConfirmed);
+    setEl('f-completed', fCompleted);
+    setEl('f-contract',  fContract);
+    setEl('f-cancelled', fCancelled);
+
+    setEl('f-confirmed-total', pctOf(fConfirmed, fCreated));
+    setEl('f-completed-total', pctOf(fCompleted, fCreated));
+    setEl('f-contract-total',  pctOf(fContract, fCreated));
+
+    setElH('f-confirmed-prev', `з створених: <span>${pctOf(fConfirmed, fCreated)}</span>`);
+    setElH('f-completed-prev', `з підтверджених: <span>${pctOf(fCompleted, fConfirmed)}</span>`);
+    setElH('f-contract-prev',  `з проведених: <span>${pctOf(fContract, fCompleted)}</span>`);
+
+    const cancelledEl = document.getElementById('f-cancelled-pct');
+    if (cancelledEl) cancelledEl.textContent = fTotal > 0 ? `(${pctOf(fCancelled, fTotal)})` : '';
 
     // Summary chips
     const totalEvents    = completed.length;
@@ -476,6 +595,24 @@
     document.getElementById('sum-events').textContent    = totalEvents;
     document.getElementById('sum-earnings').textContent  = `₴${totalEarnings}`;
     document.getElementById('sum-contracts').textContent = totalContracts;
+
+    // Avg check and contract rate
+    const avgCheck = fCompleted > 0 ? `₴${Math.round(totalEarnings / fCompleted)}` : '—';
+    setEl('f-avg-check', avgCheck);
+    setEl('f-contract-rate', pctOf(fContract, fCreated));
+
+    // Progress bars
+    const barTrack = document.getElementById('funnel-bar-track');
+    if (barTrack && fCreated > 0) {
+      const segments = [
+        { pct: fCompleted / fCreated, color: 'var(--green)' },
+        { pct: Math.max(0, fConfirmed - fCompleted) / fCreated, color: 'var(--blue)' },
+        { pct: Math.max(0, fCreated - fConfirmed) / fCreated, color: 'var(--yellow-bg)' },
+      ];
+      barTrack.innerHTML = segments.map(s =>
+        `<div class="funnel-bar-seg" style="width:${Math.round(s.pct*100)}%;background:${s.color}"></div>`
+      ).join('');
+    }
 
     // Table body
     const tbody = document.getElementById('stats-tbody');
