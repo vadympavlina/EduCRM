@@ -706,6 +706,7 @@ function initCalendar() {
       // Група з кількох подій — завжди показуємо попап
       const groupIds = info.event.extendedProps.groupIds || [info.event.id];
       if (groupIds.length > 1) {
+        info.jsEvent.stopPropagation();
         showGroupPopup(groupIds, info.el);
         return;
       }
@@ -969,14 +970,7 @@ function showSlotChoice(startStr, endStr) {
 
 // ── GROUP SLOT POPUP ─────────────────────────────────────────
 document.addEventListener('click', e => {
-  const badge = e.target.closest('.fc-event-extra-badge');
-  if (badge) {
-    e.stopPropagation();
-    const ids = JSON.parse(badge.dataset.ids || '[]');
-    showGroupPopup(ids, badge);
-    return;
-  }
-  if (!e.target.closest('#group-slot-popup')) {
+  if (!e.target.closest('#group-slot-popup') && !e.target.closest('.fc-event')) {
     document.getElementById('group-slot-popup')?.remove();
   }
 });
