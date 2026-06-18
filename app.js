@@ -764,20 +764,50 @@ function refreshCalendar() {
   
   const eventsArray = [];
 
-  // 1. Групуємо реальні події по "date|startTime|endTime"
-  const slotGroups = {};
-  Object.values(events).forEach(ev => {
-    if (!ev.date || !ev.startTime) return;
-    const key = `${ev.date}|${ev.startTime}|${ev.endTime || ev.startTime}`;
-    if (!slotGroups[key]) slotGroups[key] = [];
-    slotGroups[key].push(ev);
+  // 1. Групуємо події що перетинаються по часу в межах одного дня
+  const realEvents = Object.values(events).filter(ev => ev.date && ev.startTime);
+
+  // Union-Find: групуємо всі події що перетинаються (транзитивно)
+  const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+  const overlaps = (a, b) => {
+    if (a.date !== b.date) return false;
+    const aS = toMin(a.startTime), aE = toMin(a.endTime || a.startTime);
+    const bS = toMin(b.startTime), bE = toMin(b.endTime || b.startTime);
+    return aS < bE && aE > bS;
+  };
+
+  const parent = {};
+  realEvents.forEach(ev => { parent[ev.id] = ev.id; });
+  function find(x) { return parent[x] === x ? x : (parent[x] = find(parent[x])); }
+  function union(x, y) { parent[find(x)] = find(y); }
+
+  for (let i = 0; i < realEvents.length; i++) {
+    for (let j = i + 1; j < realEvents.length; j++) {
+      if (overlaps(realEvents[i], realEvents[j])) union(realEvents[i].id, realEvents[j].id);
+    }
+  }
+
+  // Збираємо групи
+  const groupMap = {};
+  realEvents.forEach(ev => {
+    const root = find(ev.id);
+    if (!groupMap[root]) groupMap[root] = [];
+    groupMap[root].push(ev);
   });
 
-  Object.values(slotGroups).forEach(group => {
+  Object.values(groupMap).forEach(group => {
+    // Перша подія — головна карточка (найраніший старт)
+    group.sort((a,b) => toMin(a.startTime) - toMin(b.startTime));
     const ev    = group[0];
     const extra = group.length - 1;
-    const start = parseDateTime(ev.date, ev.startTime);
-    const end   = parseDateTime(ev.date, ev.endTime || ev.startTime);
+    // Охоплюємо весь діапазон групи
+    const minStart = ev.startTime;
+    const maxEnd   = group.reduce((max, e) => {
+      return toMin(e.endTime || e.startTime) > toMin(max) ? (e.endTime || e.startTime) : max;
+    }, ev.endTime || ev.startTime);
+
+    const start = parseDateTime(ev.date, minStart);
+    const end   = parseDateTime(ev.date, maxEnd);
     const tName = teacherName(ev.assignedPersonId);
     const title = ev.title + (tName ? ' · ' + tName : '');
     const tColor = getTeacherColor(ev.assignedPersonId);
