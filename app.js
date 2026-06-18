@@ -737,10 +737,9 @@ function initCalendar() {
       const overlay = document.createElement('div');
       overlay.className = 'block-center-label';
       overlay.innerHTML = `
-        <div class="bcl-inner">
-          <div class="bcl-name">${label.replace(/</g,'&lt;')}</div>
-          ${teacher ? `<div class="bcl-teacher">${teacher.replace(/</g,'&lt;')}</div>` : ''}
-        </div>`;
+        <div class="bcl-name">${label.replace(/</g,'&lt;')}</div>
+        ${teacher ? `<div class="bcl-teacher">${teacher.replace(/</g,'&lt;')}</div>` : ''}
+      `;
       info.el.style.position = 'relative';
       info.el.appendChild(overlay);
     },
@@ -1776,6 +1775,8 @@ window.markNotifRead    = markNotifRead;
 // ── GROUP SLOT STYLES (injected) ─────────────────────────────
 (function injectGroupStyles() {
   const css = `
+    .fc-bg-event .fc-event-title { display: none !important; }
+
     .block-center-label {
       position: absolute;
       inset: 0;
@@ -1783,30 +1784,21 @@ window.markNotifRead    = markNotifRead;
       align-items: center;
       justify-content: center;
       pointer-events: none;
-    }
-    .bcl-inner {
-      display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      padding: 8px 16px;
-      background: rgba(100,116,139,0.12);
-      border: 1px solid rgba(100,116,139,0.25);
-      border-radius: 10px;
-      backdrop-filter: blur(2px);
+      gap: 3px;
     }
     .bcl-name {
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 800;
       color: #475569;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       white-space: nowrap;
     }
     .bcl-teacher {
       font-size: 11px;
       font-weight: 500;
-      color: #64748b;
+      color: #94a3b8;
       white-space: nowrap;
     }
 
