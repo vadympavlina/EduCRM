@@ -722,19 +722,16 @@ function initCalendar() {
     },
 
     eventDidMount(info) {
-      if (!info.event.id.startsWith('block_') && !info.event.id.startsWith('busy_')) return;
-      if (info.event.display !== 'background') return;
+      if (!info.event.extendedProps.isBlock) return;
 
-      const title = info.event.title || 'Зайнято';
-      // Розбиваємо на назву і викладача (розділювач ' · ')
-      const parts = title.split(' · ');
-      const label    = parts[0];
-      const teacher  = parts.slice(1).join(' · ');
+      const title   = info.event.title || 'Зайнято';
+      const parts   = title.split(' · ');
+      const label   = parts[0];
+      const teacher = parts.slice(1).join(' · ');
 
-      // Ховаємо тільки текстові елементи FC, не чіпаємо структуру
-      info.el.querySelectorAll('.fc-event-title-container, .fc-event-title, .fc-event-main-frame').forEach(e => {
-        e.style.visibility = 'hidden';
-      });
+      // Ховаємо стандартний FC контент
+      const main = info.el.querySelector('.fc-event-main');
+      if (main) main.style.visibility = 'hidden';
 
       const overlay = document.createElement('div');
       overlay.className = 'block-center-label';
@@ -882,17 +879,19 @@ function refreshCalendar() {
     const blockTeacher = !isGlobal ? (teachers[b.teacherId]?.name || '') : '';
     const blockTitle = (b.title || 'Зайнято') + (blockTeacher ? ' · ' + blockTeacher : '');
     eventsArray.push({
-      id:         'block_' + id,
-      groupId:    'blocked_zone',
-      title:      blockTitle,
-      startTime:  b.start,
-      endTime:    b.end,
-      daysOfWeek: b.days,
+      id:              'block_' + id,
+      groupId:         'blocked_zone',
+      title:           blockTitle,
+      startTime:       b.start,
+      endTime:         b.end,
+      daysOfWeek:      b.days,
       endRecur,
-      display:    'background',
-      color:      isGlobal ? '#ef4444' : '#3b82f6',
-      classNames: isGlobal ? ['fc-block-global'] : ['fc-block-teacher'],
-      editable:   false,
+      backgroundColor: isGlobal ? 'rgba(239,68,68,0.08)' : 'rgba(59,130,246,0.08)',
+      borderColor:     isGlobal ? 'rgba(239,68,68,0.3)'  : 'rgba(59,130,246,0.3)',
+      textColor:       isGlobal ? '#ef4444' : '#3b82f6',
+      classNames:      isGlobal ? ['fc-block-global', 'fc-block-stripe'] : ['fc-block-teacher', 'fc-block-stripe'],
+      editable:        false,
+      extendedProps:   { isBlock: true, extra: 0, groupIds: [] }
     });
   });
 
@@ -908,11 +907,11 @@ function refreshCalendar() {
       title:           label,
       start:           b.date + 'T' + b.startTime,
       end:             b.date + 'T' + b.endTime,
-      backgroundColor: '#64748b',
-      borderColor:     '#475569',
-      textColor:       '#fff',
-      classNames:      ['status-busy'],
-      extendedProps:   { busyId: id, teacherId: b.teacherId || '', extra: 0, groupIds: [] }
+      backgroundColor: isGlobal ? 'rgba(239,68,68,0.08)' : 'rgba(59,130,246,0.08)',
+      borderColor:     isGlobal ? 'rgba(239,68,68,0.3)'  : 'rgba(59,130,246,0.3)',
+      textColor:       isGlobal ? '#ef4444' : '#3b82f6',
+      classNames:      isGlobal ? ['fc-block-global', 'fc-block-stripe'] : ['fc-block-teacher', 'fc-block-stripe'],
+      extendedProps:   { busyId: id, teacherId: b.teacherId || '', isBlock: true, extra: 0, groupIds: [] }
     });
   });
 
@@ -1777,7 +1776,20 @@ window.markNotifRead    = markNotifRead;
 // ── GROUP SLOT STYLES (injected) ─────────────────────────────
 (function injectGroupStyles() {
   const css = `
-    .fc-bg-event .fc-event-title { display: none !important; }
+    .fc-block-stripe {
+      background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 6px,
+        rgba(0,0,0,0.04) 6px,
+        rgba(0,0,0,0.04) 12px
+      ) !important;
+      border-style: dashed !important;
+      border-width: 1px !important;
+      border-radius: 6px !important;
+      cursor: default !important;
+    }
+    .fc-block-stripe .fc-event-resizer { display: none !important; }
 
     .block-center-label {
       position: absolute;
@@ -1785,14 +1797,13 @@ window.markNotifRead    = markNotifRead;
       display: flex;
       align-items: center;
       justify-content: center;
-      pointer-events: none;
       flex-direction: column;
       gap: 3px;
+      pointer-events: none;
     }
     .bcl-name {
       font-size: 13px;
       font-weight: 800;
-      color: #475569;
       letter-spacing: 0.06em;
       text-transform: uppercase;
       white-space: nowrap;
@@ -1800,7 +1811,7 @@ window.markNotifRead    = markNotifRead;
     .bcl-teacher {
       font-size: 11px;
       font-weight: 500;
-      color: #94a3b8;
+      opacity: 0.7;
       white-space: nowrap;
     }
 
