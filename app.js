@@ -731,8 +731,8 @@ function initCalendar() {
       const label    = parts[0];
       const teacher  = parts.slice(1).join(' · ');
 
-      // Прибираємо стандартний fc title
-      info.el.querySelectorAll('.fc-event-title, .fc-bg-event').forEach(e => e.style.display = 'none');
+      // Прибираємо весь вміст FC і малюємо свій
+      info.el.innerHTML = '';
 
       const overlay = document.createElement('div');
       overlay.className = 'block-center-label';
