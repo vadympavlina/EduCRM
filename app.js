@@ -854,10 +854,12 @@ function refreshCalendar() {
       endRecur = formatDate(d);
     }
 
+    const blockTeacher = !isGlobal ? (teachers[b.teacherId]?.name || '') : '';
+    const blockTitle = (b.title || 'Зайнято') + (blockTeacher ? ' · ' + blockTeacher : '');
     eventsArray.push({
       id:         'block_' + id,
       groupId:    'blocked_zone',
-      title:      b.title || (isGlobal ? 'Зайнято' : 'Зайнято'),
+      title:      blockTitle,
       startTime:  b.start,
       endTime:    b.end,
       daysOfWeek: b.days,
