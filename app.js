@@ -703,8 +703,12 @@ function initCalendar() {
         showToast('Повторюване блокування. Керуй у розділі "Графік роботи"', 'info');
         return;
       }
-      // Якщо клік по бейджу +N — відкриваємо груповий попап
-      if (info.jsEvent.target.closest('.fc-event-extra-badge')) return;
+      // Група з кількох подій — завжди показуємо попап
+      const groupIds = info.event.extendedProps.groupIds || [info.event.id];
+      if (groupIds.length > 1) {
+        showGroupPopup(groupIds, info.el);
+        return;
+      }
       openEventModal(info.event.id);
     },
 
@@ -1013,13 +1017,15 @@ function showGroupPopup(ids, anchorEl) {
 
   document.body.appendChild(popup);
 
-  // Позиціонуємо відносно бейджа
+  // Позиціонуємо відносно anchor (бейдж або вся карточка події)
   const rect = anchorEl.getBoundingClientRect();
   const pw = 240;
   let left = rect.left;
+  let top  = rect.bottom + 6;
   if (left + pw > window.innerWidth - 16) left = window.innerWidth - pw - 16;
+  if (top + 200 > window.innerHeight - 16) top = rect.top - 6;
   popup.style.left = left + 'px';
-  popup.style.top  = (rect.bottom + 6) + 'px';
+  popup.style.top  = top + 'px';
 }
 
 function closeSlotChoice() {
