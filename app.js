@@ -990,7 +990,7 @@ function openCreateModal(startStr, endStr) {
   populateTeacherSelect('');
   document.getElementById('event-status-section').innerHTML = '';
   const cs = document.getElementById('event-client-section'); if (cs) cs.innerHTML = '';
-  renderEventTags(null);
+  const tg = document.getElementById('event-tags-group'); if (tg) tg.style.display = 'none';
   document.getElementById('event-actions').innerHTML = '';
   document.getElementById('event-modal').classList.add('open');
 }
@@ -1234,6 +1234,14 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
     showToast("Заповніть обов'язкові поля", 'error'); return;
   }
 
+  if (!assignedPersonId) {
+    const teacherEl = document.getElementById('event-teacher');
+    teacherEl.style.borderColor = 'var(--red)';
+    teacherEl.focus();
+    setTimeout(() => teacherEl.style.borderColor = '', 2000);
+    showToast('Оберіть вчителя', 'error'); return;
+  }
+
   if (!phone) {
     const phoneEl = document.getElementById('event-phone');
     phoneEl.style.borderColor = 'var(--red)';
@@ -1250,6 +1258,23 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
   }
   if (assignedPersonId && isTimeBlocked(checkStart, checkEnd, assignedPersonId, false)) {
     showToast(`Цей час заблоковано для вчителя ${teacherName(assignedPersonId)}`, 'error'); return;
+  }
+
+  // Перевірка подвійного бронювання викладача (попередження, не блокування)
+  if (assignedPersonId) {
+    const overlap = Object.values(events).some(ev => {
+      if (ev.id === id) return false; // пропускаємо себе при редагуванні
+      if (ev.assignedPersonId !== assignedPersonId) return false;
+      if (ev.date !== date) return false;
+      if (ev.status === 'cancelled') return false;
+      if (!ev.startTime || !ev.endTime) return false;
+      const evStart = parseDateTime(ev.date, ev.startTime);
+      const evEnd   = parseDateTime(ev.date, ev.endTime);
+      return checkStart < evEnd && checkEnd > evStart;
+    });
+    if (overlap) {
+      showToast(`⚠️ У ${teacherName(assignedPersonId)} вже є подія в цей час`, 'warning');
+    }
   }
 
   const data = { title, description, phone, date, startTime, endTime, assignedPersonId };
