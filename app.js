@@ -676,6 +676,18 @@ function initCalendar() {
       calendarInstance.unselect();
     },
 
+    eventContent(info) {
+      const extra = info.event.extendedProps.extra || 0;
+      const el = document.createElement('div');
+      el.className = 'fc-event-inner';
+      el.innerHTML = `
+        <div class="fc-event-time-label">${info.timeText}</div>
+        <div class="fc-event-title-label">${info.event.title}</div>
+        ${extra > 0 ? `<div class="fc-event-extra-badge" data-ids='${JSON.stringify(info.event.extendedProps.groupIds)}' data-start="${info.event.startStr}">+${extra}</div>` : ''}
+      `;
+      return { domNodes: [el] };
+    },
+
     eventClick(info) {
       if (info.event.display === 'background') return;
       if (info.event.id.startsWith('busy_')) {
@@ -691,6 +703,8 @@ function initCalendar() {
         showToast('Повторюване блокування. Керуй у розділі "Графік роботи"', 'info');
         return;
       }
+      // Якщо клік по бейджу +N — відкриваємо груповий попап
+      if (info.jsEvent.target.closest('.fc-event-extra-badge')) return;
       openEventModal(info.event.id);
     },
 
@@ -750,20 +764,31 @@ function refreshCalendar() {
   
   const eventsArray = [];
 
-  // 1. Формуємо масив подій
+  // 1. Групуємо реальні події по "date|startTime|endTime"
+  const slotGroups = {};
   Object.values(events).forEach(ev => {
-    if (!ev.date || !ev.startTime) return; // пропускаємо неповні події
+    if (!ev.date || !ev.startTime) return;
+    const key = `${ev.date}|${ev.startTime}|${ev.endTime || ev.startTime}`;
+    if (!slotGroups[key]) slotGroups[key] = [];
+    slotGroups[key].push(ev);
+  });
+
+  Object.values(slotGroups).forEach(group => {
+    const ev    = group[0];
+    const extra = group.length - 1;
     const start = parseDateTime(ev.date, ev.startTime);
     const end   = parseDateTime(ev.date, ev.endTime || ev.startTime);
-    const title = ev.title + (teacherName(ev.assignedPersonId) ? ' · ' + teacherName(ev.assignedPersonId) : '');
-
+    const tName = teacherName(ev.assignedPersonId);
+    const title = ev.title + (tName ? ' · ' + tName : '');
     const tColor = getTeacherColor(ev.assignedPersonId);
+
     const evObj = {
-      id:         ev.id,
+      id:            ev.id,
       title,
       start,
       end,
-      classNames: [`status-${ev.status}`]
+      classNames:    [`status-${ev.status}`],
+      extendedProps: { groupIds: group.map(e => e.id), extra }
     };
     if (tColor && ev.status !== 'cancelled') {
       evObj.backgroundColor = tColor.bg;
@@ -772,6 +797,7 @@ function refreshCalendar() {
     }
     eventsArray.push(evObj);
   });
+
 
   // 2. Формуємо масив блокувань (повторювані з розкладу)
   Object.entries(blockedTimes).forEach(([id, b]) => {
@@ -905,6 +931,65 @@ function showSlotChoice(startStr, endStr) {
     openBlockModal(startStr, endStr);
   };
   popup.querySelector('#scp-close').onclick = () => closeSlotChoice();
+}
+
+// ── GROUP SLOT POPUP ─────────────────────────────────────────
+document.addEventListener('click', e => {
+  const badge = e.target.closest('.fc-event-extra-badge');
+  if (badge) {
+    e.stopPropagation();
+    const ids = JSON.parse(badge.dataset.ids || '[]');
+    showGroupPopup(ids, badge);
+    return;
+  }
+  if (!e.target.closest('#group-slot-popup')) {
+    document.getElementById('group-slot-popup')?.remove();
+  }
+});
+
+function showGroupPopup(ids, anchorEl) {
+  document.getElementById('group-slot-popup')?.remove();
+
+  const popup = document.createElement('div');
+  popup.id = 'group-slot-popup';
+  popup.style.cssText = [
+    'position:fixed', 'z-index:700',
+    'background:var(--bg2)', 'border:1px solid var(--border)',
+    'border-radius:12px', 'box-shadow:0 8px 32px rgba(0,0,0,0.2)',
+    'padding:8px', 'min-width:220px', 'max-width:300px',
+    'font-family:var(--font-main)'
+  ].join(';');
+
+  const items = ids.map(id => events[id]).filter(Boolean);
+  const header = items[0];
+  const timeLabel = header ? `${header.startTime} – ${header.endTime}` : '';
+
+  popup.innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;
+                letter-spacing:0.5px;padding:4px 8px 8px">${timeLabel} · ${items.length} подій</div>
+    ${items.map(ev => {
+      const tName = teacherName(ev.assignedPersonId);
+      const tColor = getTeacherColor(ev.assignedPersonId);
+      const dot = tColor ? `background:${tColor.bg}` : 'background:var(--text3)';
+      return `<div class="gsp-item" onclick="openEventModal('${ev.id}');document.getElementById('group-slot-popup')?.remove()">
+        <div class="gsp-dot" style="${dot}"></div>
+        <div class="gsp-body">
+          <div class="gsp-title">${(ev.title||'').replace(/</g,'&lt;')}</div>
+          ${tName ? `<div class="gsp-sub">${tName.replace(/</g,'&lt;')}</div>` : ''}
+        </div>
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" style="flex-shrink:0;opacity:0.4"><path d="M9 18l6-6-6-6"/></svg>
+      </div>`;
+    }).join('')}`;
+
+  document.body.appendChild(popup);
+
+  // Позиціонуємо відносно бейджа
+  const rect = anchorEl.getBoundingClientRect();
+  const pw = 240;
+  let left = rect.left;
+  if (left + pw > window.innerWidth - 16) left = window.innerWidth - pw - 16;
+  popup.style.left = left + 'px';
+  popup.style.top  = (rect.bottom + 6) + 'px';
 }
 
 function closeSlotChoice() {
@@ -1622,3 +1707,81 @@ window.closeSlotChoice  = closeSlotChoice;
 window.toggleNotifPanel = toggleNotifPanel;
 window.closeNotifPanel  = closeNotifPanel;
 window.markNotifRead    = markNotifRead;
+
+// ── GROUP SLOT STYLES (injected) ─────────────────────────────
+(function injectGroupStyles() {
+  const css = `
+    .fc-event-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      padding: 2px 4px;
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+    .fc-event-time-label {
+      font-size: 10px;
+      font-weight: 700;
+      opacity: 0.85;
+      white-space: nowrap;
+    }
+    .fc-event-title-label {
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .fc-event-extra-badge {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: rgba(0,0,0,0.35);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      border-radius: 8px;
+      padding: 1px 5px;
+      cursor: pointer;
+      line-height: 1.5;
+      z-index: 2;
+    }
+    .fc-event-extra-badge:hover {
+      background: rgba(0,0,0,0.55);
+    }
+    .gsp-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .gsp-item:hover { background: var(--bg3); }
+    .gsp-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .gsp-body { flex: 1; min-width: 0; }
+    .gsp-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text1);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .gsp-sub {
+      font-size: 11px;
+      color: var(--text3);
+      margin-top: 1px;
+    }
+  `;
+  const style = document.createElement('style');
+  style.textContent = css;
+  document.head.appendChild(style);
+})();
