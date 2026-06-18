@@ -677,13 +677,21 @@ function initCalendar() {
     },
 
     eventContent(info) {
-      const extra = info.event.extendedProps.extra || 0;
+      const extra   = info.event.extendedProps.extra || 0;
+      const isBusy  = info.event.id.startsWith('busy_') || info.event.id.startsWith('block_');
+      const timeText = info.timeText || (() => {
+        const s = info.event.start;
+        const e = info.event.end;
+        if (!s) return '';
+        const fmt = d => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        return e ? `${fmt(s)} - ${fmt(e)}` : fmt(s);
+      })();
       const el = document.createElement('div');
       el.className = 'fc-event-inner';
       el.innerHTML = `
-        <div class="fc-event-time-label">${info.timeText}</div>
+        <div class="fc-event-time-label">${timeText}</div>
         <div class="fc-event-title-label">${info.event.title}</div>
-        ${extra > 0 ? `<div class="fc-event-extra-badge" data-ids='${JSON.stringify(info.event.extendedProps.groupIds)}' data-start="${info.event.startStr}">+${extra}</div>` : ''}
+        ${(!isBusy && extra > 0) ? `<div class="fc-event-extra-badge" data-ids='${JSON.stringify(info.event.extendedProps.groupIds)}'>+${extra}</div>` : ''}
       `;
       return { domNodes: [el] };
     },
@@ -864,19 +872,20 @@ function refreshCalendar() {
   // 3. busySlots — одноразові зайняті слоти з календаря
   Object.entries(busySlots).forEach(([id, b]) => {
     const isGlobal = !b.teacherId;
-    const tName = b.teacherId ? (teachers[b.teacherId]?.name || '') : '';
+    const tName = b.teacherId ? (teachers[b.teacherId]?.name || b.teacherId) : '';
+    const label = isGlobal
+      ? (b.title || 'Зайнято')
+      : `${b.title || 'Зайнято'}${tName ? ' · ' + tName : ''}`;
     eventsArray.push({
       id:              'busy_' + id,
-      title:           isGlobal
-        ? (b.title || 'Зайнято')
-        : `${b.title || 'Зайнято'}${tName ? ' · ' + tName : ''}`,
+      title:           label,
       start:           b.date + 'T' + b.startTime,
       end:             b.date + 'T' + b.endTime,
       backgroundColor: '#64748b',
       borderColor:     '#475569',
       textColor:       '#fff',
       classNames:      ['status-busy'],
-      extendedProps:   { busyId: id, teacherId: b.teacherId || '' }
+      extendedProps:   { busyId: id, teacherId: b.teacherId || '', extra: 0, groupIds: [] }
     });
   });
 
