@@ -729,9 +729,13 @@ function initCalendar() {
       const label   = parts[0];
       const teacher = parts.slice(1).join(' · ');
 
-      // Ховаємо стандартний FC контент
+      // Ховаємо стандартний FC контент, не чіпаючи position самого info.el
       const main = info.el.querySelector('.fc-event-main');
-      if (main) main.style.visibility = 'hidden';
+      if (main) {
+        main.style.visibility = 'hidden';
+        main.style.position = 'relative';
+        main.style.height = '100%';
+      }
 
       const overlay = document.createElement('div');
       overlay.className = 'block-center-label';
@@ -739,7 +743,7 @@ function initCalendar() {
         <div class="bcl-name">${label.replace(/</g,'&lt;')}</div>
         ${teacher ? `<div class="bcl-teacher">${teacher.replace(/</g,'&lt;')}</div>` : ''}
       `;
-      info.el.style.position = 'relative';
+      // Додаємо overlay в info.el, але без зміни його position
       info.el.appendChild(overlay);
     },
 
@@ -880,7 +884,6 @@ function refreshCalendar() {
     const blockTitle = (b.title || 'Зайнято') + (blockTeacher ? ' · ' + blockTeacher : '');
     eventsArray.push({
       id:              'block_' + id,
-      groupId:         'blocked_zone',
       title:           blockTitle,
       startTime:       b.start,
       endTime:         b.end,
