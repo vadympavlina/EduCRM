@@ -3,7 +3,7 @@
 //  Групові події — окремий тип події з кількома учасниками.
 //  Зберігається у вузлі groupEvents/{id} в Firebase.
 //  Залежить від app.js (teachers, pricing, currentUser, escapeHTML,
-//  showToast, showConfirm, closeModal, openModal, parseDateTime,
+//  showToast, showConfirm, closeModal, parseDateTime,
 //  formatDate, formatTime, teacherName, TELEGRAM, SITE_URL).
 // ============================================================
 
@@ -67,7 +67,7 @@ const GroupEvents = (() => {
     document.getElementById('ge-add-panel').style.display = 'none';
 
     _renderParticipants();
-    openModal('group-modal');
+    document.getElementById('group-modal').classList.add('open');
   }
 
   function openEdit(id) {
@@ -91,7 +91,7 @@ const GroupEvents = (() => {
     _renderStatusSection(ge);
     _renderActions(ge);
     _renderParticipants();
-    openModal('group-modal');
+    document.getElementById('group-modal').classList.add('open');
   }
 
   function close() {
