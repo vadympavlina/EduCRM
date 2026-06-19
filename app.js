@@ -723,6 +723,7 @@ function initCalendar() {
 
     eventDidMount(info) {
       if (!info.event.extendedProps.isBlock) return;
+      if (!info.event.id.startsWith('block_')) return; // busySlots лишаються зі стандартним рендером
 
       const title   = info.event.title || 'Зайнято';
       const parts   = title.split(' · ');
@@ -910,10 +911,10 @@ function refreshCalendar() {
       title:           label,
       start:           b.date + 'T' + b.startTime,
       end:             b.date + 'T' + b.endTime,
-      backgroundColor: isGlobal ? 'rgba(239,68,68,0.08)' : 'rgba(59,130,246,0.08)',
-      borderColor:     isGlobal ? 'rgba(239,68,68,0.3)'  : 'rgba(59,130,246,0.3)',
-      textColor:       isGlobal ? '#ef4444' : '#3b82f6',
-      classNames:      isGlobal ? ['fc-block-global', 'fc-block-stripe'] : ['fc-block-teacher', 'fc-block-stripe'],
+      backgroundColor: '#64748b',
+      borderColor:     '#475569',
+      textColor:       '#fff',
+      classNames:      ['status-busy'],
       extendedProps:   { busyId: id, teacherId: b.teacherId || '', isBlock: true, extra: 0, groupIds: [] }
     });
   });
