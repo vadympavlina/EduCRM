@@ -1780,19 +1780,40 @@ window.markNotifRead    = markNotifRead;
 (function injectGroupStyles() {
   const css = `
     .fc-block-stripe {
-      background-image: repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 6px,
-        rgba(0,0,0,0.04) 6px,
-        rgba(0,0,0,0.04) 12px
-      ) !important;
       border-style: dashed !important;
-      border-width: 1px !important;
+      border-width: 1.5px !important;
       border-radius: 6px !important;
       cursor: default !important;
     }
     .fc-block-stripe .fc-event-resizer { display: none !important; }
+
+    .fc-block-global {
+      background-color: rgba(239,68,68,0.07) !important;
+      border-color: rgba(239,68,68,0.45) !important;
+      background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 6px,
+        rgba(239,68,68,0.07) 6px,
+        rgba(239,68,68,0.07) 12px
+      ) !important;
+    }
+    .fc-block-global .bcl-name  { color: #ef4444; }
+    .fc-block-global .bcl-teacher { color: #f87171; }
+
+    .fc-block-teacher {
+      background-color: rgba(59,130,246,0.07) !important;
+      border-color: rgba(59,130,246,0.45) !important;
+      background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 6px,
+        rgba(59,130,246,0.07) 6px,
+        rgba(59,130,246,0.07) 12px
+      ) !important;
+    }
+    .fc-block-teacher .bcl-name  { color: #3b82f6; }
+    .fc-block-teacher .bcl-teacher { color: #60a5fa; }
 
     .block-center-label {
       position: absolute;
