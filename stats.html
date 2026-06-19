@@ -440,9 +440,10 @@
   Sidebar.initNow('stats');
 
   // ── Стан ──────────────────────────────────────────────────
-  let events   = {};
-  let teachers = {};
-  let pricing  = { default: { baseReward: 50, contractBonus: 100 }, overrides: {} };
+  let events      = {};
+  let groupEvents = {};
+  let teachers    = {};
+  let pricing     = { default: { baseReward: 50, contractBonus: 100 }, overrides: {} };
 
   // ── auth.js викличе цю функцію після логіну ───────────────
   function onAuthReady() {
@@ -450,6 +451,7 @@
     listenTeachers();
     listenPricing();
     listenEvents();
+    listenGroupEvents();
     initFilters();
   }
 
@@ -482,6 +484,18 @@
       if (snap.exists()) {
         snap.forEach(child => {
           events[child.key] = { id: child.key, ...child.val() };
+        });
+      }
+      renderStats();
+    });
+  }
+
+  function listenGroupEvents() {
+    db.ref('groupEvents').on('value', snap => {
+      groupEvents = {};
+      if (snap.exists()) {
+        snap.forEach(child => {
+          groupEvents[child.key] = { id: child.key, ...child.val() };
         });
       }
       renderStats();
@@ -556,6 +570,40 @@
       byTeacher[tid].earnings += hasContract
         ? p.baseReward + p.contractBonus
         : p.baseReward;
+    });
+
+    // ── Групові події: 1 baseReward за подію + contractBonus за кожен підписаний договір ──
+    const completedGroup = Object.values(groupEvents).filter(ge => {
+      if (ge.status !== 'completed') return false;
+      if (selectedMonth && (!ge.date || !ge.date.startsWith(selectedMonth))) return false;
+      if (selectedTeacher && ge.assignedPersonId !== selectedTeacher) return false;
+      return true;
+    });
+
+    completedGroup.forEach(ge => {
+      const tid = ge.assignedPersonId || '__none__';
+      if (!byTeacher[tid]) byTeacher[tid] = { count: 0, contracts: 0, earnings: 0 };
+      const p = getPricing(ge.assignedPersonId);
+
+      byTeacher[tid].count++;
+      byTeacher[tid].earnings += p.baseReward;
+
+      const participants = Object.values(ge.participants || {});
+      participants.forEach(part => {
+        if (part.contractStatus !== 'signed') return;
+        // Договір рахується в місяць підписання (contractSignedAt), як і для звичайних подій
+        if (selectedMonth) {
+          if (part.contractSignedAt) {
+            const d = new Date(part.contractSignedAt);
+            const m = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+            if (m !== selectedMonth) return;
+          } else if (!ge.date || !ge.date.startsWith(selectedMonth)) {
+            return;
+          }
+        }
+        byTeacher[tid].contracts++;
+        byTeacher[tid].earnings += p.contractBonus;
+      });
     });
 
     // ── Funnel — всі події за вибраний період/вчителя ──────────

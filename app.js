@@ -102,6 +102,7 @@ async function startApp() {
   listenBusySlots();
   listenReviews();
   listenTags();
+  if (typeof GroupEvents !== 'undefined') GroupEvents.listen();
 
   setTimeout(initCalendar, 200);
 }
@@ -679,6 +680,7 @@ function initCalendar() {
     eventContent(info) {
       const extra   = info.event.extendedProps.extra || 0;
       const isBusy  = info.event.id.startsWith('busy_') || info.event.id.startsWith('block_');
+      const isGroup = info.event.extendedProps.isGroupEvent;
       const timeText = info.timeText || (() => {
         const s = info.event.start;
         const e = info.event.end;
@@ -691,13 +693,24 @@ function initCalendar() {
       el.innerHTML = `
         <div class="fc-event-time-label">${timeText}</div>
         <div class="fc-event-title-label">${info.event.title}</div>
-        ${(!isBusy && extra > 0) ? `<div class="fc-event-extra-badge" data-ids='${JSON.stringify(info.event.extendedProps.groupIds)}'>+${extra}</div>` : ''}
+        ${isGroup ? `<div class="fc-group-badge" title="Учасників">
+            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            ${info.event.extendedProps.attending}/${info.event.extendedProps.count}
+          </div>` : ''}
+        ${(!isBusy && !isGroup && extra > 0) ? `<div class="fc-event-extra-badge" data-ids='${JSON.stringify(info.event.extendedProps.groupIds)}'>+${extra}</div>` : ''}
       `;
       return { domNodes: [el] };
     },
 
     eventClick(info) {
       if (info.event.display === 'background') return;
+      if (info.event.extendedProps.isGroupEvent) {
+        GroupEvents.openEdit(info.event.extendedProps.groupEventId);
+        return;
+      }
       if (info.event.id.startsWith('busy_')) {
         const busyId = info.event.extendedProps.busyId;
         const title  = info.event.title;
@@ -918,6 +931,31 @@ function refreshCalendar() {
       extendedProps:   { busyId: id, teacherId: b.teacherId || '', isBlock: true, extra: 0, groupIds: [] }
     });
   });
+
+  // 4. Групові події
+  if (typeof GroupEvents !== 'undefined') {
+    Object.values(GroupEvents.getAll()).forEach(ge => {
+      if (!ge.date || !ge.startTime) return;
+      const start = parseDateTime(ge.date, ge.startTime);
+      const end   = parseDateTime(ge.date, ge.endTime || ge.startTime);
+      const tName = teacherName(ge.assignedPersonId);
+      const count = Object.keys(ge.participants || {}).length;
+      const attending = GroupEvents.countAttending(ge);
+      const title = `${ge.title} · ${tName || '—'}`;
+
+      eventsArray.push({
+        id:              'group_' + ge.id,
+        title,
+        start,
+        end,
+        classNames:      [`status-${ge.status || 'pending'}`, 'fc-group-event'],
+        backgroundColor: '#8b5cf6',
+        borderColor:     '#7c3aed',
+        textColor:       '#fff',
+        extendedProps:   { isGroupEvent: true, groupEventId: ge.id, count, attending, extra: 0, groupIds: [] }
+      });
+    });
+  }
 
   calendarInstance.removeAllEventSources();
   calendarInstance.addEventSource(eventsArray);
@@ -1878,6 +1916,31 @@ window.markNotifRead    = markNotifRead;
     }
     .fc-event-extra-badge:hover {
       background: rgba(0,0,0,0.55);
+    }
+    .fc-group-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: rgba(0,0,0,0.28);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      border-radius: 8px;
+      padding: 2px 6px;
+      line-height: 1.4;
+      z-index: 2;
+    }
+    .fc-group-event {
+      background-image: repeating-linear-gradient(
+        135deg,
+        transparent,
+        transparent 8px,
+        rgba(255,255,255,0.06) 8px,
+        rgba(255,255,255,0.06) 16px
+      );
     }
     .gsp-item {
       display: flex;
