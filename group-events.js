@@ -167,16 +167,18 @@ const GroupEvents = (() => {
       already: { label: 'Вже має',       cls: 'cs-already' }
     };
     const cs = contractMap[p.contractStatus] || contractMap.none;
-    const attending = p.attending !== false;
+    const confirmState = p.confirmStatus || 'pending'; // pending | coming | not_coming
 
     return `
       <div class="ge-pcard" data-phone="${escapeHTML(phone)}">
         <div class="ge-pcard-top">
-          <label class="ge-attend-toggle" title="Прийде на захід">
-            <input type="checkbox" ${attending ? 'checked' : ''}
-              onchange="GroupEvents.setAttending('${escapeHTML(phone)}', this.checked)">
-          </label>
-          <div class="ge-pcard-name">${escapeHTML(p.name || '—')}</div>
+          <div class="ge-pcard-name-block">
+            <div class="ge-pcard-name">${escapeHTML(p.name || '—')}</div>
+            <div class="ge-pcard-meta">
+              <span>${escapeHTML(p.phone || '—')}</span>
+              ${p.age ? `<span>· ${escapeHTML(String(p.age))} р.</span>` : ''}
+            </div>
+          </div>
           <button class="ge-pcard-remove" title="Прибрати з події"
             onclick="GroupEvents.removeParticipant('${escapeHTML(phone)}')">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
@@ -184,11 +186,23 @@ const GroupEvents = (() => {
             </svg>
           </button>
         </div>
-        <div class="ge-pcard-meta">
-          <span>${escapeHTML(p.phone || '—')}</span>
-          ${p.age ? `<span>· ${escapeHTML(String(p.age))} р.</span>` : ''}
-        </div>
-        <div class="ge-pcard-contract">
+
+        <div class="ge-pcard-row">
+          <div class="ge-confirm-group" role="group">
+            <button class="ge-confirm-btn cb-coming ${confirmState === 'coming' ? 'active' : ''}"
+              title="Прийде" onclick="GroupEvents.setConfirmStatus('${escapeHTML(phone)}', 'coming')">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button class="ge-confirm-btn cb-pending ${confirmState === 'pending' ? 'active' : ''}"
+              title="Очікується" onclick="GroupEvents.setConfirmStatus('${escapeHTML(phone)}', 'pending')">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+            </button>
+            <button class="ge-confirm-btn cb-not-coming ${confirmState === 'not_coming' ? 'active' : ''}"
+              title="Не прийде" onclick="GroupEvents.setConfirmStatus('${escapeHTML(phone)}', 'not_coming')">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
           <button class="ge-contract-chip ${cs.cls}" onclick="GroupEvents.cycleContract('${escapeHTML(phone)}')">
             ${cs.label}
           </button>
@@ -196,9 +210,11 @@ const GroupEvents = (() => {
       </div>`;
   }
 
-  function setAttending(phone, val) {
+  function setConfirmStatus(phone, status) {
     if (!draftParticipants[phone]) return;
-    draftParticipants[phone].attending = val;
+    draftParticipants[phone].confirmStatus = status;
+    // зберігаємо зворотну сумісність зі старим полем attending
+    draftParticipants[phone].attending = status !== 'not_coming';
     _renderParticipants();
   }
 
@@ -277,6 +293,7 @@ const GroupEvents = (() => {
       name: c.name || '',
       age:  c.age || '',
       contractStatus: c.contractStatus || 'none',
+      confirmStatus: 'pending',
       attending: true
     };
     document.getElementById('ge-add-panel').style.display = 'none';
@@ -310,7 +327,7 @@ const GroupEvents = (() => {
 
     draftParticipants[phone] = {
       phone: phoneRaw, name, age: age || '',
-      contractStatus: 'none', attending: true
+      contractStatus: 'none', confirmStatus: 'pending', attending: true
     };
 
     document.getElementById('ge-add-panel').style.display = 'none';
@@ -362,6 +379,7 @@ const GroupEvents = (() => {
     try {
       let id = editingId;
       const prevTelegramId = editingId ? groupEvents[editingId]?.telegramMessageId : null;
+      const oldParticipants = editingId ? Object.values(groupEvents[editingId]?.participants || {}) : [];
 
       if (id) {
         await db.ref('groupEvents/' + id).update(payload);
@@ -372,8 +390,20 @@ const GroupEvents = (() => {
         id = ref.key;
       }
 
-      // Синхронізуємо картки клієнтів (ім'я/вік/договір)
-      _syncClientCards(draftParticipants);
+      // Прибираємо дзеркальні events для учасників, яких видалили зі списку
+      const removedUpdates = {};
+      oldParticipants.forEach(op => {
+        const phone = normalizePhone(op.phone);
+        if (phone && !draftParticipants[phone]) {
+          removedUpdates['events/' + _mirrorEventId(id, phone)] = null;
+        }
+      });
+      if (Object.keys(removedUpdates).length > 0) {
+        await db.ref().update(removedUpdates).catch(() => {});
+      }
+
+      // Дзеркалимо кожного учасника в events/, щоб client.html і "Договір" бачили цю подію
+      await _syncParticipantEvents(id, { id, ...payload });
 
       await _sendOrUpdateTelegram(id, { id, ...payload, telegramMessageId: prevTelegramId });
 
@@ -385,17 +415,70 @@ const GroupEvents = (() => {
     }
   }
 
-  function _syncClientCards(participants) {
-    Object.values(participants).forEach(p => {
+  // Детермінований id дзеркального запису в events для пари (groupEventId, phone)
+  function _mirrorEventId(groupEventId, phone) {
+    return 'ge_' + groupEventId + '_' + normalizePhone(phone);
+  }
+
+  // Мапа статусу групової події -> статус для events (щоб client.html малював правильні кнопки)
+  function _mapGroupStatusToEventStatus(geStatus, confirmStatus) {
+    if (geStatus === 'completed') return 'completed';
+    if (geStatus === 'cancelled') return 'cancelled';
+    // pending групової події: confirmStatus визначає чи це pending/confirmed на рівні client.html
+    if (confirmStatus === 'coming') return 'confirmed';
+    if (confirmStatus === 'not_coming') return 'cancelled';
+    return 'pending';
+  }
+
+  async function _syncParticipantEvents(groupEventId, ge) {
+    const participants = Object.values(ge.participants || {});
+    const updates = {};
+
+    participants.forEach(p => {
       const phone = normalizePhone(p.phone);
       if (!phone) return;
-      const update = { name: p.name, age: p.age || null };
-      if (p.contractStatus === 'signed' || p.contractStatus === 'already') {
-        update.contractStatus = p.contractStatus;
-        if (p.contractSignedAt) update.contractSignedAt = p.contractSignedAt;
+      const mid = _mirrorEventId(groupEventId, phone);
+      const eventStatus = _mapGroupStatusToEventStatus(ge.status, p.confirmStatus);
+
+      const mirror = {
+        title: ge.title,
+        date: ge.date,
+        startTime: ge.startTime,
+        endTime: ge.endTime,
+        assignedPersonId: ge.assignedPersonId,
+        phone: p.phone,
+        clientName: p.name,
+        status: eventStatus,
+        isGroupMirror: true,
+        groupEventId,
+        createdBy: ge.createdBy || currentUser,
+        updatedAt: Date.now()
+      };
+
+      if (ge.status === 'completed') {
+        mirror.completedAt = mirror.completedAt || new Date().toISOString();
+        mirror.completedBy = currentUser;
+        // contractSigned — булевий, як очікує client.html / stats.html
+        mirror.contractSigned = p.contractStatus === 'signed';
+        if (p.contractStatus === 'signed') {
+          mirror.contractSignedAt = p.contractSignedAt || Date.now();
+        } else {
+          mirror.contractSignedAt = null;
+        }
+        // "вже має" — не рахується в бонус, просто позначка на картці клієнта
+        mirror.contractAlready = p.contractStatus === 'already';
       }
-      db.ref('clients/' + phone).update(update).catch(() => {});
+
+      updates['events/' + mid] = mirror;
+
+      // Картка клієнта — ім'я/вік завжди оновлюємо
+      const clientUpdate = { name: p.name, age: p.age || null };
+      db.ref('clients/' + phone).update(clientUpdate).catch(() => {});
     });
+
+    if (Object.keys(updates).length > 0) {
+      await db.ref().update(updates);
+    }
   }
 
   function setStatus(status) {
@@ -403,7 +486,8 @@ const GroupEvents = (() => {
     db.ref('groupEvents/' + editingId + '/status').set(status)
       .then(async () => {
         showToast(status === 'completed' ? 'Подію проведено' : status === 'cancelled' ? 'Подію скасовано' : 'Статус скинуто', 'success');
-        const ge = { ...groupEvents[editingId], status };
+        const ge = { id: editingId, ...groupEvents[editingId], status };
+        await _syncParticipantEvents(editingId, ge);
         await _sendOrUpdateTelegram(editingId, ge);
         openEdit(editingId);
       });
@@ -416,6 +500,19 @@ const GroupEvents = (() => {
       if (ge?.telegramMessageId) {
         _deleteTelegramMessage(ge.telegramMessageId).catch(() => {});
       }
+
+      // Прибираємо дзеркальні events-записи учасників
+      const participants = Object.values(ge?.participants || {});
+      const updates = {};
+      participants.forEach(p => {
+        const phone = normalizePhone(p.phone);
+        if (!phone) return;
+        updates['events/' + _mirrorEventId(editingId, phone)] = null;
+      });
+      if (Object.keys(updates).length > 0) {
+        await db.ref().update(updates).catch(() => {});
+      }
+
       await db.ref('groupEvents/' + editingId).remove();
       showToast('Подію видалено', 'info');
       close();
@@ -438,14 +535,16 @@ const GroupEvents = (() => {
     const statusLine = statusMap[ge.status] || statusMap.pending;
     const tName = (typeof teacherName === 'function') ? teacherName(ge.assignedPersonId) : '';
     const participants = Object.values(ge.participants || {});
-    const attending = participants.filter(p => p.attending !== false);
+    const attending = participants.filter(p => p.confirmStatus === 'coming' || (p.confirmStatus === undefined && p.attending !== false));
 
     const dateLabel = ge.date ? ge.date.split('-').reverse().join('.') : '';
 
     let peopleList = '';
     if (participants.length > 0) {
       peopleList = participants.map((p, i) => {
-        const mark = p.attending === false ? '⚪️' : '🔹';
+        const mark = p.confirmStatus === 'coming' ? '✅'
+          : p.confirmStatus === 'not_coming' ? '❌'
+          : '🕐';
         const contractMark = p.contractStatus === 'signed' ? ' 📄✅'
           : p.contractStatus === 'already' ? ' 📄'
           : '';
@@ -504,7 +603,7 @@ const GroupEvents = (() => {
   return {
     listen, getAll, openCreate, openEdit, close, save,
     setStatus, remove,
-    setAttending, cycleContract, removeParticipant,
+    setConfirmStatus, cycleContract, removeParticipant,
     openAddParticipant, addExistingClient, addNewClient,
     countAttending, normalizePhone
   };
