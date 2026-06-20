@@ -547,7 +547,7 @@
     const contractItems = contractsArr.map(c => ({
       type: 'contract', id: c.id, title: c.title, teacherId: c.teacherId,
       signedBy: c.signedBy, eventId: c.eventId, eventTitle: c.eventTitle,
-      clientName: c.clientName, createdAt: c.signedAt || 0
+      clientName: c.clientName, alreadyHad: c.alreadyHad, createdAt: c.signedAt || 0
     }));
 
     // Кеш для швидкої перевірки "чи вже є договір на цю подію" в картках подій
@@ -662,23 +662,24 @@
           </div></div>`;
       }
       if (item.type === 'contract') {
-        const tName = teachersMap[item.teacherId] || 'Невідомий вчитель';
+        const tName = item.alreadyHad ? '' : (teachersMap[item.teacherId] || 'Невідомий вчитель');
         return `<div class="tl-card tl-card-contract">
           <div class="tl-card-head">
             <span class="tl-pill pill-contract">
               <svg fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
               Договір
             </span>
+            ${item.alreadyHad ? `<span class="tl-pill" style="background:var(--bg2);color:var(--text3)">Вже мав</span>` : ''}
             <div class="tl-author"><div class="tl-dot dot-green">${ini(item.signedBy||'М')}</div>${escH(item.signedBy||'Менеджер')}</div>
             <div class="tl-sp"></div><span class="tl-time">${time}</span>
           </div>
           <div class="tl-card-body">
             <div class="tl-card-title">${escH(item.title||'Договір')}</div>
             ${item.clientName ? `<div style="font-size:12px;font-weight:700;color:var(--accent);margin-top:4px">${escH(item.clientName)}</div>` : ''}
-            <div style="display:flex;align-items:center;gap:5px;margin-top:6px">
+            ${tName ? `<div style="display:flex;align-items:center;gap:5px;margin-top:6px">
               <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" style="color:var(--text3);flex-shrink:0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               <span style="font-size:11.5px;font-weight:600;color:var(--text3)">${escH(tName)}</span>
-            </div>
+            </div>` : ''}
             ${item.eventTitle ? `<div class="tl-card-text" style="margin-top:6px;opacity:0.75">До події: ${escH(item.eventTitle)}</div>` : ''}
           </div></div>`;
       }
@@ -771,7 +772,8 @@
         clientName: childName,
         teacherId,
         eventId: eventTag,
-        eventTitle: ev ? ev.title : ''
+        eventTitle: ev ? ev.title : '',
+        alreadyHad: result.alreadyHad
       });
       showToast('Договір оформлено', true);
       loadTimeline();
@@ -792,7 +794,8 @@
     try {
       await ContractsAPI.createManual(clientData.phone || phoneKey, {
         title: result.title,
-        teacherId: result.teacherId
+        teacherId: result.teacherId,
+        alreadyHad: result.alreadyHad
       });
       showToast('Договір оформлено', true);
       loadTimeline();

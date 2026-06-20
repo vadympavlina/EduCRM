@@ -33,7 +33,7 @@ const ContractsAPI = (() => {
   }
 
   // ── DATA ──────────────────────────────────────────────────
-  async function createForEvent(phone, { title, teacherId, eventId, eventTitle, clientName }) {
+  async function createForEvent(phone, { title, teacherId, eventId, eventTitle, clientName, alreadyHad }) {
     const ph = normalizePhone(phone);
     if (!ph) throw new Error('Невірний номер телефону');
     if (!teacherId) throw new Error('Не вказано вчителя');
@@ -43,6 +43,7 @@ const ContractsAPI = (() => {
       title: title || 'Договір',
       teacherId,
       clientName: clientName || null,
+      alreadyHad: !!alreadyHad, // true = клієнт мав договір раніше, бонус вчителю не нараховується
       signedAt: Date.now(),
       signedBy: (typeof currentUser !== 'undefined' && currentUser) || 'Менеджер',
       eventId: eventId || null,
@@ -52,8 +53,8 @@ const ContractsAPI = (() => {
     return { id: ref.key, ...data };
   }
 
-  async function createManual(phone, { title, teacherId, clientName }) {
-    return createForEvent(phone, { title, teacherId, clientName, eventId: null, eventTitle: null });
+  async function createManual(phone, { title, teacherId, clientName, alreadyHad }) {
+    return createForEvent(phone, { title, teacherId, clientName, alreadyHad, eventId: null, eventTitle: null });
   }
 
   async function remove(phone, contractId) {
@@ -125,6 +126,14 @@ const ContractsAPI = (() => {
         box-sizing: border-box; background: #fff;
       }
       .cap-field input:focus, .cap-field select:focus { border-color: #4f6ef7; }
+      .cap-checkbox {
+        display: flex; align-items: flex-start; gap: 9px; cursor: pointer;
+        padding: 10px 12px; background: #f8f9fb; border: 1.5px solid #e8eaf0; border-radius: 9px;
+      }
+      .cap-checkbox input {
+        width: 17px; height: 17px; margin-top: 1px; accent-color: #4f6ef7; cursor: pointer; flex-shrink: 0;
+      }
+      .cap-checkbox span { font-size: 12.5px; font-weight: 600; color: #4a4f5e; line-height: 1.4; }
       .cap-meta { font-size: 12px; color: #8b91a3; font-weight: 600; }
       .cap-footer {
         display: flex; justify-content: flex-end; gap: 8px;
@@ -164,6 +173,10 @@ const ContractsAPI = (() => {
               <label>Вчитель *</label>
               <select id="contract-teacher-select"></select>
             </div>
+            <label class="cap-checkbox">
+              <input type="checkbox" id="contract-already-input">
+              <span>Вже мав договір раніше (не рахувати бонус вчителю)</span>
+            </label>
             <div class="cap-meta" id="contract-meta-line"></div>
           </div>
           <div class="cap-footer">
@@ -184,8 +197,10 @@ const ContractsAPI = (() => {
     const teacherGroup = document.getElementById('contract-teacher-group');
     const teacherSelect = document.getElementById('contract-teacher-select');
     const metaLine = document.getElementById('contract-meta-line');
+    const alreadyInput = document.getElementById('contract-already-input');
 
     titleInput.value = defaultTitle;
+    alreadyInput.checked = false;
     teacherGroup.style.display = requireTeacher ? 'block' : 'none';
     if (requireTeacher) {
       teacherSelect.innerHTML = '<option value="">— Оберіть вчителя —</option>' +
@@ -214,8 +229,10 @@ const ContractsAPI = (() => {
       if (!teacherId) { _toast('Оберіть вчителя', 'error'); return; }
     }
 
+    const alreadyHad = document.getElementById('contract-already-input').checked;
+
     document.getElementById('contract-confirm-overlay').classList.remove('open');
-    if (_pendingResolve) { _pendingResolve({ title, teacherId }); _pendingResolve = null; }
+    if (_pendingResolve) { _pendingResolve({ title, teacherId, alreadyHad }); _pendingResolve = null; }
   }
 
   function _cancel() {

@@ -563,6 +563,7 @@
     // прив'язана до teacherId напряму (через подію автоматично, або вручну з картки клієнта).
     // Рахуємо по місяцю підписання (signedAt), а не по даті події.
     const contractsFiltered = allContracts.filter(c => {
+      if (c.alreadyHad) return false; // клієнт мав договір раніше — бонус не нараховується
       if (!c.teacherId) return false;
       if (selectedTeacher && c.teacherId !== selectedTeacher) return false;
       if (selectedMonth) {

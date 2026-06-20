@@ -243,7 +243,8 @@ const GroupEvents = (() => {
         clientName: p.name,
         teacherId: groupEvents[editingId]?.assignedPersonId,
         eventId: 'group_' + editingId + '_' + pid,
-        eventTitle: groupEvents[editingId]?.title
+        eventTitle: groupEvents[editingId]?.title,
+        alreadyHad: result.alreadyHad
       });
       p.hasContractForThisEvent = true;
       _renderParticipants();
