@@ -361,6 +361,8 @@ const GroupEvents = (() => {
 
     try {
       let id = editingId;
+      const prevTelegramId = editingId ? groupEvents[editingId]?.telegramMessageId : null;
+
       if (id) {
         await db.ref('groupEvents/' + id).update(payload);
       } else {
@@ -373,7 +375,7 @@ const GroupEvents = (() => {
       // Синхронізуємо картки клієнтів (ім'я/вік/договір)
       _syncClientCards(draftParticipants);
 
-      await _sendOrUpdateTelegram(id, { id, ...payload });
+      await _sendOrUpdateTelegram(id, { id, ...payload, telegramMessageId: prevTelegramId });
 
       showToast('Групову подію збережено', 'success');
       close();
