@@ -112,14 +112,16 @@ const GroupEvents = (() => {
 
   function _renderStatusSection(ge) {
     const el = document.getElementById('ge-status-section');
-    if (!ge.status || ge.status === 'pending') { el.innerHTML = ''; return; }
     const map = {
-      completed: { label: 'Проведено', cls: 'status-completed' },
-      cancelled: { label: 'Скасовано', cls: 'status-cancelled' }
+      pending:   'Очікується',
+      completed: 'Проведено',
+      cancelled: 'Скасовано'
     };
-    const s = map[ge.status];
-    if (!s) { el.innerHTML = ''; return; }
-    el.innerHTML = `<div class="status-badge ${s.cls}" style="margin-bottom:12px">${s.label}</div>`;
+    const label = map[ge.status] || map.pending;
+    el.innerHTML = `<div style="margin-bottom:12px">
+      <span class="badge badge-${ge.status || 'pending'}">${label}</span>
+      ${ge.updatedBy ? `<span class="meta-by" style="margin-left:8px">Оновив: ${escapeHTML(ge.updatedBy)}</span>` : ''}
+    </div>`;
   }
 
   function _renderActions(ge) {
@@ -292,7 +294,7 @@ const GroupEvents = (() => {
       phone,
       name: c.name || '',
       age:  c.age || '',
-      contractStatus: c.contractStatus || 'none',
+      contractStatus: 'none', // статус договору завжди починається заново для нової події
       confirmStatus: 'pending',
       attending: true
     };

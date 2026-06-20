@@ -818,7 +818,9 @@ function refreshCalendar() {
   const eventsArray = [];
 
   // 1. Групуємо події що перетинаються по часу в межах одного дня
-  const realEvents = Object.values(events).filter(ev => ev.date && ev.startTime);
+  // isGroupMirror — дзеркальні записи учасників групових подій, на календарі їх не показуємо,
+  // бо групова подія вже відображається окремою фіолетовою карткою через GroupEvents
+  const realEvents = Object.values(events).filter(ev => ev.date && ev.startTime && !ev.isGroupMirror);
 
   // Union-Find: групуємо всі події що перетинаються (транзитивно)
   const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
