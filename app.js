@@ -1485,6 +1485,11 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
   } else {
     await db.ref('events/' + id).update(data);
     if (phone) upsertClient(phone, title);
+    // Подію відредаговано — оновлюємо існуюче повідомлення в Telegram (не шлемо нове)
+    const existing = events[id];
+    const tgStatusMap = { pending: 'СТВОРЕНО', confirmed: 'ПІДТВЕРДЖЕНО', cancelled: 'СКАСОВАНО', completed: 'ЗАВЕРШЕНО' };
+    const tgStatus = tgStatusMap[existing?.status] || 'СТВОРЕНО';
+    editTelegramMessage(tgStatus, { ...existing, ...data, id });
     showToast('Подію оновлено', 'success');
   }
   closeModal('event-modal');
@@ -1647,6 +1652,44 @@ async function sendTelegram(status, ev) {
     const response = await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const data = await response.json();
     if (data.ok && data.result && data.result.message_id) { if (ev.id) await db.ref('events/' + ev.id).update({ telegramMessageId: data.result.message_id }); }
+  } catch (err) {}
+}
+
+// Справжнє редагування існуючого повідомлення (editMessageText), без видалення/нового надсилання.
+// Викликається коли подію редагують (міняють поля), а не коли міняють статус.
+async function editTelegramMessage(status, ev) {
+  if (!TELEGRAM.BOT_TOKEN) return;
+  if (!ev.telegramMessageId) return; // нема що редагувати — повідомлення ще не існує
+
+  const escapeHTML = (str) => { if (!str) return ''; return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  const tName = teacherName(ev.assignedPersonId) || 'Не призначено';
+  const safeTitle = escapeHTML(ev.title), safeTeacher = escapeHTML(tName), safeUser = escapeHTML(currentUser);
+  const safeDesc = ev.description ? escapeHTML(ev.description) : '';
+
+  const descBlock = safeDesc ? `\n\n<blockquote>${safeDesc}</blockquote>` : '';
+  const text = `<b>[${status}]</b>\n\n<b>Подія:</b> ${safeTitle}\n<b>Час:</b> ${ev.date} (${ev.startTime} - ${ev.endTime})\n<b>Вчитель:</b> ${safeTeacher}${descBlock}\n\n<i>Менеджер: ${safeUser}</i>`;
+
+  const payload = {
+    chat_id: TELEGRAM.CHAT_ID,
+    message_id: ev.telegramMessageId,
+    text, parse_mode: 'HTML'
+  };
+
+  if (status === 'ПІДТВЕРДЖЕНО' && ev.id) {
+    const reviewUrl = `${SITE_URL}/review.html?eventId=${ev.id}`;
+    const calUrl    = `${SITE_URL}/addtocal.html?eventId=${ev.id}`;
+    payload.reply_markup = {
+      inline_keyboard: [[
+        { text: 'Відгук', url: reviewUrl },
+        { text: '📅', url: calUrl }
+      ]]
+    };
+  }
+
+  try {
+    await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/editMessageText`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    });
   } catch (err) {}
 }
 

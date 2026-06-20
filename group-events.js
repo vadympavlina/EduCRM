@@ -410,6 +410,7 @@ const GroupEvents = (() => {
 
     try {
       let id = editingId;
+      const isNew = !editingId;
       const prevTelegramId = editingId ? groupEvents[editingId]?.telegramMessageId : null;
       const oldParticipantIds = editingId ? Object.keys(groupEvents[editingId]?.participants || {}) : [];
 
@@ -436,7 +437,13 @@ const GroupEvents = (() => {
       // Дзеркалимо кожного учасника в events/, щоб client.html і "Договір" бачили цю подію
       await _syncParticipantEvents(id, { id, ...payload });
 
-      await _sendOrUpdateTelegram(id, { id, ...payload, telegramMessageId: prevTelegramId });
+      if (isNew) {
+        // Перше повідомлення — шлемо нове одразу при створенні
+        await _sendOrUpdateTelegram(id, { id, ...payload });
+      } else {
+        // Подію відредаговано — оновлюємо існуюче повідомлення на місці
+        await _editTelegramMessage(id, { id, ...payload, telegramMessageId: prevTelegramId });
+      }
 
       showToast('Групову подію збережено', 'success');
       close();
@@ -593,10 +600,11 @@ const GroupEvents = (() => {
     ].filter(Boolean).join('\n');
   }
 
+  // Видаляє старе повідомлення і шле нове — використовується тільки при зміні статусу
+  // (перше підтвердження/проведення/скасування), щоб повідомлення "спливало" в чаті.
   async function _sendOrUpdateTelegram(id, ge) {
     if (!TELEGRAM?.BOT_TOKEN) return;
     try {
-      // Стара модель: видаляємо попереднє повідомлення і шлемо нове
       if (ge.telegramMessageId) {
         await _deleteTelegramMessage(ge.telegramMessageId).catch(() => {});
       }
@@ -612,6 +620,28 @@ const GroupEvents = (() => {
       }
     } catch (err) {
       console.error('Telegram error (group event):', err);
+    }
+  }
+
+  // Редагує існуюче повідомлення на місці (editMessageText) — використовується коли
+  // подію/учасників редагують, а не коли міняють статус. Якщо повідомлення ще
+  // не існує — нічого не робить (його надішле _sendOrUpdateTelegram при підтвердженні).
+  async function _editTelegramMessage(id, ge) {
+    if (!TELEGRAM?.BOT_TOKEN) return;
+    if (!ge.telegramMessageId) return;
+    try {
+      const text = _buildTelegramText(ge);
+      await fetch(`https://api.telegram.org/bot${TELEGRAM.BOT_TOKEN}/editMessageText`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM.CHAT_ID,
+          message_id: ge.telegramMessageId,
+          text, parse_mode: 'HTML'
+        })
+      });
+    } catch (err) {
+      console.error('Telegram edit error (group event):', err);
     }
   }
 
