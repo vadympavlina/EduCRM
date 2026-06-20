@@ -93,10 +93,10 @@ const GroupEvents = (() => {
     _renderParticipants();
     document.getElementById('group-modal').classList.add('open');
 
-    // Підвантажуємо, чи вже є договір саме для цієї події в кожного учасника
-    const eventTag = 'group_' + id;
-    await Promise.all(Object.values(draftParticipants).map(async p => {
+    // Підвантажуємо, чи вже є договір саме для цього учасника цієї події
+    await Promise.all(Object.entries(draftParticipants).map(async ([pid, p]) => {
       try {
+        const eventTag = 'group_' + id + '_' + pid;
         const contracts = await ContractsAPI.getForPhone(p.phone);
         p.hasContractForThisEvent = contracts.some(c => c.eventId === eventTag);
       } catch (err) { /* ignore */ }
@@ -158,26 +158,25 @@ const GroupEvents = (() => {
     const empty = document.getElementById('ge-participants-empty');
     const badge = document.getElementById('ge-count-badge');
 
-    const items = Object.values(draftParticipants);
-    badge.textContent = items.length ? `(${items.length})` : '';
+    const entries = Object.entries(draftParticipants);
+    badge.textContent = entries.length ? `(${entries.length})` : '';
 
-    if (items.length === 0) {
+    if (entries.length === 0) {
       list.innerHTML = '';
       empty.style.display = 'block';
       return;
     }
     empty.style.display = 'none';
 
-    list.innerHTML = items.map(p => _participantCard(p)).join('');
+    list.innerHTML = entries.map(([pid, p]) => _participantCard(pid, p)).join('');
   }
 
-  function _participantCard(p) {
-    const phone = p.phone;
+  function _participantCard(pid, p) {
     const hasContract = !!p.hasContractForThisEvent;
     const confirmState = p.confirmStatus || 'pending'; // pending | coming | not_coming
 
     return `
-      <div class="ge-pcard" data-phone="${escapeHTML(phone)}">
+      <div class="ge-pcard" data-pid="${escapeHTML(pid)}">
         <div class="ge-pcard-top">
           <div class="ge-pcard-name-block">
             <div class="ge-pcard-name">${escapeHTML(p.name || '—')}</div>
@@ -187,7 +186,7 @@ const GroupEvents = (() => {
             </div>
           </div>
           <button class="ge-pcard-remove" title="Прибрати з події"
-            onclick="GroupEvents.removeParticipant('${escapeHTML(phone)}')">
+            onclick="GroupEvents.removeParticipant('${escapeHTML(pid)}')">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -197,53 +196,53 @@ const GroupEvents = (() => {
         <div class="ge-pcard-row">
           <div class="ge-confirm-group" role="group">
             <button class="ge-confirm-btn cb-coming ${confirmState === 'coming' ? 'active' : ''}"
-              title="Прийде" onclick="GroupEvents.setConfirmStatus('${escapeHTML(phone)}', 'coming')">
+              title="Прийде" onclick="GroupEvents.setConfirmStatus('${escapeHTML(pid)}', 'coming')">
               <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
             </button>
             <button class="ge-confirm-btn cb-pending ${confirmState === 'pending' ? 'active' : ''}"
-              title="Очікується" onclick="GroupEvents.setConfirmStatus('${escapeHTML(phone)}', 'pending')">
+              title="Очікується" onclick="GroupEvents.setConfirmStatus('${escapeHTML(pid)}', 'pending')">
               <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
             </button>
             <button class="ge-confirm-btn cb-not-coming ${confirmState === 'not_coming' ? 'active' : ''}"
-              title="Не прийде" onclick="GroupEvents.setConfirmStatus('${escapeHTML(phone)}', 'not_coming')">
+              title="Не прийде" onclick="GroupEvents.setConfirmStatus('${escapeHTML(pid)}', 'not_coming')">
               <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
 
-          <button class="ge-contract-chip ${hasContract ? 'cs-signed' : 'cs-none'}" onclick="GroupEvents.openContract('${escapeHTML(phone)}')">
+          <button class="ge-contract-chip ${hasContract ? 'cs-signed' : 'cs-none'}" onclick="GroupEvents.openContract('${escapeHTML(pid)}')">
             ${hasContract ? '✓ Договір оформлено' : 'Договір'}
           </button>
         </div>
       </div>`;
   }
 
-  function setConfirmStatus(phone, status) {
-    if (!draftParticipants[phone]) return;
-    draftParticipants[phone].confirmStatus = status;
+  function setConfirmStatus(pid, status) {
+    if (!draftParticipants[pid]) return;
+    draftParticipants[pid].confirmStatus = status;
     // зберігаємо зворотну сумісність зі старим полем attending
-    draftParticipants[phone].attending = status !== 'not_coming';
+    draftParticipants[pid].attending = status !== 'not_coming';
     _renderParticipants();
   }
 
-  async function openContract(phone) {
-    const p = draftParticipants[phone];
+  async function openContract(pid) {
+    const p = draftParticipants[pid];
     if (!p) return;
     if (!editingId) {
       showToast('Спочатку збережіть подію, потім можна оформити договір', 'error');
       return;
     }
-    const teacherName_ = (typeof teacherName === 'function') ? teacherName(groupEvents[editingId]?.assignedPersonId) : '';
     const result = await ContractsAPI.promptCreate({
       requireTeacher: false,
-      defaultTitle: `Договір — ${groupEvents[editingId]?.title || ''}`
+      defaultTitle: `Договір — ${p.name || ''}`
     });
     if (!result) return;
 
     try {
-      await ContractsAPI.createForEvent(phone, {
+      await ContractsAPI.createForEvent(p.phone, {
         title: result.title,
+        clientName: p.name,
         teacherId: groupEvents[editingId]?.assignedPersonId,
-        eventId: 'group_' + editingId,
+        eventId: 'group_' + editingId + '_' + pid,
         eventTitle: groupEvents[editingId]?.title
       });
       p.hasContractForThisEvent = true;
@@ -256,9 +255,9 @@ const GroupEvents = (() => {
   }
 
 
-  function removeParticipant(phone) {
+  function removeParticipant(pid) {
     showConfirm('Прибрати цього учасника з події?', () => {
-      delete draftParticipants[phone];
+      delete draftParticipants[pid];
       _renderParticipants();
     });
   }
@@ -310,12 +309,16 @@ const GroupEvents = (() => {
     });
   }
 
+  function _genParticipantId() {
+    return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
   function addExistingClient(phone) {
     const c = clientsDB[phone];
     if (!c) { showToast('Клієнта не знайдено', 'error'); return; }
-    if (draftParticipants[phone]) { showToast('Цей клієнт вже в списку', 'info'); return; }
 
-    draftParticipants[phone] = {
+    const pid = _genParticipantId();
+    draftParticipants[pid] = {
       phone,
       name: c.name || '',
       age:  c.age || '',
@@ -335,9 +338,10 @@ const GroupEvents = (() => {
 
     if (!name) { showToast("Вкажіть ПІБ", 'error'); return; }
     if (!phone || phone.length < 9) { showToast('Вкажіть коректний номер телефону', 'error'); return; }
-    if (draftParticipants[phone]) { showToast('Цей клієнт вже в списку', 'info'); return; }
 
-    // Якщо клієнта ще нема в базі clients — створюємо
+    // Якщо клієнта ще нема в базі clients — створюємо картку.
+    // Якщо вже є (наприклад другий учасник з тим самим номером) — не перезаписуємо ім'я,
+    // картка лишається з першим іменем, нове ім'я живе лише в учаснику цієї події.
     if (!clientsDB[phone]) {
       try {
         await db.ref('clients/' + phone).set({
@@ -351,7 +355,8 @@ const GroupEvents = (() => {
       }
     }
 
-    draftParticipants[phone] = {
+    const pid = _genParticipantId();
+    draftParticipants[pid] = {
       phone: phoneRaw, name, age: age || '',
       confirmStatus: 'pending', attending: true
     };
@@ -405,7 +410,7 @@ const GroupEvents = (() => {
     try {
       let id = editingId;
       const prevTelegramId = editingId ? groupEvents[editingId]?.telegramMessageId : null;
-      const oldParticipants = editingId ? Object.values(groupEvents[editingId]?.participants || {}) : [];
+      const oldParticipantIds = editingId ? Object.keys(groupEvents[editingId]?.participants || {}) : [];
 
       if (id) {
         await db.ref('groupEvents/' + id).update(payload);
@@ -418,10 +423,9 @@ const GroupEvents = (() => {
 
       // Прибираємо дзеркальні events для учасників, яких видалили зі списку
       const removedUpdates = {};
-      oldParticipants.forEach(op => {
-        const phone = normalizePhone(op.phone);
-        if (phone && !draftParticipants[phone]) {
-          removedUpdates['events/' + _mirrorEventId(id, phone)] = null;
+      oldParticipantIds.forEach(pid => {
+        if (!draftParticipants[pid]) {
+          removedUpdates['events/' + _mirrorEventId(id, pid)] = null;
         }
       });
       if (Object.keys(removedUpdates).length > 0) {
@@ -441,9 +445,9 @@ const GroupEvents = (() => {
     }
   }
 
-  // Детермінований id дзеркального запису в events для пари (groupEventId, phone)
-  function _mirrorEventId(groupEventId, phone) {
-    return 'ge_' + groupEventId + '_' + normalizePhone(phone);
+  // Детермінований id дзеркального запису в events для пари (groupEventId, participantId)
+  function _mirrorEventId(groupEventId, participantId) {
+    return 'ge_' + groupEventId + '_' + participantId;
   }
 
   // Мапа статусу групової події -> статус для events (щоб client.html малював правильні кнопки)
@@ -457,13 +461,13 @@ const GroupEvents = (() => {
   }
 
   async function _syncParticipantEvents(groupEventId, ge) {
-    const participants = Object.values(ge.participants || {});
+    const entries = Object.entries(ge.participants || {});
     const updates = {};
 
-    participants.forEach(p => {
+    entries.forEach(([pid, p]) => {
       const phone = normalizePhone(p.phone);
       if (!phone) return;
-      const mid = _mirrorEventId(groupEventId, phone);
+      const mid = _mirrorEventId(groupEventId, pid);
       const eventStatus = _mapGroupStatusToEventStatus(ge.status, p.confirmStatus);
 
       const mirror = {
@@ -477,6 +481,7 @@ const GroupEvents = (() => {
         status: eventStatus,
         isGroupMirror: true,
         groupEventId,
+        participantId: pid,
         createdBy: ge.createdBy || currentUser,
         updatedAt: Date.now()
       };
@@ -488,9 +493,14 @@ const GroupEvents = (() => {
 
       updates['events/' + mid] = mirror;
 
-      // Картка клієнта — ім'я/вік завжди оновлюємо
-      const clientUpdate = { name: p.name, age: p.age || null };
-      db.ref('clients/' + phone).update(clientUpdate).catch(() => {});
+      // Картка клієнта — ім'я/вік оновлюємо лише якщо картка ще порожня
+      // (щоб не "стрибало" ім'я, коли на одному номері кілька дітей)
+      db.ref('clients/' + phone).once('value').then(snap => {
+        const existing = snap.val();
+        if (!existing || !existing.name) {
+          db.ref('clients/' + phone).update({ name: p.name, age: p.age || null }).catch(() => {});
+        }
+      }).catch(() => {});
     });
 
     if (Object.keys(updates).length > 0) {
@@ -519,12 +529,10 @@ const GroupEvents = (() => {
       }
 
       // Прибираємо дзеркальні events-записи учасників
-      const participants = Object.values(ge?.participants || {});
+      const participantIds = Object.keys(ge?.participants || {});
       const updates = {};
-      participants.forEach(p => {
-        const phone = normalizePhone(p.phone);
-        if (!phone) return;
-        updates['events/' + _mirrorEventId(editingId, phone)] = null;
+      participantIds.forEach(pid => {
+        updates['events/' + _mirrorEventId(editingId, pid)] = null;
       });
       if (Object.keys(updates).length > 0) {
         await db.ref().update(updates).catch(() => {});

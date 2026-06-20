@@ -547,7 +547,7 @@
     const contractItems = contractsArr.map(c => ({
       type: 'contract', id: c.id, title: c.title, teacherId: c.teacherId,
       signedBy: c.signedBy, eventId: c.eventId, eventTitle: c.eventTitle,
-      createdAt: c.signedAt || 0
+      clientName: c.clientName, createdAt: c.signedAt || 0
     }));
 
     // Кеш для швидкої перевірки "чи вже є договір на цю подію" в картках подій
@@ -612,7 +612,7 @@
           </button>`;
         }
         if (st === 'completed') {
-          const eventTag = item.isGroupMirror ? ('group_' + item.groupEventId) : eid;
+          const eventTag = item.isGroupMirror ? ('group_' + item.groupEventId + '_' + (item.participantId || '')) : eid;
           const hasContract = (window.__contractsByEvent || {})[eventTag];
           actionBtns += `<button class="ev-btn ev-btn-contract ${hasContract ? 'active' : ''}" onclick="clientOpenContractForEvent('${eid}', '${eventTag}', '${escH(item.assignedPersonId||'')}')">
             <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
@@ -631,6 +631,7 @@
           </div>
           <div class="tl-card-body">
             <div class="tl-card-title">${escH(item.title||'—')}</div>
+            ${item.isGroupMirror && item.clientName ? `<div style="font-size:12px;font-weight:700;color:var(--accent);margin-top:2px">Учасник: ${escH(item.clientName)}</div>` : ''}
             ${item.description ? `<div class="tl-card-text">${escH(item.description)}</div>` : ''}
             ${item.assignedPersonId && teachersMap[item.assignedPersonId]
               ? `<div style="display:flex;align-items:center;gap:5px;margin-top:6px;margin-bottom:2px">
@@ -673,6 +674,7 @@
           </div>
           <div class="tl-card-body">
             <div class="tl-card-title">${escH(item.title||'Договір')}</div>
+            ${item.clientName ? `<div style="font-size:12px;font-weight:700;color:var(--accent);margin-top:4px">${escH(item.clientName)}</div>` : ''}
             <div style="display:flex;align-items:center;gap:5px;margin-top:6px">
               <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" style="color:var(--text3);flex-shrink:0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               <span style="font-size:11.5px;font-weight:600;color:var(--text3)">${escH(tName)}</span>
@@ -756,6 +758,7 @@
       return;
     }
     const ev = (window.__eventsCache || []).find(e => e.id === eventId);
+    const childName = ev && ev.clientName ? ev.clientName : (clientData.name || '');
     const result = await ContractsAPI.promptCreate({
       requireTeacher: false,
       defaultTitle: ev ? `Договір — ${ev.title || ''}` : 'Договір'
@@ -765,6 +768,7 @@
     try {
       await ContractsAPI.createForEvent(clientData.phone || phoneKey, {
         title: result.title,
+        clientName: childName,
         teacherId,
         eventId: eventTag,
         eventTitle: ev ? ev.title : ''

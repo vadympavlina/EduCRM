@@ -33,7 +33,7 @@ const ContractsAPI = (() => {
   }
 
   // ── DATA ──────────────────────────────────────────────────
-  async function createForEvent(phone, { title, teacherId, eventId, eventTitle }) {
+  async function createForEvent(phone, { title, teacherId, eventId, eventTitle, clientName }) {
     const ph = normalizePhone(phone);
     if (!ph) throw new Error('Невірний номер телефону');
     if (!teacherId) throw new Error('Не вказано вчителя');
@@ -42,6 +42,7 @@ const ContractsAPI = (() => {
     const data = {
       title: title || 'Договір',
       teacherId,
+      clientName: clientName || null,
       signedAt: Date.now(),
       signedBy: (typeof currentUser !== 'undefined' && currentUser) || 'Менеджер',
       eventId: eventId || null,
@@ -51,8 +52,8 @@ const ContractsAPI = (() => {
     return { id: ref.key, ...data };
   }
 
-  async function createManual(phone, { title, teacherId }) {
-    return createForEvent(phone, { title, teacherId, eventId: null, eventTitle: null });
+  async function createManual(phone, { title, teacherId, clientName }) {
+    return createForEvent(phone, { title, teacherId, clientName, eventId: null, eventTitle: null });
   }
 
   async function remove(phone, contractId) {
