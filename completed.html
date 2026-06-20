@@ -178,9 +178,11 @@
 <script>
   Sidebar.initNow('completed');
 
-  let events   = {};
-  let teachers = {};
-  let pricing  = { default: { baseReward: 50, contractBonus: 100 }, overrides: {} };
+  let events      = {};
+  let groupEvents = {};
+  let teachers    = {};
+  let pricing     = { default: { baseReward: 50, contractBonus: 100 }, overrides: {} };
+  let allContracts = [];
 
   function onAuthReady() {
     Topbar.init();
@@ -188,6 +190,8 @@
     listenTeachers();
     listenPricing();
     listenEvents();
+    listenGroupEvents();
+    listenContracts();
   }
 
   // ── FILTER ────────────────────────────────────────────────
@@ -225,6 +229,32 @@
     });
   }
 
+  function listenGroupEvents() {
+    db.ref('groupEvents').on('value', snap => {
+      groupEvents = {};
+      if (snap.exists()) snap.forEach(c => { groupEvents[c.key] = { id: c.key, ...c.val() }; });
+      renderCompleted();
+    });
+  }
+
+  function listenContracts() {
+    db.ref('clients').on('value', snap => {
+      allContracts = [];
+      if (snap.exists()) {
+        snap.forEach(clientSnap => {
+          const phone = clientSnap.key;
+          const v = clientSnap.val();
+          if (v.contracts) {
+            Object.entries(v.contracts).forEach(([cid, c]) => {
+              allContracts.push({ id: cid, phone, ...c });
+            });
+          }
+        });
+      }
+      renderCompleted();
+    });
+  }
+
   // ── HELPERS ───────────────────────────────────────────────
   function teacherName(id) { return id ? (teachers[id]?.name || '—') : '—'; }
   function getPricing(tid) {
@@ -240,27 +270,67 @@
   function renderCompleted() {
     const selectedMonth = document.getElementById('month-filter').value;
 
+    // Звичайні завершені події — виключаємо isGroupMirror (вони не самостійні рядки)
     const list = Object.values(events).filter(e => {
       if (e.status !== 'completed') return false;
+      if (e.isGroupMirror) return false;
       if (selectedMonth && (!e.date || !e.date.startsWith(selectedMonth))) return false;
       return true;
     }).sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0));
 
-    let totalEarnings = 0, totalContracts = 0;
-    list.forEach(ev => {
-      const p = getPricing(ev.assignedPersonId);
-      const earn = ev.contractSigned ? p.baseReward + p.contractBonus : p.baseReward;
-      totalEarnings += earn;
-      if (ev.contractSigned) totalContracts++;
+    // Завершені групові події — кожна один рядок незалежно від кількості учасників
+    const groupList = Object.values(groupEvents).filter(ge => {
+      if (ge.status !== 'completed') return false;
+      if (selectedMonth && (!ge.date || !ge.date.startsWith(selectedMonth))) return false;
+      return true;
+    }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+    // Договори за вибраний місяць (по даті підписання), для підрахунку бонусів і прапорців у таблиці
+    const contractsInMonth = allContracts.filter(c => {
+      if (c.alreadyHad) return false;
+      if (!selectedMonth) return true;
+      if (!c.signedAt) return false;
+      const d = new Date(c.signedAt);
+      const m = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      return m === selectedMonth;
+    });
+    const contractsByEventTag = {};
+    contractsInMonth.forEach(c => {
+      if (!c.eventId) return;
+      if (!contractsByEventTag[c.eventId]) contractsByEventTag[c.eventId] = [];
+      contractsByEventTag[c.eventId].push(c);
     });
 
-    document.getElementById('sum-total').textContent     = list.length;
+    let totalEarnings = 0, totalContracts = contractsInMonth.length;
+
+    list.forEach(ev => {
+      const p = getPricing(ev.assignedPersonId);
+      const hasContract = !!(contractsByEventTag[ev.id] && contractsByEventTag[ev.id].length);
+      totalEarnings += hasContract ? p.baseReward + p.contractBonus : p.baseReward;
+    });
+    groupList.forEach(ge => {
+      const p = getPricing(ge.assignedPersonId);
+      // groupEvent сам по собі дає 1 baseReward; бонуси за договори її учасників рахуються нижче окремо
+      totalEarnings += p.baseReward;
+    });
+    // Бонуси за договори учасників групових подій (eventId формату group_{geId}_{pid})
+    contractsInMonth.forEach(c => {
+      if (!c.eventId || !c.eventId.startsWith('group_')) return;
+      const ge = groupList.find(g => c.eventId.startsWith('group_' + g.id + '_'));
+      if (!ge) return;
+      const p = getPricing(ge.assignedPersonId);
+      totalEarnings += p.contractBonus;
+    });
+
+    const totalCount = list.length + groupList.length;
+
+    document.getElementById('sum-total').textContent     = totalCount;
     document.getElementById('sum-earnings').textContent  = '₴' + totalEarnings;
     document.getElementById('sum-contracts').textContent = totalContracts;
 
     const wrap = document.getElementById('main-content');
 
-    if (list.length === 0) {
+    if (totalCount === 0) {
       wrap.innerHTML = `<div class="empty-state">
         <svg width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
           <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
@@ -272,9 +342,10 @@
       return;
     }
 
-    const rows = list.map(ev => {
+    const singleRows = list.map(ev => {
       const p    = getPricing(ev.assignedPersonId);
-      const earn = ev.contractSigned ? p.baseReward + p.contractBonus : p.baseReward;
+      const hasContract = !!(contractsByEventTag[ev.id] && contractsByEventTag[ev.id].length);
+      const earn = hasContract ? p.baseReward + p.contractBonus : p.baseReward;
       const phone = ev.phone
         ? `<span class="phone-copy" onclick="copyPhone(this,'${ev.phone}')">${escapeHTML(ev.phone)}</span>`
         : '—';
@@ -284,10 +355,34 @@
         <td>${ev.startTime || ''}–${ev.endTime || ''}</td>
         <td>${escapeHTML(teacherName(ev.assignedPersonId))}</td>
         <td>${phone}</td>
-        <td><input type="checkbox" ${ev.contractSigned ? 'checked' : ''}
-          onchange="toggleContract('${ev.id}', this.checked, this)"></td>
+        <td>${hasContract ? '✓' : '—'}</td>
         <td class="earnings-val">₴${earn}</td>
         <td>${escapeHTML(ev.completedBy || '—')}</td>
+      </tr>`;
+    }).join('');
+
+    const groupRows = groupList.map(ge => {
+      const p = getPricing(ge.assignedPersonId);
+      const count = Object.keys(ge.participants || {}).length;
+      const geContracts = contractsInMonth.filter(c => c.eventId && c.eventId.startsWith('group_' + ge.id + '_'));
+      const earn = p.baseReward + geContracts.length * p.contractBonus;
+      return `<tr style="background:rgba(139,92,246,0.04)">
+        <td>
+          <span style="display:inline-flex;align-items:center;gap:6px">
+            <svg width="13" height="13" fill="none" stroke="#8b5cf6" stroke-width="2.3" viewBox="0 0 24 24">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            ${escapeHTML(ge.title || '—')}
+          </span>
+        </td>
+        <td>${fmtDate(ge.date)}</td>
+        <td>${ge.startTime || ''}–${ge.endTime || ''}</td>
+        <td>${escapeHTML(teacherName(ge.assignedPersonId))}</td>
+        <td>${count} учасників</td>
+        <td>${geContracts.length > 0 ? `✓ ${geContracts.length}` : '—'}</td>
+        <td class="earnings-val">₴${earn}</td>
+        <td>${escapeHTML(ge.updatedBy || ge.createdBy || '—')}</td>
       </tr>`;
     }).join('');
 
@@ -298,25 +393,9 @@
           <th>Вчитель</th><th>Телефон</th>
           <th>Договір</th><th>Заробіток</th><th>Завершив</th>
         </tr></thead>
-        <tbody>${rows}</tbody>
+        <tbody>${groupRows}${singleRows}</tbody>
       </table>
     </div>`;
-  }
-
-  function toggleContract(id, checked, checkboxEl) {
-    // Optimistic: UI вже оновлено браузером через checkbox
-    const upd = { contractSigned: checked };
-    if (checked) upd.contractSignedAt = Date.now();
-    else upd.contractSignedAt = null;
-
-    db.ref('events/' + id).update(upd)
-      .then(() => renderCompleted())
-      .catch(err => {
-        // Rollback: повертаємо checkbox назад
-        if (checkboxEl) checkboxEl.checked = !checked;
-        showToast('Помилка збереження: ' + (err.code || err.message), 'error');
-        console.error('toggleContract error:', err);
-      });
   }
 
   function copyPhone(el, phone) {
@@ -327,8 +406,7 @@
     });
   }
 
-  window.toggleContract = toggleContract;
-  window.copyPhone      = copyPhone;
+  window.copyPhone = copyPhone;
 </script>
 </body>
 </html>
