@@ -648,8 +648,10 @@
     if (cancelledEl) cancelledEl.textContent = fTotal > 0 ? `(${pctOf(fCancelled, fTotal)})` : '';
 
     // Summary chips
-    const totalEvents    = completed.length;
-    const totalContracts = contractsFiltered.length;
+    // Рахуємо разом з byTeacher — це єдине джерело правди, бо там вже
+    // правильно враховані і звичайні, і групові завершені події.
+    const totalEvents    = Object.values(byTeacher).reduce((s, d) => s + d.count, 0);
+    const totalContracts = Object.values(byTeacher).reduce((s, d) => s + d.contracts, 0);
     const totalEarnings  = Object.values(byTeacher).reduce((s, d) => s + d.earnings, 0);
     document.getElementById('sum-events').textContent    = totalEvents;
     document.getElementById('sum-earnings').textContent  = `₴${totalEarnings}`;
