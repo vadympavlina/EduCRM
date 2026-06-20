@@ -70,7 +70,7 @@ const GroupEvents = (() => {
     document.getElementById('group-modal').classList.add('open');
   }
 
-  function openEdit(id) {
+  async function openEdit(id) {
     const ge = groupEvents[id];
     if (!ge) { showToast('Подію не знайдено', 'error'); return; }
 
@@ -92,6 +92,16 @@ const GroupEvents = (() => {
     _renderActions(ge);
     _renderParticipants();
     document.getElementById('group-modal').classList.add('open');
+
+    // Підвантажуємо, чи вже є договір саме для цієї події в кожного учасника
+    const eventTag = 'group_' + id;
+    await Promise.all(Object.values(draftParticipants).map(async p => {
+      try {
+        const contracts = await ContractsAPI.getForPhone(p.phone);
+        p.hasContractForThisEvent = contracts.some(c => c.eventId === eventTag);
+      } catch (err) { /* ignore */ }
+    }));
+    _renderParticipants();
   }
 
   function close() {
@@ -163,12 +173,7 @@ const GroupEvents = (() => {
 
   function _participantCard(p) {
     const phone = p.phone;
-    const contractMap = {
-      none:    { label: 'Без договору',  cls: 'cs-none' },
-      signed:  { label: 'Підписали',     cls: 'cs-signed' },
-      already: { label: 'Вже має',       cls: 'cs-already' }
-    };
-    const cs = contractMap[p.contractStatus] || contractMap.none;
+    const hasContract = !!p.hasContractForThisEvent;
     const confirmState = p.confirmStatus || 'pending'; // pending | coming | not_coming
 
     return `
@@ -205,8 +210,8 @@ const GroupEvents = (() => {
             </button>
           </div>
 
-          <button class="ge-contract-chip ${cs.cls}" onclick="GroupEvents.cycleContract('${escapeHTML(phone)}')">
-            ${cs.label}
+          <button class="ge-contract-chip ${hasContract ? 'cs-signed' : 'cs-none'}" onclick="GroupEvents.openContract('${escapeHTML(phone)}')">
+            ${hasContract ? '✓ Договір оформлено' : 'Договір'}
           </button>
         </div>
       </div>`;
@@ -220,16 +225,36 @@ const GroupEvents = (() => {
     _renderParticipants();
   }
 
-  function cycleContract(phone) {
+  async function openContract(phone) {
     const p = draftParticipants[phone];
     if (!p) return;
-    const order = ['none', 'signed', 'already'];
-    const idx = order.indexOf(p.contractStatus || 'none');
-    const next = order[(idx + 1) % order.length];
-    p.contractStatus = next;
-    if (next === 'signed') p.contractSignedAt = Date.now();
-    _renderParticipants();
+    if (!editingId) {
+      showToast('Спочатку збережіть подію, потім можна оформити договір', 'error');
+      return;
+    }
+    const teacherName_ = (typeof teacherName === 'function') ? teacherName(groupEvents[editingId]?.assignedPersonId) : '';
+    const result = await ContractsAPI.promptCreate({
+      requireTeacher: false,
+      defaultTitle: `Договір — ${groupEvents[editingId]?.title || ''}`
+    });
+    if (!result) return;
+
+    try {
+      await ContractsAPI.createForEvent(phone, {
+        title: result.title,
+        teacherId: groupEvents[editingId]?.assignedPersonId,
+        eventId: 'group_' + editingId,
+        eventTitle: groupEvents[editingId]?.title
+      });
+      p.hasContractForThisEvent = true;
+      _renderParticipants();
+      showToast('Договір оформлено', 'success');
+    } catch (err) {
+      console.error('Помилка оформлення договору:', err);
+      showToast('Не вдалося оформити договір', 'error');
+    }
   }
+
 
   function removeParticipant(phone) {
     showConfirm('Прибрати цього учасника з події?', () => {
@@ -294,7 +319,6 @@ const GroupEvents = (() => {
       phone,
       name: c.name || '',
       age:  c.age || '',
-      contractStatus: 'none', // статус договору завжди починається заново для нової події
       confirmStatus: 'pending',
       attending: true
     };
@@ -329,7 +353,7 @@ const GroupEvents = (() => {
 
     draftParticipants[phone] = {
       phone: phoneRaw, name, age: age || '',
-      contractStatus: 'none', confirmStatus: 'pending', attending: true
+      confirmStatus: 'pending', attending: true
     };
 
     document.getElementById('ge-add-panel').style.display = 'none';
@@ -460,15 +484,6 @@ const GroupEvents = (() => {
       if (ge.status === 'completed') {
         mirror.completedAt = mirror.completedAt || new Date().toISOString();
         mirror.completedBy = currentUser;
-        // contractSigned — булевий, як очікує client.html / stats.html
-        mirror.contractSigned = p.contractStatus === 'signed';
-        if (p.contractStatus === 'signed') {
-          mirror.contractSignedAt = p.contractSignedAt || Date.now();
-        } else {
-          mirror.contractSignedAt = null;
-        }
-        // "вже має" — не рахується в бонус, просто позначка на картці клієнта
-        mirror.contractAlready = p.contractStatus === 'already';
       }
 
       updates['events/' + mid] = mirror;
@@ -547,9 +562,7 @@ const GroupEvents = (() => {
         const mark = p.confirmStatus === 'coming' ? '✅'
           : p.confirmStatus === 'not_coming' ? '❌'
           : '🕐';
-        const contractMark = p.contractStatus === 'signed' ? ' 📄✅'
-          : p.contractStatus === 'already' ? ' 📄'
-          : '';
+        const contractMark = p.hasContractForThisEvent ? ' 📄✅' : '';
         const age = p.age ? `, ${_escTg(p.age)}р.` : '';
         return `${mark} ${i + 1}. ${_escTg(p.name)}${age}${contractMark}`;
       }).join('\n');
@@ -605,7 +618,7 @@ const GroupEvents = (() => {
   return {
     listen, getAll, openCreate, openEdit, close, save,
     setStatus, remove,
-    setConfirmStatus, cycleContract, removeParticipant,
+    setConfirmStatus, openContract, removeParticipant,
     openAddParticipant, addExistingClient, addNewClient,
     countAttending, normalizePhone
   };

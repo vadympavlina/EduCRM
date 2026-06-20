@@ -89,6 +89,7 @@
     .pill-event   { background: var(--blue-bg);    color: var(--blue-text); }
     .pill-review  { background: var(--green-bg);   color: var(--green-text); }
     .pill-comment { background: var(--accent-light); color: var(--accent); }
+    .pill-contract { background: var(--green-bg);  color: var(--green-text); }
     .tl-author { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--text2); }
     .tl-dot { width: 20px; height: 20px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 800; color: #fff; flex-shrink: 0; }
     .dot-blue  { background: linear-gradient(135deg,#4f6ef7,#3b5be8); }
@@ -209,6 +210,7 @@
     }
   </style>
   <script src="shared/topbar.js"></script>
+  <script src="contracts.js"></script>
 </head>
 <body>
 
@@ -346,6 +348,13 @@
         <div class="tl-head">
           <span class="tl-title">Історія</span>
           <span class="tl-count" id="tl-count" style="display:none"></span>
+          <div style="flex:1"></div>
+          <button class="btn btn-success btn-sm" onclick="clientOpenManualContract()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Договір
+          </button>
         </div>
         <div class="tl-list" id="tl-list">
           <div class="tl-loading"><div class="tl-spinner"></div>Завантаження…</div>
@@ -485,9 +494,9 @@
     document.getElementById('cl-av').textContent        = name ? ini(name) : (clientData.phone || phoneKey).slice(-2);
   }
 
-  function renderStats(evArr) {
+  function renderStats(evArr, contractsArr) {
     const done     = evArr.filter(e => e.status === 'completed').length;
-    const contract = evArr.some(e => e.contractSigned);
+    const contract = (contractsArr || []).length > 0;
     const dates    = evArr.map(e => e.date).filter(Boolean).sort();
     document.getElementById('stat-total').textContent = evArr.length;
     document.getElementById('stat-done').textContent  = done;
@@ -496,21 +505,27 @@
     document.getElementById('info-last').textContent  = dates[dates.length-1]
       ? new Date(dates[dates.length-1]).toLocaleDateString('uk-UA',{day:'2-digit',month:'short',year:'numeric'}) : '—';
     const cel = document.getElementById('info-contract');
-    cel.textContent = contract ? 'Так ✓' : 'Немає';
+    cel.textContent = contract ? `Так (${contractsArr.length}) ✓` : 'Немає';
     cel.className = 'ib-val text ' + (contract ? 'green' : 'muted');
   }
 
   // ── TIMELINE ──────────────────────────────────────────────
   async function loadTimeline() {
     const phone = clientData.phone || phoneKey;
-    const [evSnap, cSnap] = await Promise.all([
+    const [evSnap, cSnap, contractsSnap] = await Promise.all([
       db.ref('events').orderByChild('phone').equalTo(phone).once('value'),
       db.ref('clientTimeline/' + phoneKey).once('value'),
+      db.ref('clients/' + phoneKey + '/contracts').once('value'),
     ]);
 
     const evMap = evSnap.val() || {};
     const evArr = Object.entries(evMap).map(([id, ev]) => ({ id, ...ev }));
-    renderStats(evArr);
+
+    const contractsArr = [];
+    if (contractsSnap.exists()) {
+      contractsSnap.forEach(c => contractsArr.push({ id: c.key, ...c.val() }));
+    }
+    renderStats(evArr, contractsArr);
 
     const reviewItems = [];
     await Promise.all(evArr.map(async ev => {
@@ -529,20 +544,32 @@
       });
     }
 
+    const contractItems = contractsArr.map(c => ({
+      type: 'contract', id: c.id, title: c.title, teacherId: c.teacherId,
+      signedBy: c.signedBy, eventId: c.eventId, eventTitle: c.eventTitle,
+      createdAt: c.signedAt || 0
+    }));
+
+    // Кеш для швидкої перевірки "чи вже є договір на цю подію" в картках подій
+    window.__contractsByEvent = {};
+    contractsArr.forEach(c => { if (c.eventId) window.__contractsByEvent[c.eventId] = true; });
+    window.__eventsCache = evArr;
+
     const items = [
       ...evArr.map(ev => ({ type:'event', ...ev, createdAt: ev.date
         ? new Date(ev.date+'T'+(ev.startTime||'00:00')).getTime()
         : new Date(ev.createdAt||0).getTime() })),
       ...reviewItems,
-      ...commentItems
+      ...commentItems,
+      ...contractItems
     ].sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
 
-    renderTimeline(items);
+    renderTimeline(items, evArr);
   }
 
   const statusLabel = { pending:'Очікує', confirmed:'Підтверджено', completed:'Проведено', cancelled:'Скасовано' };
 
-  function renderTimeline(items) {
+  function renderTimeline(items, evArr) {
     const list    = document.getElementById('tl-list');
     const countEl = document.getElementById('tl-count');
     if (items.length === 0) {
@@ -585,10 +612,11 @@
           </button>`;
         }
         if (st === 'completed') {
-          const contractActive = item.contractSigned ? 'active' : '';
-          actionBtns += `<button class="ev-btn ev-btn-contract ${contractActive}" onclick="clientToggleContract('${eid}', ${!item.contractSigned}, this)">
+          const eventTag = item.isGroupMirror ? ('group_' + item.groupEventId) : eid;
+          const hasContract = (window.__contractsByEvent || {})[eventTag];
+          actionBtns += `<button class="ev-btn ev-btn-contract ${hasContract ? 'active' : ''}" onclick="clientOpenContractForEvent('${eid}', '${eventTag}', '${escH(item.assignedPersonId||'')}')">
             <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
-            ${item.contractSigned ? '✓ Договір є' : 'Договір'}
+            ${hasContract ? '✓ Договір оформлено' : 'Договір'}
           </button>`;
         }
 
@@ -630,6 +658,26 @@
           <div class="tl-card-body">
             <div class="tl-card-title">${escH(item.eventTitle||'Відгук')}</div>
             <div class="tl-card-text">${escH(item.text||'')}</div>
+          </div></div>`;
+      }
+      if (item.type === 'contract') {
+        const tName = teachersMap[item.teacherId] || 'Невідомий вчитель';
+        return `<div class="tl-card tl-card-contract">
+          <div class="tl-card-head">
+            <span class="tl-pill pill-contract">
+              <svg fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
+              Договір
+            </span>
+            <div class="tl-author"><div class="tl-dot dot-green">${ini(item.signedBy||'М')}</div>${escH(item.signedBy||'Менеджер')}</div>
+            <div class="tl-sp"></div><span class="tl-time">${time}</span>
+          </div>
+          <div class="tl-card-body">
+            <div class="tl-card-title">${escH(item.title||'Договір')}</div>
+            <div style="display:flex;align-items:center;gap:5px;margin-top:6px">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" style="color:var(--text3);flex-shrink:0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span style="font-size:11.5px;font-weight:600;color:var(--text3)">${escH(tName)}</span>
+            </div>
+            ${item.eventTitle ? `<div class="tl-card-text" style="margin-top:6px;opacity:0.75">До події: ${escH(item.eventTitle)}</div>` : ''}
           </div></div>`;
       }
       const auth = item.author || 'Менеджер';
@@ -695,34 +743,57 @@
     if (!confirm('Позначити як проведену?')) return;
     await db.ref('events/' + id).update({
       status: 'completed', completedBy: currentUser,
-      completedAt: new Date().toISOString(), contractSigned: false
+      completedAt: new Date().toISOString()
     });
     showToast('Проведено', true);
     loadTimeline();
   }
 
-  async function clientToggleContract(id, value, btnEl) {
-    // Optimistic: одразу змінюємо кнопку
-    if (btnEl) {
-      btnEl.textContent = value ? '✓ Договір є' : 'Договір';
-      btnEl.classList.toggle('active', value);
+  // Договір прив'язаний до конкретної події — вчитель береться автоматично з події
+  async function clientOpenContractForEvent(eventId, eventTag, teacherId) {
+    if (!teacherId) {
+      showToast('У цієї події не вказано вчителя', false);
+      return;
     }
-
-    const upd = { contractSigned: value };
-    if (value) upd.contractSignedAt = Date.now();
-    else upd.contractSignedAt = null;
+    const ev = (window.__eventsCache || []).find(e => e.id === eventId);
+    const result = await ContractsAPI.promptCreate({
+      requireTeacher: false,
+      defaultTitle: ev ? `Договір — ${ev.title || ''}` : 'Договір'
+    });
+    if (!result) return;
 
     try {
-      await db.ref('events/' + id).update(upd);
-      showToast(value ? 'Договір відмічено' : 'Договір знято', true);
+      await ContractsAPI.createForEvent(clientData.phone || phoneKey, {
+        title: result.title,
+        teacherId,
+        eventId: eventTag,
+        eventTitle: ev ? ev.title : ''
+      });
+      showToast('Договір оформлено', true);
       loadTimeline();
     } catch (err) {
-      // Rollback
-      if (btnEl) {
-        btnEl.textContent = value ? 'Договір' : '✓ Договір є';
-        btnEl.classList.toggle('active', !value);
-      }
-      showToast('Помилка: ' + (err.code || err.message), false);
+      showToast('Помилка: ' + (err.message || err.code || ''), false);
+    }
+  }
+
+  // Договір без прив'язки до події — вчитель обирається вручну
+  async function clientOpenManualContract() {
+    const result = await ContractsAPI.promptCreate({
+      requireTeacher: true,
+      teachersMap: Object.fromEntries(Object.entries(teachersMap).map(([id, name]) => [id, { id, name }])),
+      defaultTitle: ''
+    });
+    if (!result) return;
+
+    try {
+      await ContractsAPI.createManual(clientData.phone || phoneKey, {
+        title: result.title,
+        teacherId: result.teacherId
+      });
+      showToast('Договір оформлено', true);
+      loadTimeline();
+    } catch (err) {
+      showToast('Помилка: ' + (err.message || err.code || ''), false);
     }
   }
 

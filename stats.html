@@ -444,6 +444,7 @@
   let groupEvents = {};
   let teachers    = {};
   let pricing     = { default: { baseReward: 50, contractBonus: 100 }, overrides: {} };
+  let allContracts = []; // [{id, phone, title, teacherId, signedAt, signedBy, ...}]
 
   // ── auth.js викличе цю функцію після логіну ───────────────
   function onAuthReady() {
@@ -452,6 +453,7 @@
     listenPricing();
     listenEvents();
     listenGroupEvents();
+    listenContracts();
     initFilters();
   }
 
@@ -502,6 +504,24 @@
     });
   }
 
+  function listenContracts() {
+    db.ref('clients').on('value', snap => {
+      allContracts = [];
+      if (snap.exists()) {
+        snap.forEach(clientSnap => {
+          const phone = clientSnap.key;
+          const v = clientSnap.val();
+          if (v.contracts) {
+            Object.entries(v.contracts).forEach(([cid, c]) => {
+              allContracts.push({ id: cid, phone, ...c });
+            });
+          }
+        });
+      }
+      renderStats();
+    });
+  }
+
   // ── FILTERS ───────────────────────────────────────────────
   function initFilters() {
     const now = new Date();
@@ -539,40 +559,40 @@
       return true;
     });
 
-    // Договори — рахуємо по contractSignedAt (місяць підписання, не проведення)
-    const contractsThisMonth = new Set(
-      Object.values(events).filter(ev => {
-        if (!ev.contractSigned) return false;
-        if (selectedTeacher && ev.assignedPersonId !== selectedTeacher) return false;
-        if (selectedMonth) {
-          // Є дата підписання — фільтруємо по ній
-          if (ev.contractSignedAt) {
-            const d = new Date(ev.contractSignedAt);
-            const m = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-            return m === selectedMonth;
-          }
-          // Fallback: по даті події
-          return ev.date && ev.date.startsWith(selectedMonth);
-        }
-        return true;
-      }).map(ev => ev.id)
-    );
+    // Договори — тепер незалежна сутність clients/{phone}/contracts/{id},
+    // прив'язана до teacherId напряму (через подію автоматично, або вручну з картки клієнта).
+    // Рахуємо по місяцю підписання (signedAt), а не по даті події.
+    const contractsFiltered = allContracts.filter(c => {
+      if (!c.teacherId) return false;
+      if (selectedTeacher && c.teacherId !== selectedTeacher) return false;
+      if (selectedMonth) {
+        if (!c.signedAt) return false;
+        const d = new Date(c.signedAt);
+        const m = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        if (m !== selectedMonth) return false;
+      }
+      return true;
+    });
 
     // Group by teacher
     // Примітка: групові події враховуються тут автоматично — кожен учасник
     // групової події дзеркалиться окремим записом в events/ (isGroupMirror:true)
-    // через group-events.js, тому окремий розрахунок для groupEvents не потрібен.
+    // через group-events.js, тому окремий розрахунок completed для groupEvents не потрібен.
     const byTeacher = {};
     completed.forEach(ev => {
       const tid = ev.assignedPersonId || '__none__';
       if (!byTeacher[tid]) byTeacher[tid] = { count: 0, contracts: 0, earnings: 0 };
       const p = getPricing(ev.assignedPersonId);
       byTeacher[tid].count++;
-      const hasContract = contractsThisMonth.has(ev.id);
-      if (hasContract) byTeacher[tid].contracts++;
-      byTeacher[tid].earnings += hasContract
-        ? p.baseReward + p.contractBonus
-        : p.baseReward;
+      byTeacher[tid].earnings += p.baseReward;
+    });
+
+    contractsFiltered.forEach(c => {
+      const tid = c.teacherId;
+      if (!byTeacher[tid]) byTeacher[tid] = { count: 0, contracts: 0, earnings: 0 };
+      const p = getPricing(tid);
+      byTeacher[tid].contracts++;
+      byTeacher[tid].earnings += p.contractBonus;
     });
 
     // ── Funnel — всі події за вибраний період/вчителя ──────────
@@ -587,7 +607,7 @@
     const fConfirmed = allForPeriod.filter(e => ['confirmed','completed'].includes(e.status)).length;
     const fCompleted = allForPeriod.filter(e => e.status === 'completed').length;
     const fCancelled = allForPeriod.filter(e => e.status === 'cancelled').length;
-    const fContract  = contractsThisMonth.size;
+    const fContract  = contractsFiltered.length;
 
     const pctOf  = (n, base) => base > 0 ? Math.round(n / base * 100) + '%' : '—';
     const setEl  = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
@@ -612,7 +632,7 @@
 
     // Summary chips
     const totalEvents    = completed.length;
-    const totalContracts = contractsThisMonth.size;
+    const totalContracts = contractsFiltered.length;
     const totalEarnings  = Object.values(byTeacher).reduce((s, d) => s + d.earnings, 0);
     document.getElementById('sum-events').textContent    = totalEvents;
     document.getElementById('sum-earnings').textContent  = `₴${totalEarnings}`;
