@@ -552,10 +552,20 @@
     const selectedMonth   = document.getElementById('stats-month').value;
     const selectedTeacher = document.getElementById('stats-teacher').value;
 
+    // isGroupMirror-записи виключаємо звідси — групові події рахуємо окремо нижче,
+    // рівно по 1 разу за подію, незалежно від кількості учасників.
     const completed = Object.values(events).filter(e => {
       if (e.status !== 'completed') return false;
+      if (e.isGroupMirror) return false;
       if (selectedMonth && (!e.date || !e.date.startsWith(selectedMonth))) return false;
       if (selectedTeacher && e.assignedPersonId !== selectedTeacher) return false;
+      return true;
+    });
+
+    const completedGroupEvents = Object.values(groupEvents).filter(ge => {
+      if (ge.status !== 'completed') return false;
+      if (selectedMonth && (!ge.date || !ge.date.startsWith(selectedMonth))) return false;
+      if (selectedTeacher && ge.assignedPersonId !== selectedTeacher) return false;
       return true;
     });
 
@@ -576,14 +586,20 @@
     });
 
     // Group by teacher
-    // Примітка: групові події враховуються тут автоматично — кожен учасник
-    // групової події дзеркалиться окремим записом в events/ (isGroupMirror:true)
-    // через group-events.js, тому окремий розрахунок completed для groupEvents не потрібен.
     const byTeacher = {};
     completed.forEach(ev => {
       const tid = ev.assignedPersonId || '__none__';
       if (!byTeacher[tid]) byTeacher[tid] = { count: 0, contracts: 0, earnings: 0 };
       const p = getPricing(ev.assignedPersonId);
+      byTeacher[tid].count++;
+      byTeacher[tid].earnings += p.baseReward;
+    });
+
+    // Групова подія = рівно 1 нарахування baseReward, скільки б людей в ній не було
+    completedGroupEvents.forEach(ge => {
+      const tid = ge.assignedPersonId || '__none__';
+      if (!byTeacher[tid]) byTeacher[tid] = { count: 0, contracts: 0, earnings: 0 };
+      const p = getPricing(ge.assignedPersonId);
       byTeacher[tid].count++;
       byTeacher[tid].earnings += p.baseReward;
     });
