@@ -346,15 +346,20 @@
       const p    = getPricing(ev.assignedPersonId);
       const hasContract = !!(contractsByEventTag[ev.id] && contractsByEventTag[ev.id].length);
       const earn = hasContract ? p.baseReward + p.contractBonus : p.baseReward;
-      const phone = ev.phone
-        ? `<span class="phone-copy" onclick="copyPhone(this,'${ev.phone}')">${escapeHTML(ev.phone)}</span>`
+      const rawPhone = ev.phone ? ev.phone.replace(/\D/g, '') : '';
+      const clientUrl = rawPhone ? `client.html?id=${encodeURIComponent(rawPhone)}` : null;
+      const phoneCell = ev.phone
+        ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span class="phone-copy" onclick="copyPhone(this,'${ev.phone}')">${escapeHTML(ev.phone)}</span>
+            ${clientUrl ? `<a href="${clientUrl}" target="_blank" style="color:var(--accent);font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap" title="Відкрити картку клієнта">↗ картка</a>` : ''}
+           </div>`
         : '—';
       return `<tr>
         <td>${escapeHTML(ev.title || '—')}</td>
         <td>${fmtDate(ev.date)}</td>
         <td>${ev.startTime || ''}–${ev.endTime || ''}</td>
         <td>${escapeHTML(teacherName(ev.assignedPersonId))}</td>
-        <td>${phone}</td>
+        <td>${phoneCell}</td>
         <td>${hasContract ? '✓' : '—'}</td>
         <td class="earnings-val">₴${earn}</td>
         <td>${escapeHTML(ev.completedBy || '—')}</td>
@@ -363,9 +368,22 @@
 
     const groupRows = groupList.map(ge => {
       const p = getPricing(ge.assignedPersonId);
-      const count = Object.keys(ge.participants || {}).length;
+      const participants = Object.values(ge.participants || {});
       const geContracts = contractsInMonth.filter(c => c.eventId && c.eventId.startsWith('group_' + ge.id + '_'));
       const earn = p.baseReward + geContracts.length * p.contractBonus;
+
+      const participantLinks = participants.map(pt => {
+        const phone = (pt.phone || '').replace(/\D/g, '');
+        const clientUrl = phone ? `client.html?id=${encodeURIComponent(phone)}` : null;
+        const namePart = clientUrl
+          ? `<a href="${clientUrl}" target="_blank" style="color:var(--text);font-weight:700;text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escapeHTML(pt.name || '—')}</a>`
+          : escapeHTML(pt.name || '—');
+        const phonePart = phone
+          ? `<span class="phone-copy" onclick="copyPhone(this,'${pt.phone}')">${escapeHTML(pt.phone)}</span>`
+          : '';
+        return `<div style="display:flex;align-items:center;gap:6px;padding:2px 0">${namePart}${phonePart ? ` · ${phonePart}` : ''}</div>`;
+      }).join('');
+
       return `<tr style="background:rgba(139,92,246,0.04)">
         <td>
           <span style="display:inline-flex;align-items:center;gap:6px">
@@ -379,7 +397,7 @@
         <td>${fmtDate(ge.date)}</td>
         <td>${ge.startTime || ''}–${ge.endTime || ''}</td>
         <td>${escapeHTML(teacherName(ge.assignedPersonId))}</td>
-        <td>${count} учасників</td>
+        <td style="min-width:180px">${participantLinks || '—'}</td>
         <td>${geContracts.length > 0 ? `✓ ${geContracts.length}` : '—'}</td>
         <td class="earnings-val">₴${earn}</td>
         <td>${escapeHTML(ge.updatedBy || ge.createdBy || '—')}</td>
