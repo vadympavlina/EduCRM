@@ -323,8 +323,10 @@
 
     list.forEach(ev => {
       const p = getPricing(ev.assignedPersonId);
-      const hasContract = !!(contractsByEventTag[ev.id] && contractsByEventTag[ev.id].length);
+      // Перевіряємо і нову систему (contracts), і стару (contractSigned) для зворотної сумісності
+      const hasContract = !!(contractsByEventTag[ev.id] && contractsByEventTag[ev.id].length) || !!ev.contractSigned;
       totalEarnings += hasContract ? p.baseReward + p.contractBonus : p.baseReward;
+      if (ev.contractSigned && !contractsByEventTag[ev.id]) totalContracts++; // стара подія з договором
     });
     groupList.forEach(ge => {
       const p = getPricing(ge.assignedPersonId);
@@ -362,7 +364,7 @@
 
     const singleRows = list.map(ev => {
       const p = getPricing(ev.assignedPersonId);
-      const hasContract = !!(contractsByEventTag[ev.id] && contractsByEventTag[ev.id].length);
+      const hasContract = !!(contractsByEventTag[ev.id] && contractsByEventTag[ev.id].length) || !!ev.contractSigned;
       const earn = hasContract ? p.baseReward + p.contractBonus : p.baseReward;
       const rawPhone = ev.phone ? ev.phone.replace(/\D/g, '') : '';
       const clientUrl = rawPhone ? `client.html?id=${encodeURIComponent(rawPhone)}` : null;

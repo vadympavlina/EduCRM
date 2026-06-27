@@ -612,6 +612,19 @@
       byTeacher[tid].earnings += p.contractBonus;
     });
 
+    // Зворотна сумісність: старі події з contractSigned:true (до міграції на нову систему договорів).
+    // Перевіряємо чи для цієї події вже є запис в новій системі, щоб не рахувати двічі.
+    const contractedEventIds = new Set(contractsFiltered.filter(c => c.eventId).map(c => c.eventId));
+    completed.forEach(ev => {
+      if (!ev.contractSigned) return; // не має старого договору
+      if (contractedEventIds.has(ev.id)) return; // вже є в новій системі
+      const tid = ev.assignedPersonId || '__none__';
+      if (!byTeacher[tid]) byTeacher[tid] = { count: 0, contracts: 0, earnings: 0 };
+      const p = getPricing(ev.assignedPersonId);
+      byTeacher[tid].contracts++;
+      byTeacher[tid].earnings += p.contractBonus;
+    });
+
     // ── Funnel — всі події за вибраний період/вчителя ──────────
     const allForPeriod = Object.values(events).filter(ev => {
       if (selectedMonth && (!ev.date || !ev.date.startsWith(selectedMonth))) return false;
