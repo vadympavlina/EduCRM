@@ -90,14 +90,32 @@
     .ct tbody td { padding: 11px 14px; font-size: 13px; color: var(--text); vertical-align: middle; }
 
     .earnings-val { color: var(--green); font-weight: 800; font-family: var(--font-mono); }
-    .phone-copy {
-      cursor: pointer; color: var(--accent); font-family: var(--font-mono);
-      font-size: 12.5px; transition: opacity 0.15s;
-    }
-    .phone-copy:hover { opacity: 0.75; }
 
-    /* Contract checkbox */
-    .ct input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
+    /* Телефон — клік відкриває картку, виглядає як посилання */
+    .phone-link {
+      color: var(--accent); font-family: var(--font-mono); font-size: 12.5px;
+      font-weight: 600; text-decoration: none; cursor: pointer;
+    }
+    .phone-link:hover { text-decoration: underline; }
+
+    /* Групова подія — кнопка розгортання */
+    .group-expand-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 8px; border-radius: 20px;
+      background: rgba(139,92,246,0.1); border: none; cursor: pointer;
+      font-size: 12px; font-weight: 700; color: #8b5cf6;
+      transition: background 0.15s; white-space: nowrap;
+    }
+    .group-expand-btn:hover { background: rgba(139,92,246,0.18); }
+    .group-expand-btn svg { transition: transform 0.2s; }
+    .group-expand-btn.open svg { transform: rotate(180deg); }
+
+    /* Підрядки учасників групи */
+    .participant-row td {
+      background: rgba(139,92,246,0.03);
+      border-top: 1px dashed rgba(139,92,246,0.15) !important;
+      padding-top: 8px; padding-bottom: 8px;
+    }
 
     /* ── EMPTY ── */
     .empty-state {
@@ -343,17 +361,14 @@
     }
 
     const singleRows = list.map(ev => {
-      const p    = getPricing(ev.assignedPersonId);
+      const p = getPricing(ev.assignedPersonId);
       const hasContract = !!(contractsByEventTag[ev.id] && contractsByEventTag[ev.id].length);
       const earn = hasContract ? p.baseReward + p.contractBonus : p.baseReward;
       const rawPhone = ev.phone ? ev.phone.replace(/\D/g, '') : '';
       const clientUrl = rawPhone ? `client.html?id=${encodeURIComponent(rawPhone)}` : null;
-      const phoneCell = ev.phone
-        ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <span class="phone-copy" onclick="copyPhone(this,'${ev.phone}')">${escapeHTML(ev.phone)}</span>
-            ${clientUrl ? `<a href="${clientUrl}" target="_blank" style="color:var(--accent);font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap" title="Відкрити картку клієнта">↗ картка</a>` : ''}
-           </div>`
-        : '—';
+      const phoneCell = clientUrl
+        ? `<a class="phone-link" href="${clientUrl}" target="_blank" title="Відкрити картку">${escapeHTML(ev.phone)}</a>`
+        : (ev.phone ? escapeHTML(ev.phone) : '—');
       return `<tr>
         <td>${escapeHTML(ev.title || '—')}</td>
         <td>${fmtDate(ev.date)}</td>
@@ -371,20 +386,10 @@
       const participants = Object.values(ge.participants || {});
       const geContracts = contractsInMonth.filter(c => c.eventId && c.eventId.startsWith('group_' + ge.id + '_'));
       const earn = p.baseReward + geContracts.length * p.contractBonus;
+      const gid = ge.id;
 
-      const participantLinks = participants.map(pt => {
-        const phone = (pt.phone || '').replace(/\D/g, '');
-        const clientUrl = phone ? `client.html?id=${encodeURIComponent(phone)}` : null;
-        const namePart = clientUrl
-          ? `<a href="${clientUrl}" target="_blank" style="color:var(--text);font-weight:700;text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escapeHTML(pt.name || '—')}</a>`
-          : escapeHTML(pt.name || '—');
-        const phonePart = phone
-          ? `<span class="phone-copy" onclick="copyPhone(this,'${pt.phone}')">${escapeHTML(pt.phone)}</span>`
-          : '';
-        return `<div style="display:flex;align-items:center;gap:6px;padding:2px 0">${namePart}${phonePart ? ` · ${phonePart}` : ''}</div>`;
-      }).join('');
-
-      return `<tr style="background:rgba(139,92,246,0.04)">
+      // Основний рядок групи з кнопкою розгортання
+      const mainRow = `<tr style="background:rgba(139,92,246,0.04)">
         <td>
           <span style="display:inline-flex;align-items:center;gap:6px">
             <svg width="13" height="13" fill="none" stroke="#8b5cf6" stroke-width="2.3" viewBox="0 0 24 24">
@@ -397,18 +402,39 @@
         <td>${fmtDate(ge.date)}</td>
         <td>${ge.startTime || ''}–${ge.endTime || ''}</td>
         <td>${escapeHTML(teacherName(ge.assignedPersonId))}</td>
-        <td style="min-width:180px">${participantLinks || '—'}</td>
+        <td>
+          <button class="group-expand-btn" id="gbtn-${gid}" onclick="toggleGroup('${gid}')">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            ${participants.length} учасників
+          </button>
+        </td>
         <td>${geContracts.length > 0 ? `✓ ${geContracts.length}` : '—'}</td>
         <td class="earnings-val">₴${earn}</td>
         <td>${escapeHTML(ge.updatedBy || ge.createdBy || '—')}</td>
       </tr>`;
+
+      // Підрядки учасників (приховані за замовчуванням)
+      const participantSubRows = participants.map(pt => {
+        const rawPh = (pt.phone || '').replace(/\D/g, '');
+        const clientUrl = rawPh ? `client.html?id=${encodeURIComponent(rawPh)}` : null;
+        const phoneCell = clientUrl
+          ? `<a class="phone-link" href="${clientUrl}" target="_blank">${escapeHTML(pt.phone || '')}</a>`
+          : (pt.phone ? escapeHTML(pt.phone) : '—');
+        return `<tr class="participant-row" data-group="${gid}" style="display:none">
+          <td colspan="4" style="color:var(--text2);padding-left:36px">${escapeHTML(pt.name || '—')}</td>
+          <td>${phoneCell}</td>
+          <td colspan="3"></td>
+        </tr>`;
+      }).join('');
+
+      return mainRow + participantSubRows;
     }).join('');
 
     wrap.innerHTML = `<div class="table-card">
       <table class="ct">
         <thead><tr>
           <th>Назва</th><th>Дата</th><th>Час</th>
-          <th>Вчитель</th><th>Телефон</th>
+          <th>Вчитель</th><th>Клієнт / Учасники</th>
           <th>Договір</th><th>Заробіток</th><th>Завершив</th>
         </tr></thead>
         <tbody>${groupRows}${singleRows}</tbody>
@@ -416,15 +442,15 @@
     </div>`;
   }
 
-  function copyPhone(el, phone) {
-    navigator.clipboard.writeText(phone).then(() => {
-      const prev = el.textContent;
-      el.textContent = 'Скопійовано!';
-      setTimeout(() => el.textContent = prev, 1400);
-    });
+  function toggleGroup(gid) {
+    const btn  = document.getElementById('gbtn-' + gid);
+    const rows = document.querySelectorAll(`tr[data-group="${gid}"]`);
+    if (!btn || !rows.length) return;
+    const isOpen = btn.classList.toggle('open');
+    rows.forEach(r => { r.style.display = isOpen ? '' : 'none'; });
   }
 
-  window.copyPhone = copyPhone;
+  window.toggleGroup = toggleGroup;
 </script>
 </body>
 </html>
