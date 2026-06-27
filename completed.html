@@ -242,7 +242,10 @@
 
   function listenEvents() {
     db.ref('events').on('value', snap => {
-      events = snap.val() || {};
+      events = {};
+      if (snap.exists()) {
+        snap.forEach(c => { events[c.key] = { id: c.key, ...c.val() }; });
+      }
       renderCompleted();
     });
   }
