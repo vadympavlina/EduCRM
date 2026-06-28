@@ -1283,6 +1283,7 @@ function openCreateModal(startStr, endStr) {
   document.getElementById('event-status-section').innerHTML = '';
   const cs = document.getElementById('event-client-section'); if (cs) cs.innerHTML = '';
   const tg = document.getElementById('event-tags-group'); if (tg) tg.style.display = 'none';
+  const ib = document.getElementById('import-banner'); if (ib) ib.remove();
   document.getElementById('event-actions').innerHTML = '';
   document.getElementById('event-modal').classList.add('open');
 }
@@ -1311,6 +1312,13 @@ function openEventModal(eventId) {
 
   // ── Client block ──────────────────────────────────────────
   renderEventClientBlock(ev);
+
+  // ── Import banner (якщо подію створено через імпорт з розширення) ──
+  const existingBanner = document.getElementById('import-banner');
+  if (existingBanner) existingBanner.remove();
+  if (ev.importSource) {
+    _showImportBanner({ importName: ev.title, importPhone: ev.phone, importSource: ev.importSource });
+  }
 
   // ── Tags ────────────────────────────────────────────────
   renderEventTags(ev.phone);
@@ -1444,7 +1452,7 @@ async function renderEventClientBlock(ev) {
       : '';
 
     const cardBtn = `<a href="${clientUrl}" target="_blank" class="event-client-btn" title="Відкрити картку клієнта в EduCRM"
-        style="background:transparent;border:1px solid var(--border);color:var(--text2);">
+        style="background:#fff;border:1px solid #d1d5db;color:#374151;">
         <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
           <circle cx="12" cy="7" r="4"/>
@@ -1473,7 +1481,7 @@ async function renderEventClientBlock(ev) {
           <div class="event-client-phone">${ev.phone}</div>
         </div>
         <a href="${clientUrl}" target="_blank" class="event-client-btn" title="Відкрити картку клієнта в EduCRM"
-           style="background:transparent;border:1px solid var(--border);color:var(--text2);">
+           style="background:#fff;border:1px solid #d1d5db;color:#374151;">
           <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
             <circle cx="12" cy="7" r="4"/>
@@ -1571,6 +1579,9 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
     data.status    = 'pending';
     data.createdBy = currentUser;
     data.createdAt = new Date().toISOString();
+    // Якщо подія створюється через імпорт з розширення — зберігаємо лінк
+    // прямо в самій події, щоб банер показувався і при наступних відкриттях
+    if (_pendingCrmLink) data.importSource = _pendingCrmLink;
     const newRef = db.ref('events').push();
     await newRef.set(data);
     sendTelegram('СТВОРЕНО', { ...data, id: newRef.key });
