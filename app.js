@@ -39,6 +39,12 @@ let allTags     = {};
 let notifReads  = {};
 const appInitTime = Date.now();
 
+// Тимчасово зберігає посилання на картку клієнта з робочої CRM
+// між моментом імпорту (через розширення) і моментом збереження події.
+// Скидається в null після першого використання, щоб не "приліпитись"
+// до іншого клієнта при наступному створенні події в тій же сесії.
+let _pendingCrmLink = null;
+
 // ── INIT ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   setupNav();
@@ -117,6 +123,10 @@ function _checkImportParams() {
   const importSource = params.get('importSource');
 
   if (!importPhone && !importName) return;
+
+  // Зберігаємо лінк на картку клієнта в робочій CRM — підхопиться
+  // автоматично при збереженні події (event-save-btn)
+  if (importSource) _pendingCrmLink = importSource;
 
   // Чекаємо поки дані завантажаться (вчителі/події) — потім відкриваємо модалку
   // Використовуємо невеликий delay щоб calendar і listeners встигли ініціалізуватись
@@ -1433,10 +1443,23 @@ async function renderEventClientBlock(ev) {
   // Load client name from Firebase
   try {
     const snap = await db.ref('clients/' + phone).once('value');
-    const name = snap.exists() ? (snap.val().name || '') : '';
+    const clientData = snap.exists() ? snap.val() : {};
+    const name = clientData.name || '';
+    const crmLink = clientData.crmLink || '';
     const initials = name
       ? name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
       : phone.slice(-2);
+
+    const crmBtn = crmLink
+      ? `<a href="${crmLink}" target="_blank" class="event-client-btn" title="Відкрити картку в робочій CRM" style="background:var(--accent-light, rgba(79,110,247,0.1));">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          CRM
+        </a>`
+      : '';
 
     section.innerHTML = `
       <div class="event-client-chip">
@@ -1445,6 +1468,7 @@ async function renderEventClientBlock(ev) {
           <div class="event-client-name">${name ? name.replace(/</g,'&lt;') : 'Без імені'}</div>
           <div class="event-client-phone">${ev.phone}</div>
         </div>
+        ${crmBtn}
         <a href="${clientUrl}" target="_blank" class="event-client-btn">
           <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
@@ -1564,11 +1588,13 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
     const newRef = db.ref('events').push();
     await newRef.set(data);
     sendTelegram('СТВОРЕНО', { ...data, id: newRef.key });
-    if (phone) upsertClient(phone, title);
+    if (phone) await upsertClient(phone, title, _pendingCrmLink);
+    _pendingCrmLink = null;
     showToast('Подію створено', 'success');
   } else {
     await db.ref('events/' + id).update(data);
-    if (phone) upsertClient(phone, title);
+    if (phone) await upsertClient(phone, title, _pendingCrmLink);
+    _pendingCrmLink = null;
     // Подію відредаговано — оновлюємо існуюче повідомлення в Telegram (не шлемо нове)
     const existing = events[id];
     const tgStatusMap = { pending: 'СТВОРЕНО', confirmed: 'ПІДТВЕРДЖЕНО', cancelled: 'СКАСОВАНО', completed: 'ЗАВЕРШЕНО' };
@@ -1783,15 +1809,30 @@ function normalizePhone(p) {
   return d.length >= 9 ? d : null;
 }
 
-async function upsertClient(rawPhone, eventTitle) {
+async function upsertClient(rawPhone, eventTitle, crmLink) {
   const key = normalizePhone(rawPhone);
   if (!key) return;
   const ref  = db.ref('clients/' + key);
   const snap = await ref.once('value');
+
   if (!snap.exists()) {
-    await ref.set({ phone: rawPhone, name: eventTitle || '', createdAt: Date.now(), lastEventAt: Date.now() });
+    // Новий клієнт — одразу записуємо лінк на картку в CRM, якщо він є
+    await ref.set({
+      phone: rawPhone,
+      name: eventTitle || '',
+      createdAt: Date.now(),
+      lastEventAt: Date.now(),
+      crmLink: crmLink || null
+    });
   } else {
-    await ref.update({ lastEventAt: Date.now() });
+    const update = { lastEventAt: Date.now() };
+    // Клієнт вже існує — додаємо лінк на картку в CRM тільки якщо його ще нема
+    // (не перезаписуємо, якщо вже збережений раніше)
+    const existing = snap.val();
+    if (crmLink && !existing.crmLink) {
+      update.crmLink = crmLink;
+    }
+    await ref.update(update);
   }
 }
 

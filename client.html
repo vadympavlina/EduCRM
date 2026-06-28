@@ -332,6 +332,17 @@
             </div>
           </div>
           <div class="ib-row"><span class="ib-label">Доданий</span><span class="ib-val text" id="info-created">—</span></div>
+          <div class="ib-row" id="info-crmlink-row" style="display:none">
+            <span class="ib-label">Картка в CRM</span>
+            <a id="info-crmlink" href="#" target="_blank" class="ib-val text" style="color:var(--accent);text-decoration:none;display:flex;align-items:center;gap:4px">
+              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" style="flex-shrink:0">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+              Відкрити
+            </a>
+          </div>
         </div>
         <div class="info-block">
           <div class="ib-head">Деталі</div>
@@ -492,6 +503,17 @@
     }
     document.getElementById('info-created').textContent = fmtDate(clientData.createdAt);
     document.getElementById('cl-av').textContent        = name ? ini(name) : (clientData.phone || phoneKey).slice(-2);
+
+    // Лінк на картку клієнта в робочій CRM (якщо є — додається автоматично
+    // через розширення при імпорті, або вручну)
+    const crmRow  = document.getElementById('info-crmlink-row');
+    const crmLink = document.getElementById('info-crmlink');
+    if (clientData.crmLink) {
+      crmLink.href = clientData.crmLink;
+      crmRow.style.display = 'flex';
+    } else {
+      crmRow.style.display = 'none';
+    }
   }
 
   function renderStats(evArr, contractsArr) {
