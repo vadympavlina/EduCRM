@@ -168,33 +168,37 @@ function _showImportBanner({ importName, importPhone, importSource }) {
   const banner = document.createElement('div');
   banner.id = 'import-banner';
   banner.style.cssText = [
-    'background:rgba(5,150,105,0.08)',
-    'border:1.5px solid rgba(5,150,105,0.3)',
+    'background:#f0fdf6',
+    'border:1px solid #bbf0d4',
     'border-radius:10px',
-    'padding:10px 14px',
+    'padding:10px 12px',
     'margin-bottom:14px',
     'display:flex',
-    'align-items:flex-start',
+    'align-items:center',
     'gap:10px',
-    'font-size:12.5px',
-    'color:#065f46',
-    'font-weight:600'
+    'font-size:12px'
   ].join(';');
 
   const sourceLink = importSource
-    ? `<a href="${importSource}" target="_blank" style="color:#059669;text-decoration:underline;font-size:11px;display:block;margin-top:3px;word-break:break-all">${importSource.replace(/^https?:\/\//, '').slice(0, 60)}…</a>`
+    ? `<a href="${importSource}" target="_blank" style="color:#0b8c57;text-decoration:none;font-weight:700;display:inline-flex;align-items:center;gap:3px;flex-shrink:0">
+        Картка
+        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      </a>`
     : '';
 
+  const details = [importName, importPhone].filter(Boolean).map(escapeHTML).join(' · ');
+
   banner.innerHTML = `
-    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px">
-      <polyline points="20 6 9 17 4 12"/>
-    </svg>
-    <div>
-      Імпортовано з робочої CRM
-      ${importName ? `<span style="display:block;font-size:11px;margin-top:2px;opacity:0.8">Клієнт: ${escapeHTML(importName)}</span>` : ''}
-      ${importPhone ? `<span style="display:block;font-size:11px;opacity:0.8">Телефон: ${escapeHTML(importPhone)}</span>` : ''}
-      ${sourceLink}
-    </div>`;
+    <div style="width:26px;height:26px;border-radius:50%;background:#0ea968;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <svg width="14" height="14" fill="none" stroke="#fff" stroke-width="2.6" viewBox="0 0 24 24">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <div style="flex:1;min-width:0;overflow:hidden">
+      <div style="font-weight:700;color:#0b8c57">Імпортовано з CRM</div>
+      ${details ? `<div style="color:#3a8a68;font-size:11px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${details}</div>` : ''}
+    </div>
+    ${sourceLink}`;
 
   // Вставляємо банер на початок modal-body
   const modalBody = modal.querySelector('.modal-body');
@@ -1375,33 +1379,10 @@ function openEventModal(eventId) {
 }
 
 function renderEventTags(phone) {
+  // Секцію тегів клієнта прибрано з модалки створення/редагування події.
+  // Функція залишена як no-op, щоб не ламати виклики нижче в коді.
   const group = document.getElementById('event-tags-group');
-  const chips = document.getElementById('event-tags-chips');
-  if (!group || !chips) return;
-
-  const tagEntries = Object.entries(allTags);
-  if (!phone || tagEntries.length === 0) {
-    group.style.display = 'none';
-    return;
-  }
-
-  const norm = phone.replace(/\D/g, '');
-  if (norm.length < 9) { group.style.display = 'none'; return; }
-
-  group.style.display = 'block';
-
-  // Load current client tags
-  db.ref('clients/' + norm + '/tags').once('value').then(snap => {
-    const clientTags = snap.val() || [];
-    chips.innerHTML = tagEntries.map(([id, tag]) => {
-      const active = clientTags.includes(id);
-      return `<span class="tag-chip-sm ${active ? '' : 'inactive'}"
-        style="background:${tag.color || '#4f6ef7'};padding:3px 10px;border-radius:20px;
-               font-size:12px;font-weight:700;color:#fff;cursor:pointer;
-               opacity:${active ? 1 : 0.35};transition:opacity 0.15s"
-        onclick="toggleEventTag('${norm}','${id}',this)">${tag.name}</span>`;
-    }).join('');
-  });
+  if (group) group.style.display = 'none';
 }
 
 async function toggleEventTag(norm, tagId, el) {
@@ -1451,8 +1432,9 @@ async function renderEventClientBlock(ev) {
       : phone.slice(-2);
 
     const crmBtn = crmLink
-      ? `<a href="${crmLink}" target="_blank" class="event-client-btn" title="Відкрити картку в робочій CRM" style="background:var(--accent-light, rgba(79,110,247,0.1));">
-          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+      ? `<a href="${crmLink}" target="_blank" class="event-client-btn" title="Відкрити картку в робочій CRM"
+          style="background:#4f6ef7;border:1px solid #4f6ef7;color:#fff;">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
             <polyline points="15 3 21 3 21 9"/>
             <line x1="10" y1="14" x2="21" y2="3"/>
@@ -1461,6 +1443,15 @@ async function renderEventClientBlock(ev) {
         </a>`
       : '';
 
+    const cardBtn = `<a href="${clientUrl}" target="_blank" class="event-client-btn" title="Відкрити картку клієнта в EduCRM"
+        style="background:transparent;border:1px solid var(--border);color:var(--text2);">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        Картка
+      </a>`;
+
     section.innerHTML = `
       <div class="event-client-chip">
         <div class="event-client-av">${initials}</div>
@@ -1468,15 +1459,10 @@ async function renderEventClientBlock(ev) {
           <div class="event-client-name">${name ? name.replace(/</g,'&lt;') : 'Без імені'}</div>
           <div class="event-client-phone">${ev.phone}</div>
         </div>
-        ${crmBtn}
-        <a href="${clientUrl}" target="_blank" class="event-client-btn">
-          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            <polyline points="15 3 21 3 21 9"/>
-            <line x1="10" y1="14" x2="21" y2="3"/>
-          </svg>
-          Картка
-        </a>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          ${crmBtn}
+          ${cardBtn}
+        </div>
       </div>`;
   } catch (e) {
     section.innerHTML = `
@@ -1486,11 +1472,11 @@ async function renderEventClientBlock(ev) {
           <div class="event-client-name">Без імені</div>
           <div class="event-client-phone">${ev.phone}</div>
         </div>
-        <a href="${clientUrl}" target="_blank" class="event-client-btn">
-          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            <polyline points="15 3 21 3 21 9"/>
-            <line x1="10" y1="14" x2="21" y2="3"/>
+        <a href="${clientUrl}" target="_blank" class="event-client-btn" title="Відкрити картку клієнта в EduCRM"
+           style="background:transparent;border:1px solid var(--border);color:var(--text2);">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
           </svg>
           Картка
         </a>
