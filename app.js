@@ -105,6 +105,90 @@ async function startApp() {
   if (typeof GroupEvents !== 'undefined') GroupEvents.listen();
 
   setTimeout(initCalendar, 200);
+
+  // Перевіряємо чи відкрита сторінка з параметрами імпорту від Chrome Extension
+  _checkImportParams();
+}
+
+function _checkImportParams() {
+  const params = new URLSearchParams(window.location.search);
+  const importName   = params.get('importName');
+  const importPhone  = params.get('importPhone');
+  const importSource = params.get('importSource');
+
+  if (!importPhone && !importName) return;
+
+  // Чекаємо поки дані завантажаться (вчителі/події) — потім відкриваємо модалку
+  // Використовуємо невеликий delay щоб calendar і listeners встигли ініціалізуватись
+  setTimeout(() => {
+    openCreateModal();
+
+    // Заповнюємо поля
+    if (importPhone) {
+      const phoneEl = document.getElementById('event-phone');
+      if (phoneEl) {
+        phoneEl.value = importPhone;
+        phoneEl.dispatchEvent(new Event('input'));
+      }
+    }
+    if (importName) {
+      const titleEl = document.getElementById('event-title');
+      if (titleEl && !titleEl.value) {
+        // Залишаємо title порожнім — ім'я клієнта не завжди = назва події
+        // але показуємо підказку звідки дані
+      }
+    }
+
+    // Показуємо банер звідки імпортовано
+    _showImportBanner({ importName, importPhone, importSource });
+
+    // Очищаємо URL щоб не повторювався при перезавантаженні
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, '', cleanUrl);
+  }, 800);
+}
+
+function _showImportBanner({ importName, importPhone, importSource }) {
+  const existing = document.getElementById('import-banner');
+  if (existing) existing.remove();
+
+  const modal = document.getElementById('event-modal');
+  if (!modal) return;
+
+  const banner = document.createElement('div');
+  banner.id = 'import-banner';
+  banner.style.cssText = [
+    'background:rgba(5,150,105,0.08)',
+    'border:1.5px solid rgba(5,150,105,0.3)',
+    'border-radius:10px',
+    'padding:10px 14px',
+    'margin-bottom:14px',
+    'display:flex',
+    'align-items:flex-start',
+    'gap:10px',
+    'font-size:12.5px',
+    'color:#065f46',
+    'font-weight:600'
+  ].join(';');
+
+  const sourceLink = importSource
+    ? `<a href="${importSource}" target="_blank" style="color:#059669;text-decoration:underline;font-size:11px;display:block;margin-top:3px;word-break:break-all">${importSource.replace(/^https?:\/\//, '').slice(0, 60)}…</a>`
+    : '';
+
+  banner.innerHTML = `
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+    <div>
+      Імпортовано з робочої CRM
+      ${importName ? `<span style="display:block;font-size:11px;margin-top:2px;opacity:0.8">Клієнт: ${escapeHTML(importName)}</span>` : ''}
+      ${importPhone ? `<span style="display:block;font-size:11px;opacity:0.8">Телефон: ${escapeHTML(importPhone)}</span>` : ''}
+      ${sourceLink}
+    </div>`;
+
+  // Вставляємо банер на початок modal-body
+  const modalBody = modal.querySelector('.modal-body');
+  if (modalBody) modalBody.prepend(banner);
 }
 
 // ── PRESENCE (ОНЛАЙН СТАТУС) ─────────────────────────────────
