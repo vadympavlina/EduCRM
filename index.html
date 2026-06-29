@@ -62,11 +62,25 @@
     .event-client-btn:hover { background: var(--accent-light); }
 
     /* ── EVENT MODAL — повний редизайн ───────────────────── */
-    #event-modal .modal { max-width: 460px; }
+    #event-modal .modal { max-width: 640px; }
     #event-modal .modal-body {
       display: flex;
       flex-direction: column;
       gap: 14px;
+    }
+    #event-modal .field-grid-2 {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 14px;
+    }
+    #event-modal .field-grid-4 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 640px) {
+      #event-modal .field-grid-2,
+      #event-modal .field-grid-4 { grid-template-columns: 1fr; }
     }
 
     /* Статус-бар (Очікує / Створив / Підтвердив) */
@@ -636,24 +650,23 @@
       <div id="event-client-section"></div>
 
       <div class="field-section">
-        <div class="form-group">
-          <label class="form-label">Назва *</label>
-          <input type="text" class="form-control" id="event-title" placeholder="напр. Урок математики — Іван">
+        <div class="field-grid-2">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Назва *</label>
+            <input type="text" class="form-control" id="event-title" placeholder="напр. Урок математики — Іван">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              Телефон
+            </label>
+            <input type="tel" class="form-control" id="event-phone" placeholder="+380 XX XXX XX XX" autocomplete="tel">
+          </div>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" style="margin-top:12px;margin-bottom:0">
           <label class="form-label">Опис</label>
-          <textarea class="form-control" id="event-description" placeholder="Нотатки, деталі…"></textarea>
-        </div>
-      </div>
-
-      <div class="field-section">
-        <div class="form-group">
-          <label class="form-label">
-            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-            Телефон
-          </label>
-          <input type="tel" class="form-control" id="event-phone" placeholder="+380 XX XXX XX XX" autocomplete="tel">
+          <textarea class="form-control" id="event-description" placeholder="Нотатки, деталі…" style="min-height:56px"></textarea>
         </div>
       </div>
 
@@ -662,23 +675,22 @@
           <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           Розклад
         </div>
-        <div class="form-row">
-          <div class="form-group">
+        <div class="field-grid-2">
+          <div class="form-group" style="margin-bottom:0">
             <label class="form-label">Дата *</label>
             <input type="date" class="form-control" id="event-date">
           </div>
-          <div class="form-group">
+          <div class="form-group" style="margin-bottom:0">
             <label class="form-label">Вчитель</label>
             <select class="form-control" id="event-teacher"></select>
           </div>
         </div>
-
-        <div class="form-row">
-          <div class="form-group">
+        <div class="field-grid-2" style="margin-top:12px">
+          <div class="form-group" style="margin-bottom:0">
             <label class="form-label">Початок *</label>
             <input type="time" class="form-control" id="event-start">
           </div>
-          <div class="form-group">
+          <div class="form-group" style="margin-bottom:0">
             <label class="form-label">Кінець *</label>
             <input type="time" class="form-control" id="event-end">
           </div>
