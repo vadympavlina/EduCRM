@@ -1635,11 +1635,13 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
       await newRef.set(data);
       sendTelegram('СТВОРЕНО', { ...data, id: newRef.key });
       if (phone) await upsertClient(phone, title, _pendingCrmLink);
+      if (phone) refreshLookup(phone, { ...data, id: newRef.key });
       _pendingCrmLink = null;
       showToast('Подію створено', 'success');
     } else {
       await db.ref('events/' + id).update(data);
       if (phone) await upsertClient(phone, title, _pendingCrmLink);
+      if (phone) refreshLookup(phone, { ...data, id });
       _pendingCrmLink = null;
       // Подію відредаговано — оновлюємо існуюче повідомлення в Telegram (не шлемо нове)
       const existing = events[id];
@@ -1663,6 +1665,7 @@ async function confirmEvent(id) {
   if (!ev) return;
   await db.ref('events/' + id).update({ status: 'confirmed', confirmedBy: currentUser });
   sendTelegram('ПІДТВЕРДЖЕНО', ev);
+  if (ev.phone) refreshLookup(ev.phone, { ...ev, id, status: 'confirmed' });
   showToast('Подію підтверджено', 'success');
   closeModal('event-modal');
 }
@@ -1672,6 +1675,7 @@ function cancelEvent(id) {
     const ev = events[id];
     await db.ref('events/' + id).update({ status: 'cancelled', cancelledBy: currentUser });
     sendTelegram('СКАСОВАНО', ev);
+    if (ev.phone) refreshLookup(ev.phone, { ...ev, id, status: 'cancelled' });
     showToast('Подію скасовано', 'info');
     closeModal('event-modal');
   });
@@ -1689,6 +1693,7 @@ function completeEvent(id) {
       completedAt:    new Date().toISOString(),
       contractSigned: false
     });
+    if (ev.phone) refreshLookup(ev.phone, { ...ev, id, status: 'completed' });
     showToast('Подію завершено', 'success');
     closeModal('event-modal');
   });
@@ -1705,6 +1710,9 @@ function deleteEvent(id) {
       }).catch(() => {}); 
     }
     await db.ref('events/' + id).remove();
+    // Подію видалено — позначаємо як "скасовану" для перерахунку lookup,
+    // щоб refreshLookup не врахувала вже неіснуючу подію
+    if (ev && ev.phone) refreshLookup(ev.phone, { ...ev, id, status: 'cancelled' });
     showToast('Подію видалено', 'info');
     closeModal('event-modal');
   });
@@ -1860,6 +1868,54 @@ function normalizePhone(p) {
   if (!p) return null;
   const d = p.replace(/\D/g, '');
   return d.length >= 9 ? d : null;
+}
+
+// ── Публічна "lookup"-гілка для розширення в робочій CRM ──────────
+// Зберігає МІНІМУМ даних (без імені, без описів) по нормалізованому
+// телефону, щоб розширення на crm.itstep.org могло перевірити чи є
+// майбутня подія, без потреби авторизації Firebase.
+// Правило безпеки для цієї гілки має бути: "/lookup": { ".read": true, ".write": "auth != null" }
+async function refreshLookup(rawPhone, freshEvent) {
+  const key = normalizePhone(rawPhone);
+  if (!key) return;
+
+  const now = Date.now();
+  let soonest = null;
+
+  // Беремо локальний кеш подій + (якщо передано) щойно створену/оновлену подію,
+  // яка може ще не встигнути долетіти через Firebase listener в `events`
+  const pool = [];
+  if (freshEvent) pool.push(freshEvent);
+  pool.push(...Object.values(events));
+
+  const seenIds = new Set();
+  pool.forEach(ev => {
+    if (!ev.phone) return;
+    if (normalizePhone(ev.phone) !== key) return;
+    if (ev.status === 'cancelled' || ev.status === 'completed') return;
+    if (!ev.date || !ev.startTime) return;
+    if (ev.id && seenIds.has(ev.id)) return;
+    if (ev.id) seenIds.add(ev.id);
+    const start = parseDateTime(ev.date, ev.startTime);
+    if (start.getTime() < now) return; // подія вже минула
+    if (!soonest || start.getTime() < soonest._ts) {
+      soonest = { _ts: start.getTime(), id: ev.id, date: ev.date, startTime: ev.startTime, status: ev.status };
+    }
+  });
+
+  const ref = db.ref('lookup/' + key);
+  if (soonest) {
+    await ref.set({
+      hasUpcoming: true,
+      eventId: soonest.id,
+      date: soonest.date,
+      startTime: soonest.startTime,
+      status: soonest.status,
+      updatedAt: Date.now()
+    });
+  } else {
+    await ref.remove();
+  }
 }
 
 async function upsertClient(rawPhone, eventTitle, crmLink) {
