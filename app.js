@@ -45,6 +45,25 @@ const appInitTime = Date.now();
 // до іншого клієнта при наступному створенні події в тій же сесії.
 let _pendingCrmLink = null;
 
+// Автоматично підлаштовує висоту textarea "Опис" під вміст
+function _resizeDescriptionTextarea() {
+  const el = document.getElementById('event-description');
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const descEl = document.getElementById('event-description');
+  if (descEl) descEl.addEventListener('input', _resizeDescriptionTextarea);
+
+  // Прибираємо червону підсвітку помилки одразу, як юзер починає виправляти поле
+  ['event-title', 'event-date', 'event-start', 'event-end', 'event-phone', 'event-teacher'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => el.classList.remove('input-error'));
+  });
+});
+
 // ── INIT ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   setupNav();
@@ -1286,6 +1305,9 @@ function openCreateModal(startStr, endStr) {
   const ib = document.getElementById('import-banner'); if (ib) ib.remove();
   document.getElementById('event-actions').innerHTML = '';
   document.getElementById('event-modal').classList.add('open');
+
+  _resizeDescriptionTextarea();
+  setTimeout(() => document.getElementById('event-title').focus(), 60);
 }
 
 function openEventModal(eventId) {
@@ -1384,6 +1406,9 @@ function openEventModal(eventId) {
   }
 
   document.getElementById('event-modal').classList.add('open');
+
+  _resizeDescriptionTextarea();
+  setTimeout(() => document.getElementById('event-title').focus(), 60);
 }
 
 function renderEventTags(phone) {
@@ -1526,23 +1551,41 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
   const endTime     = document.getElementById('event-end').value;
   const assignedPersonId = document.getElementById('event-teacher').value;
 
-  if (!title || !date || !startTime || !endTime) {
-    showToast("Заповніть обов'язкові поля", 'error'); return;
+  // Підсвічуємо кожне порожнє обов'язкове поле червоним
+  const requiredFields = [
+    ['event-title', title],
+    ['event-date', date],
+    ['event-start', startTime],
+    ['event-end', endTime]
+  ];
+  let hasEmpty = false;
+  requiredFields.forEach(([elId, val]) => {
+    const el = document.getElementById(elId);
+    if (!val) {
+      hasEmpty = true;
+      el.classList.add('input-error');
+      setTimeout(() => el.classList.remove('input-error'), 2500);
+    }
+  });
+  if (hasEmpty) {
+    showToast("Заповніть обов'язкові поля", 'error');
+    requiredFields.find(([id, val]) => !val) && document.getElementById(requiredFields.find(([id, val]) => !val)[0]).focus();
+    return;
   }
 
   if (!assignedPersonId) {
     const teacherEl = document.getElementById('event-teacher');
-    teacherEl.style.borderColor = 'var(--red)';
+    teacherEl.classList.add('input-error');
     teacherEl.focus();
-    setTimeout(() => teacherEl.style.borderColor = '', 2000);
+    setTimeout(() => teacherEl.classList.remove('input-error'), 2500);
     showToast('Оберіть вчителя', 'error'); return;
   }
 
   if (!phone) {
     const phoneEl = document.getElementById('event-phone');
-    phoneEl.style.borderColor = 'var(--red)';
+    phoneEl.classList.add('input-error');
     phoneEl.focus();
-    setTimeout(() => phoneEl.style.borderColor = '', 2000);
+    setTimeout(() => phoneEl.classList.remove('input-error'), 2500);
     showToast('Вкажіть номер телефону клієнта', 'error'); return;
   }
 
@@ -1575,31 +1618,44 @@ document.getElementById('event-save-btn').addEventListener('click', async () => 
 
   const data = { title, description, phone, date, startTime, endTime, assignedPersonId };
 
-  if (!id) {
-    data.status    = 'pending';
-    data.createdBy = currentUser;
-    data.createdAt = new Date().toISOString();
-    // Якщо подія створюється через імпорт з розширення — зберігаємо лінк
-    // прямо в самій події, щоб банер показувався і при наступних відкриттях
-    if (_pendingCrmLink) data.importSource = _pendingCrmLink;
-    const newRef = db.ref('events').push();
-    await newRef.set(data);
-    sendTelegram('СТВОРЕНО', { ...data, id: newRef.key });
-    if (phone) await upsertClient(phone, title, _pendingCrmLink);
-    _pendingCrmLink = null;
-    showToast('Подію створено', 'success');
-  } else {
-    await db.ref('events/' + id).update(data);
-    if (phone) await upsertClient(phone, title, _pendingCrmLink);
-    _pendingCrmLink = null;
-    // Подію відредаговано — оновлюємо існуюче повідомлення в Telegram (не шлемо нове)
-    const existing = events[id];
-    const tgStatusMap = { pending: 'СТВОРЕНО', confirmed: 'ПІДТВЕРДЖЕНО', cancelled: 'СКАСОВАНО', completed: 'ЗАВЕРШЕНО' };
-    const tgStatus = tgStatusMap[existing?.status] || 'СТВОРЕНО';
-    editTelegramMessage(tgStatus, { ...existing, ...data, id });
-    showToast('Подію оновлено', 'success');
+  const saveBtn = document.getElementById('event-save-btn');
+  const saveBtnOriginalHTML = saveBtn.innerHTML;
+  saveBtn.classList.add('is-loading');
+  saveBtn.innerHTML = '<span class="save-spinner"></span>Зберігаю…';
+
+  try {
+    if (!id) {
+      data.status    = 'pending';
+      data.createdBy = currentUser;
+      data.createdAt = new Date().toISOString();
+      // Якщо подія створюється через імпорт з розширення — зберігаємо лінк
+      // прямо в самій події, щоб банер показувався і при наступних відкриттях
+      if (_pendingCrmLink) data.importSource = _pendingCrmLink;
+      const newRef = db.ref('events').push();
+      await newRef.set(data);
+      sendTelegram('СТВОРЕНО', { ...data, id: newRef.key });
+      if (phone) await upsertClient(phone, title, _pendingCrmLink);
+      _pendingCrmLink = null;
+      showToast('Подію створено', 'success');
+    } else {
+      await db.ref('events/' + id).update(data);
+      if (phone) await upsertClient(phone, title, _pendingCrmLink);
+      _pendingCrmLink = null;
+      // Подію відредаговано — оновлюємо існуюче повідомлення в Telegram (не шлемо нове)
+      const existing = events[id];
+      const tgStatusMap = { pending: 'СТВОРЕНО', confirmed: 'ПІДТВЕРДЖЕНО', cancelled: 'СКАСОВАНО', completed: 'ЗАВЕРШЕНО' };
+      const tgStatus = tgStatusMap[existing?.status] || 'СТВОРЕНО';
+      editTelegramMessage(tgStatus, { ...existing, ...data, id });
+      showToast('Подію оновлено', 'success');
+    }
+    closeModal('event-modal');
+  } catch (err) {
+    showToast('Помилка збереження. Спробуй ще раз', 'error');
+    console.error(err);
+  } finally {
+    saveBtn.classList.remove('is-loading');
+    saveBtn.innerHTML = saveBtnOriginalHTML;
   }
-  closeModal('event-modal');
 });
 
 async function confirmEvent(id) {

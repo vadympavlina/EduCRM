@@ -145,6 +145,37 @@
       padding-top: 12px;
       border-top: 1px solid var(--border);
     }
+    #event-modal .form-control.input-error {
+      border-color: var(--red) !important;
+      background: var(--red-bg) !important;
+      animation: input-error-shake 0.3s;
+    }
+    @keyframes input-error-shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-3px); }
+      75% { transform: translateX(3px); }
+    }
+    #event-modal #event-description {
+      resize: none;
+      overflow: hidden;
+      transition: height 0.1s ease-out;
+    }
+    #event-save-btn.is-loading {
+      opacity: 0.75;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    #event-save-btn .save-spinner {
+      width: 13px; height: 13px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+      animation: spin 0.7s linear infinite;
+      vertical-align: -2px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   
     @keyframes popup-in {
       from { opacity:0; transform:translate(-50%,-48%) scale(0.96); }
@@ -673,7 +704,7 @@
 
           <div class="form-group" style="margin-top:12px;margin-bottom:0">
             <label class="form-label">Опис</label>
-            <textarea class="form-control" id="event-description" placeholder="Нотатки, деталі…" style="min-height:84px"></textarea>
+            <textarea class="form-control" id="event-description" placeholder="Нотатки, деталі…" rows="3"></textarea>
           </div>
         </div>
 
