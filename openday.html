@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f7f8fb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Відкритий захід</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f6ef7'/><stop offset='1' stop-color='%233b5be8'/></linearGradient></defs><rect width='32' height='32' rx='9' fill='url(%23g)'/><circle cx='11' cy='13' r='4' fill='white'/><path d='M4 27c0-4 3-7 7-7s7 3 7 7' stroke='white' stroke-width='2.4' fill='none' stroke-linecap='round'/><circle cx='23' cy='11' r='3' fill='white' opacity='.85'/></svg>">
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<style>
+:root{
+  --bg:#f7f8fb; --bg2:#ffffff; --bg3:#f1f3f7; --bg4:#e8ebf1;
+  --border:#e4e7ee;
+  --text:#1a1d27; --text2:#4c5262; --text3:#8b91a3;
+  --accent:#4f6ef7; --accent-hover:#3b5be8; --accent-light:#ecf1ff;
+  --green:#059669; --green-hover:#047857; --green-bg:#e6f7ee; --green-text:#047857;
+  --red:#e5484d; --red-bg:#fdeceb; --red-text:#c93a3f;
+  --font-main:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --shadow-xs:0 1px 2px rgba(20,25,45,.05);
+  --shadow-sm:0 4px 14px rgba(20,25,45,.08);
+  --shadow-md:0 14px 40px rgba(20,25,45,.16);
+  --radius:14px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  font-family:var(--font-main); background:var(--bg); color:var(--text);
+  min-height:100dvh; display:flex; flex-direction:column;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+
+/* ── HEADER ── */
+.topbar{
+  position:sticky; top:0; z-index:20;
+  background:rgba(255,255,255,.92); backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  padding:calc(14px + env(safe-area-inset-top)) 16px 14px;
+}
+.tb-inner{max-width:720px; margin:0 auto; display:flex; flex-direction:column; gap:10px;}
+.tb-eyebrow{
+  font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.8px;
+  color:var(--accent); display:flex; align-items:center; gap:6px;
+}
+.tb-eyebrow svg{width:13px;height:13px;flex-shrink:0;}
+.title-input{
+  border:none; background:transparent; outline:none;
+  font-family:var(--font-main); font-size:22px; font-weight:800; color:var(--text);
+  width:100%; padding:2px 0; border-bottom:1.5px solid transparent; transition:border-color .15s;
+}
+.title-input:focus{border-color:var(--accent);}
+.title-input::placeholder{color:var(--text3); font-weight:700;}
+.tb-stats{display:flex; gap:8px; flex-wrap:wrap;}
+.stat-pill{
+  display:flex; align-items:baseline; gap:5px;
+  background:var(--bg3); border:1px solid var(--border); border-radius:20px;
+  padding:5px 12px 5px 10px; font-size:12.5px; font-weight:700; color:var(--text2);
+}
+.stat-pill b{font-family:var(--font-mono); font-size:14px; color:var(--text);}
+.stat-pill.on{background:var(--green-bg); border-color:transparent;}
+.stat-pill.on b{color:var(--green-text);}
+
+/* ── LIST ── */
+main{flex:1; max-width:720px; width:100%; margin:0 auto; padding:16px; padding-bottom:100px;}
+.empty{
+  text-align:center; padding:64px 20px; color:var(--text3);
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+}
+.empty svg{color:var(--border);}
+.empty-title{font-size:15px; font-weight:800; color:var(--text2);}
+.empty-sub{font-size:13px; max-width:260px; line-height:1.5;}
+
+.list{display:flex; flex-direction:column; gap:9px;}
+.row{
+  position:relative; display:flex; align-items:center; gap:12px;
+  background:var(--bg2); border:1.5px solid var(--border); border-radius:var(--radius);
+  padding:12px 12px 12px 14px; cursor:pointer; user-select:none;
+  transition:background .18s, border-color .18s, box-shadow .18s, transform .1s;
+}
+.row:active{transform:scale(.985);}
+.row.present{
+  background:var(--green-bg); border-color:rgba(5,150,105,.35); box-shadow:var(--shadow-xs);
+}
+.row-check{
+  flex-shrink:0; width:26px; height:26px; border-radius:50%;
+  border:2px solid var(--border); background:var(--bg2);
+  display:flex; align-items:center; justify-content:center;
+  transition:background .18s, border-color .18s, transform .2s;
+}
+.row.present .row-check{
+  background:var(--green); border-color:var(--green); transform:scale(1.06);
+}
+.row-check svg{width:14px; height:14px; color:#fff; opacity:0; transform:scale(.4); transition:opacity .15s, transform .15s;}
+.row.present .row-check svg{opacity:1; transform:scale(1);}
+
+.row-body{flex:1; min-width:0;}
+.row-name{font-size:14.5px; font-weight:800; color:var(--text); line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.row-meta{display:flex; gap:10px; margin-top:2px; flex-wrap:wrap;}
+.row-meta span{font-size:12px; font-weight:600; color:var(--text3); font-family:var(--font-mono); display:flex; align-items:center; gap:3px;}
+.row.present .row-meta span{color:var(--green-text); opacity:.85;}
+
+.row-actions{display:flex; gap:4px; flex-shrink:0;}
+.icon-btn{
+  width:32px; height:32px; border-radius:9px; border:none; background:transparent;
+  display:flex; align-items:center; justify-content:center; color:var(--text3);
+  transition:background .15s, color .15s;
+}
+.icon-btn:hover{background:var(--bg3); color:var(--text2);}
+.icon-btn.danger:hover{background:var(--red-bg); color:var(--red-text);}
+.badge-present{
+  font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.4px;
+  color:var(--green-text); background:var(--bg2); border:1px solid rgba(5,150,105,.3);
+  padding:2px 7px; border-radius:6px; flex-shrink:0; display:none;
+}
+.row.present .badge-present{display:inline-block;}
+
+/* ── FAB ── */
+.fab{
+  position:fixed; right:20px; bottom:calc(22px + env(safe-area-inset-bottom));
+  width:58px; height:58px; border-radius:50%; border:none;
+  background:linear-gradient(135deg,#4f6ef7,#3b5be8); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:var(--shadow-md); z-index:30; cursor:pointer;
+  transition:transform .15s, box-shadow .15s;
+}
+.fab:active{transform:scale(.92);}
+.fab svg{width:24px; height:24px;}
+
+/* ── SHEET ── */
+.overlay{
+  position:fixed; inset:0; background:rgba(15,18,30,.44); backdrop-filter:blur(2px);
+  opacity:0; pointer-events:none; transition:opacity .2s; z-index:40;
+  display:flex; align-items:flex-end; justify-content:center;
+}
+.overlay.open{opacity:1; pointer-events:auto;}
+.sheet{
+  width:100%; max-width:480px; background:var(--bg2);
+  border-radius:20px 20px 0 0; padding:10px 20px calc(22px + env(safe-area-inset-bottom));
+  box-shadow:0 -10px 40px rgba(20,25,45,.2);
+  transform:translateY(100%); transition:transform .28s cubic-bezier(.32,.72,0,1);
+  max-height:88dvh; overflow-y:auto;
+}
+.overlay.open .sheet{transform:translateY(0);}
+@media (min-width:560px){
+  .overlay{align-items:center;}
+  .sheet{border-radius:20px; transform:translateY(16px) scale(.97); opacity:0;}
+  .overlay.open .sheet{transform:translateY(0) scale(1); opacity:1;}
+}
+.sheet-handle{width:36px; height:4px; background:var(--border); border-radius:3px; margin:6px auto 16px;}
+@media (min-width:560px){.sheet-handle{display:none;}}
+.sheet-title{font-size:17px; font-weight:800; margin-bottom:16px;}
+.field{margin-bottom:12px;}
+.field label{font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--text3); display:block; margin-bottom:6px;}
+.field input{
+  width:100%; border:1.5px solid var(--border); border-radius:11px; padding:12px 13px;
+  font-family:var(--font-main); font-size:15px; font-weight:600; color:var(--text);
+  background:var(--bg3); outline:none; transition:border-color .15s, background .15s;
+}
+.field input:focus{border-color:var(--accent); background:var(--bg2);}
+.field-row{display:flex; gap:10px;}
+.field-row .field{flex:1;}
+.sheet-actions{display:flex; gap:10px; margin-top:18px;}
+.btn{
+  flex:1; padding:13px; border-radius:11px; border:none; cursor:pointer;
+  font-family:var(--font-main); font-size:14.5px; font-weight:700;
+  transition:background .15s, opacity .15s;
+}
+.btn-ghost{background:var(--bg3); color:var(--text2);}
+.btn-ghost:hover{background:var(--bg4);}
+.btn-primary{background:var(--accent); color:#fff;}
+.btn-primary:hover{background:var(--accent-hover);}
+.btn-primary:disabled{opacity:.5; cursor:not-allowed;}
+.btn-danger-outline{background:transparent; color:var(--red); border:1.5px solid var(--red); flex:0 0 auto; padding:13px 16px;}
+.btn-danger-outline:hover{background:var(--red-bg);}
+
+.conn-dot{
+  width:7px; height:7px; border-radius:50%; background:var(--text3); flex-shrink:0;
+  transition:background .2s;
+}
+.conn-dot.live{background:var(--green);}
+.conn-wrap{display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--text3);}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="tb-inner">
+    <div class="tb-eyebrow">
+      <svg fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+      Відкритий захід
+    </div>
+    <input class="title-input" id="titleInput" placeholder="Назва заходу…" />
+    <div class="tb-stats">
+      <div class="stat-pill"><b id="statTotal">0</b> усього</div>
+      <div class="stat-pill on"><b id="statPresent">0</b> присутні</div>
+      <div class="conn-wrap"><span class="conn-dot" id="connDot"></span><span id="connText">З'єднання…</span></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="list" id="list"></div>
+  <div class="empty" id="empty" style="display:none">
+    <svg width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M1 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M22 8v6M19 11h6" stroke="var(--accent)"/></svg>
+    <div class="empty-title">Поки що нікого немає</div>
+    <div class="empty-sub">Натисніть кнопку «+», щоб додати першого учасника заходу</div>
+  </div>
+</main>
+
+<button class="fab" onclick="openSheet()" aria-label="Додати учасника">
+  <svg fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
+
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeSheet()">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="sheetTitle">Новий учасник</div>
+    <div class="field">
+      <label>Ім'я</label>
+      <input type="text" id="fName" placeholder="Ім'я та прізвище" autocomplete="off">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Вік</label>
+        <input type="number" id="fAge" placeholder="—" min="0" max="120" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>Телефон</label>
+        <input type="tel" id="fPhone" placeholder="+380…" inputmode="tel">
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-danger-outline" id="deleteBtn" style="display:none" onclick="deletePerson()">Видалити</button>
+      <button class="btn btn-ghost" onclick="closeSheet()">Скасувати</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="savePerson()">Додати</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAjA4rxjvk0_2sILu11Bfc-UBiJ5LuDjJI",
+  authDomain: "educrm-85756.firebaseapp.com",
+  databaseURL: "https://educrm-85756-default-rtdb.firebaseio.com",
+  projectId: "educrm-85756",
+  messagingSenderId: "248243910161",
+  appId: "1:248243910161:web:43c4fc223c3754c0ffe3b0"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const ROOT = 'openDayEvent';
+
+let people = {};
+let editingId = null;
+let titleLocalEdit = false;
+
+// ── CONNECTION STATE ──────────────────────────────────────
+db.ref('.info/connected').on('value', snap => {
+  const dot = document.getElementById('connDot');
+  const txt = document.getElementById('connText');
+  if (snap.val() === true) { dot.classList.add('live'); txt.textContent = 'Наживо'; }
+  else { dot.classList.remove('live'); txt.textContent = "Немає з'єднання"; }
+});
+
+// ── TITLE ─────────────────────────────────────────────────
+const titleInput = document.getElementById('titleInput');
+db.ref(ROOT + '/title').on('value', snap => {
+  if (titleLocalEdit) return;
+  titleInput.value = snap.val() || '';
+});
+titleInput.addEventListener('focus', () => titleLocalEdit = true);
+titleInput.addEventListener('blur', () => {
+  titleLocalEdit = false;
+  db.ref(ROOT + '/title').set(titleInput.value.trim());
+});
+titleInput.addEventListener('keydown', e => { if (e.key === 'Enter') titleInput.blur(); });
+
+// ── PEOPLE LIST (realtime) ───────────────────────────────
+db.ref(ROOT + '/people').on('value', snap => {
+  people = snap.val() || {};
+  render();
+});
+
+function ini(name){
+  return (name || '').trim().split(/\s+/).map(w => w[0]).join('').slice(0,2).toUpperCase() || '?';
+}
+function escH(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function render(){
+  const list = document.getElementById('list');
+  const empty = document.getElementById('empty');
+  const entries = Object.entries(people).sort((a,b) => (a[1].createdAt||0) - (b[1].createdAt||0));
+
+  document.getElementById('statTotal').textContent = entries.length;
+  document.getElementById('statPresent').textContent = entries.filter(([,p]) => p.present).length;
+
+  if (entries.length === 0) {
+    list.style.display = 'none';
+    empty.style.display = 'flex';
+    return;
+  }
+  list.style.display = 'flex';
+  empty.style.display = 'none';
+
+  list.innerHTML = entries.map(([id, p]) => `
+    <div class="row ${p.present ? 'present' : ''}" onclick="togglePresence('${id}')">
+      <div class="row-check">
+        <svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="row-body">
+        <div class="row-name">${escH(p.name || 'Без імені')}</div>
+        <div class="row-meta">
+          ${p.age ? `<span>${escH(p.age)} р.</span>` : ''}
+          ${p.phone ? `<span>${escH(p.phone)}</span>` : ''}
+        </div>
+      </div>
+      <span class="badge-present">Тут</span>
+      <div class="row-actions">
+        <button class="icon-btn" onclick="event.stopPropagation(); openSheet('${id}')" aria-label="Редагувати">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+        </button>
+        <button class="icon-btn danger" onclick="event.stopPropagation(); confirmDelete('${id}')" aria-label="Видалити">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── PRESENCE TOGGLE ──────────────────────────────────────
+function togglePresence(id){
+  const current = !!(people[id] && people[id].present);
+  db.ref(`${ROOT}/people/${id}/present`).set(!current);
+}
+
+// ── ADD / EDIT SHEET ──────────────────────────────────────
+function openSheet(id){
+  editingId = id || null;
+  const overlay = document.getElementById('overlay');
+  const sheetTitle = document.getElementById('sheetTitle');
+  const saveBtn = document.getElementById('saveBtn');
+  const deleteBtn = document.getElementById('deleteBtn');
+
+  if (editingId && people[editingId]) {
+    const p = people[editingId];
+    document.getElementById('fName').value = p.name || '';
+    document.getElementById('fAge').value = p.age || '';
+    document.getElementById('fPhone').value = p.phone || '';
+    sheetTitle.textContent = 'Редагувати учасника';
+    saveBtn.textContent = 'Зберегти';
+    deleteBtn.style.display = 'block';
+  } else {
+    document.getElementById('fName').value = '';
+    document.getElementById('fAge').value = '';
+    document.getElementById('fPhone').value = '';
+    sheetTitle.textContent = 'Новий учасник';
+    saveBtn.textContent = 'Додати';
+    deleteBtn.style.display = 'none';
+  }
+  overlay.classList.add('open');
+  setTimeout(() => document.getElementById('fName').focus(), 250);
+}
+function closeSheet(){
+  document.getElementById('overlay').classList.remove('open');
+  editingId = null;
+}
+async function savePerson(){
+  const name = document.getElementById('fName').value.trim();
+  const age = document.getElementById('fAge').value.trim();
+  const phone = document.getElementById('fPhone').value.trim();
+  if (!name) {
+    const inp = document.getElementById('fName');
+    inp.style.borderColor = 'var(--red)';
+    inp.focus();
+    setTimeout(() => inp.style.borderColor = '', 1200);
+    return;
+  }
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+
+  if (editingId) {
+    await db.ref(`${ROOT}/people/${editingId}`).update({ name, age, phone });
+  } else {
+    await db.ref(`${ROOT}/people`).push({
+      name, age, phone, present: false, createdAt: Date.now()
+    });
+  }
+  saveBtn.disabled = false;
+  closeSheet();
+}
+function confirmDelete(id){
+  editingId = id;
+  if (confirm(`Видалити «${people[id]?.name || 'учасника'}»?`)) deletePerson();
+}
+async function deletePerson(){
+  if (!editingId) return;
+  await db.ref(`${ROOT}/people/${editingId}`).remove();
+  closeSheet();
+}
+</script>
+</body>
+</html>
