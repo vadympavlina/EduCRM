@@ -183,7 +183,32 @@ main{flex:1; max-width:720px; width:100%; margin:0 auto; padding:16px; padding-b
   transition:background .2s;
 }
 .conn-dot.live{background:var(--green);}
-.conn-wrap{display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--text3);}
+.conn-wrap{display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--text3); margin-left:auto;}
+
+/* ── DANGER BUTTON (solid) ── */
+.btn-danger{background:var(--red); color:#fff;}
+.btn-danger:hover{background:#d33c41;}
+
+/* ── CLEAR-ALL BUTTON ── */
+.clear-all-btn{
+  display:flex; align-items:center; gap:5px;
+  background:none; border:none; padding:2px 0;
+  font-family:var(--font-main); font-size:11.5px; font-weight:700; color:var(--text3);
+  cursor:pointer; transition:color .15s; flex-shrink:0;
+}
+.clear-all-btn:hover{color:var(--red-text);}
+.clear-all-btn svg{width:13px; height:13px; flex-shrink:0;}
+
+/* ── CONFIRM MODAL ── */
+.confirm-sheet{text-align:center; padding-top:22px;}
+.confirm-icon{
+  width:52px; height:52px; border-radius:50%; margin:0 auto 14px;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--red-bg); color:var(--red-text);
+}
+.confirm-icon svg{width:24px; height:24px;}
+.confirm-title{font-size:16.5px; font-weight:800; margin-bottom:8px;}
+.confirm-text{font-size:13.5px; color:var(--text3); line-height:1.55; padding:0 4px;}
 </style>
 </head>
 <body>
@@ -198,6 +223,10 @@ main{flex:1; max-width:720px; width:100%; margin:0 auto; padding:16px; padding-b
     <div class="tb-stats">
       <div class="stat-pill"><b id="statTotal">0</b> усього</div>
       <div class="stat-pill on"><b id="statPresent">0</b> присутні</div>
+      <button class="clear-all-btn" onclick="requestClearAll()">
+        <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        Очистити все
+      </button>
       <div class="conn-wrap"><span class="conn-dot" id="connDot"></span><span id="connText">З'єднання…</span></div>
     </div>
   </div>
@@ -235,9 +264,25 @@ main{flex:1; max-width:720px; width:100%; margin:0 auto; padding:16px; padding-b
       </div>
     </div>
     <div class="sheet-actions">
-      <button class="btn-danger-outline" id="deleteBtn" style="display:none" onclick="deletePerson()">Видалити</button>
+      <button class="btn-danger-outline" id="deleteBtn" style="display:none" onclick="requestDeleteFromSheet()">Видалити</button>
       <button class="btn btn-ghost" onclick="closeSheet()">Скасувати</button>
       <button class="btn btn-primary" id="saveBtn" onclick="savePerson()">Додати</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL (видалення однієї людини / очищення всього списку) -->
+<div class="overlay" id="confirmOverlay" onclick="if(event.target===this)closeConfirm()">
+  <div class="sheet confirm-sheet">
+    <div class="sheet-handle"></div>
+    <div class="confirm-icon">
+      <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+    </div>
+    <div class="confirm-title" id="confirmTitle">Видалити?</div>
+    <div class="confirm-text" id="confirmText"></div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" onclick="closeConfirm()">Скасувати</button>
+      <button class="btn btn-danger" id="confirmActionBtn">Видалити</button>
     </div>
   </div>
 </div>
@@ -393,14 +438,56 @@ async function savePerson(){
   saveBtn.disabled = false;
   closeSheet();
 }
+// ── CONFIRM MODAL (спільна для видалення 1 людини і очищення всього) ──
+function openConfirm({ title, text, actionLabel, onConfirm }){
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmText').textContent = text;
+  const btn = document.getElementById('confirmActionBtn');
+  btn.textContent = actionLabel;
+  btn.onclick = async () => {
+    btn.disabled = true;
+    btn.textContent = 'Зачекайте…';
+    await onConfirm();
+    btn.disabled = false;
+    closeConfirm();
+  };
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+function closeConfirm(){
+  document.getElementById('confirmOverlay').classList.remove('open');
+}
+
+// ── DELETE ONE ────────────────────────────────────────────
 function confirmDelete(id){
   editingId = id;
-  if (confirm(`Видалити «${people[id]?.name || 'учасника'}»?`)) deletePerson();
+  openConfirm({
+    title: 'Видалити учасника?',
+    text: `«${people[id]?.name || 'Учасника'}» буде остаточно видалено зі списку. Дію не можна скасувати.`,
+    actionLabel: 'Видалити',
+    onConfirm: deletePerson
+  });
+}
+function requestDeleteFromSheet(){
+  const id = editingId;
+  closeSheet();
+  confirmDelete(id);
 }
 async function deletePerson(){
   if (!editingId) return;
   await db.ref(`${ROOT}/people/${editingId}`).remove();
-  closeSheet();
+  editingId = null;
+}
+
+// ── CLEAR ALL ─────────────────────────────────────────────
+function requestClearAll(){
+  const count = Object.keys(people).length;
+  if (count === 0) return;
+  openConfirm({
+    title: 'Очистити весь список?',
+    text: `Буде видалено всіх учасників (${count}) та скинуто відмітки присутності. Дію не можна скасувати.`,
+    actionLabel: 'Так, очистити все',
+    onConfirm: async () => { await db.ref(`${ROOT}/people`).remove(); }
+  });
 }
 </script>
 </body>
