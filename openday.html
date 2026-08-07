@@ -67,8 +67,18 @@ button{touch-action:manipulation;}
 .stat-pill.on{background:var(--green-bg); border-color:transparent;}
 .stat-pill.on b{color:var(--green-text);}
 
-/* ── GROUP TABS ── */
-.groups-row{display:flex; align-items:center; gap:8px;}
+/* ── GROUP TABS (з'являються лише якщо груп кілька) ── */
+.groups-row{display:none; align-items:center; gap:8px;}
+.groups-row.show{display:flex;}
+.add-group-hint{
+  display:none; align-items:center; gap:5px;
+  background:none; border:none; padding:2px 0;
+  font-family:var(--font-main); font-size:11.5px; font-weight:700; color:var(--accent);
+  cursor:pointer; transition:color .15s; flex-shrink:0;
+}
+.add-group-hint.show{display:flex;}
+.add-group-hint:hover{color:var(--accent-hover);}
+.add-group-hint svg{width:13px; height:13px;}
 .tabs-scroll{
   display:flex; gap:6px; overflow-x:auto; scroll-snap-type:x proximity;
   -webkit-overflow-scrolling:touch; scrollbar-width:none; padding:1px 1px 3px;
@@ -82,8 +92,6 @@ button{touch-action:manipulation;}
 }
 .tab-chip.active{background:var(--accent-light); border-color:var(--accent); color:var(--accent-hover);}
 .tab-chip .tab-count{font-family:var(--font-mono); font-size:11px; opacity:.75;}
-.tab-edit{display:flex; align-items:center; margin-left:1px; opacity:.75; padding:2px;}
-.tab-edit svg{width:12px;height:12px;}
 .tab-add{
   flex-shrink:0; width:32px; height:32px; border-radius:50%; border:1.5px dashed var(--border);
   background:transparent; color:var(--text3); display:flex; align-items:center; justify-content:center;
@@ -96,6 +104,7 @@ button{touch-action:manipulation;}
 main{flex:1; max-width:760px; width:100%; margin:0 auto; padding:16px; padding-bottom:100px;}
 .group-head{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:12px;}
 .group-head-stats{display:flex; gap:8px; flex-wrap:wrap;}
+.group-head-actions{display:flex; align-items:center; gap:2px;}
 
 .empty{
   display:none; text-align:center; padding:56px 20px; color:var(--text3);
@@ -263,9 +272,13 @@ main{flex:1; max-width:760px; width:100%; margin:0 auto; padding:16px; padding-b
         <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
         Очистити все
       </button>
+      <button class="add-group-hint" id="addGroupHint" onclick="openGroupSheet()">
+        <svg fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Розділити на групи
+      </button>
       <div class="conn-wrap"><span class="conn-dot" id="connDot"></span><span id="connText">З'єднання…</span></div>
     </div>
-    <div class="groups-row">
+    <div class="groups-row" id="groupsRow">
       <div class="tabs-scroll" id="groupTabs"></div>
       <button class="tab-add" onclick="openGroupSheet()" aria-label="Додати групу">
         <svg fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -281,24 +294,22 @@ main{flex:1; max-width:760px; width:100%; margin:0 auto; padding:16px; padding-b
         <div class="stat-pill"><b id="statGroupTotal">0</b> у групі</div>
         <div class="stat-pill on"><b id="statGroupPresent">0</b> тут</div>
       </div>
-      <button class="clear-all-btn" onclick="requestClearGroup()">
-        <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-        Очистити групу
-      </button>
+      <div class="group-head-actions">
+        <button class="icon-btn" onclick="openGroupSheet(activeGroupId)" aria-label="Назва групи">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+        </button>
+        <button class="clear-all-btn" onclick="requestClearGroup()">
+          <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Очистити групу
+        </button>
+      </div>
     </div>
     <div class="list" id="list"></div>
     <div class="empty" id="empty">
       <svg width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M1 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M22 8v6M19 11h6" stroke="var(--accent)"/></svg>
       <div class="empty-title">Поки що нікого немає</div>
-      <div class="empty-sub">Натисніть кнопку «+», щоб додати першого учасника цієї групи</div>
+      <div class="empty-sub">Натисніть кнопку «+», щоб додати першого учасника</div>
     </div>
-  </div>
-
-  <div class="empty" id="noGroups">
-    <svg width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="15" width="7" height="7" rx="1.5"/><rect x="14" y="15" width="7" height="7" rx="1.5" stroke="var(--accent)"/></svg>
-    <div class="empty-title">Ще немає жодної групи</div>
-    <div class="empty-sub">Створіть групу (наприклад «Група 1»), щоб почати додавати учасників</div>
-    <button class="btn btn-primary" style="flex:0 0 auto; padding:12px 22px; margin-top:4px;" onclick="openGroupSheet()">Додати групу</button>
   </div>
 </main>
 
@@ -424,10 +435,23 @@ async function migrateLegacyIfNeeded(){
 }
 
 // ── GROUPS LIST (realtime) ───────────────────────────────
+// Групи опціональні: якщо їх ще немає, тихо створюємо одну без назви,
+// і інтерфейс виглядає як звичайний єдиний список. Вкладки з'являються
+// самі, щойно з'явиться друга група.
+let defaultGroupCreated = false;
 migrateLegacyIfNeeded().then(() => {
   db.ref(ROOT + '/groups').on('value', snap => {
     groups = snap.val() || {};
     const ids = sortedGroupIds();
+
+    if (ids.length === 0 && !defaultGroupCreated) {
+      defaultGroupCreated = true;
+      const ref = db.ref(`${ROOT}/groups`).push();
+      ref.set({ name: '', createdAt: Date.now() });
+      activeGroupId = ref.key;
+      return; // слухач спрацює знову, коли дані прийдуть
+    }
+
     if (!activeGroupId || !groups[activeGroupId]) {
       activeGroupId = ids[0] || null;
     }
@@ -452,21 +476,26 @@ function renderTabs(){
     const active = gid === activeGroupId;
     return `
       <button class="tab-chip ${active ? 'active' : ''}" onclick="selectGroup('${gid}')">
-        <span class="tab-name">${escH(g.name || 'Група')}</span>
+        <span class="tab-name">${escH(g.name || 'Без назви')}</span>
         <span class="tab-count">${present}/${total}</span>
-        ${active ? `<span class="tab-edit" onclick="event.stopPropagation();openGroupSheet('${gid}')" aria-label="Редагувати групу">
-          <svg fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
-        </span>` : ''}
       </button>`;
   }).join('');
 }
 
 function render(){
-  renderTabs();
-
   const ids = sortedGroupIds();
-  const groupSection = document.getElementById('groupSection');
-  const noGroups = document.getElementById('noGroups');
+
+  // вкладки видно лише якщо груп більше однієї — інакше груповий режим непомітний
+  const groupsRow = document.getElementById('groupsRow');
+  const addHint = document.getElementById('addGroupHint');
+  if (ids.length > 1) {
+    renderTabs();
+    groupsRow.classList.add('show');
+    addHint.classList.remove('show');
+  } else {
+    groupsRow.classList.remove('show');
+    addHint.classList.add('show');
+  }
 
   // глобальна статистика по всіх групах
   let allTotal = 0, allPresent = 0;
@@ -478,13 +507,7 @@ function render(){
   document.getElementById('statTotal').textContent = allTotal;
   document.getElementById('statPresent').textContent = allPresent;
 
-  if (ids.length === 0) {
-    groupSection.style.display = 'none';
-    noGroups.classList.add('show');
-    return;
-  }
-  noGroups.classList.remove('show');
-  groupSection.style.display = 'block';
+  if (ids.length === 0) return; // за мить з'явиться дефолтна група
 
   const g = groups[activeGroupId] || {};
   const people = g.people || {};
@@ -536,7 +559,7 @@ function selectGroup(gid){
 }
 function handleFabClick(){
   if (activeGroupId) openSheet();
-  else openGroupSheet();
+  // якщо група ще не встигла створитись (частка секунди при першому запуску) — просто ігноруємо тап
 }
 
 // ── PRESENCE TOGGLE ──────────────────────────────────────
