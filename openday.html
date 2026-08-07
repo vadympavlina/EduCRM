@@ -33,16 +33,18 @@ body{
   font-family:var(--font-main); background:var(--bg); color:var(--text);
   min-height:100dvh; display:flex; flex-direction:column;
   padding-bottom:env(safe-area-inset-bottom);
+  overscroll-behavior-y:none;
 }
+button{touch-action:manipulation;}
 
 /* ── HEADER ── */
 .topbar{
   position:sticky; top:0; z-index:20;
   background:rgba(255,255,255,.92); backdrop-filter:blur(10px);
   border-bottom:1px solid var(--border);
-  padding:calc(14px + env(safe-area-inset-top)) 16px 14px;
+  padding:calc(14px + env(safe-area-inset-top)) 16px 12px;
 }
-.tb-inner{max-width:720px; margin:0 auto; display:flex; flex-direction:column; gap:10px;}
+.tb-inner{max-width:760px; margin:0 auto; display:flex; flex-direction:column; gap:10px;}
 .tb-eyebrow{
   font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.8px;
   color:var(--accent); display:flex; align-items:center; gap:6px;
@@ -55,7 +57,7 @@ body{
 }
 .title-input:focus{border-color:var(--accent);}
 .title-input::placeholder{color:var(--text3); font-weight:700;}
-.tb-stats{display:flex; gap:8px; flex-wrap:wrap;}
+.tb-stats{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
 .stat-pill{
   display:flex; align-items:baseline; gap:5px;
   background:var(--bg3); border:1px solid var(--border); border-radius:20px;
@@ -65,17 +67,50 @@ body{
 .stat-pill.on{background:var(--green-bg); border-color:transparent;}
 .stat-pill.on b{color:var(--green-text);}
 
-/* ── LIST ── */
-main{flex:1; max-width:720px; width:100%; margin:0 auto; padding:16px; padding-bottom:100px;}
-.empty{
-  text-align:center; padding:64px 20px; color:var(--text3);
-  display:flex; flex-direction:column; align-items:center; gap:14px;
+/* ── GROUP TABS ── */
+.groups-row{display:flex; align-items:center; gap:8px;}
+.tabs-scroll{
+  display:flex; gap:6px; overflow-x:auto; scroll-snap-type:x proximity;
+  -webkit-overflow-scrolling:touch; scrollbar-width:none; padding:1px 1px 3px;
 }
+.tabs-scroll::-webkit-scrollbar{display:none;}
+.tab-chip{
+  flex-shrink:0; scroll-snap-align:start; display:flex; align-items:center; gap:6px;
+  background:var(--bg3); border:1.5px solid var(--border); border-radius:20px;
+  padding:7px 12px; font-size:12.5px; font-weight:700; color:var(--text2);
+  white-space:nowrap; cursor:pointer; transition:background .15s,border-color .15s,color .15s;
+}
+.tab-chip.active{background:var(--accent-light); border-color:var(--accent); color:var(--accent-hover);}
+.tab-chip .tab-count{font-family:var(--font-mono); font-size:11px; opacity:.75;}
+.tab-edit{display:flex; align-items:center; margin-left:1px; opacity:.75; padding:2px;}
+.tab-edit svg{width:12px;height:12px;}
+.tab-add{
+  flex-shrink:0; width:32px; height:32px; border-radius:50%; border:1.5px dashed var(--border);
+  background:transparent; color:var(--text3); display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:border-color .15s,color .15s; margin-bottom:3px;
+}
+.tab-add:hover{border-color:var(--accent); color:var(--accent);}
+.tab-add svg{width:15px;height:15px;}
+
+/* ── MAIN / LIST ── */
+main{flex:1; max-width:760px; width:100%; margin:0 auto; padding:16px; padding-bottom:100px;}
+.group-head{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:12px;}
+.group-head-stats{display:flex; gap:8px; flex-wrap:wrap;}
+
+.empty{
+  display:none; text-align:center; padding:56px 20px; color:var(--text3);
+  flex-direction:column; align-items:center; gap:14px;
+}
+.empty.show{display:flex;}
 .empty svg{color:var(--border);}
 .empty-title{font-size:15px; font-weight:800; color:var(--text2);}
-.empty-sub{font-size:13px; max-width:260px; line-height:1.5;}
+.empty-sub{font-size:13px; max-width:280px; line-height:1.5;}
 
-.list{display:flex; flex-direction:column; gap:9px;}
+.list{display:none; flex-direction:column; gap:9px;}
+.list.show{display:flex;}
+@media (min-width:640px){
+  .list.show{display:grid; grid-template-columns:1fr 1fr; align-items:start;}
+}
 .row{
   position:relative; display:flex; align-items:center; gap:12px;
   background:var(--bg2); border:1.5px solid var(--border); border-radius:var(--radius);
@@ -158,12 +193,13 @@ main{flex:1; max-width:720px; width:100%; margin:0 auto; padding:16px; padding-b
 .field label{font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--text3); display:block; margin-bottom:6px;}
 .field input{
   width:100%; border:1.5px solid var(--border); border-radius:11px; padding:12px 13px;
-  font-family:var(--font-main); font-size:15px; font-weight:600; color:var(--text);
+  font-family:var(--font-main); font-size:16px; font-weight:600; color:var(--text);
   background:var(--bg3); outline:none; transition:border-color .15s, background .15s;
 }
 .field input:focus{border-color:var(--accent); background:var(--bg2);}
 .field-row{display:flex; gap:10px;}
 .field-row .field{flex:1;}
+@media (max-width:359px){.field-row{flex-direction:column; gap:0;}}
 .sheet-actions{display:flex; gap:10px; margin-top:18px;}
 .btn{
   flex:1; padding:13px; border-radius:11px; border:none; cursor:pointer;
@@ -189,7 +225,7 @@ main{flex:1; max-width:720px; width:100%; margin:0 auto; padding:16px; padding-b
 .btn-danger{background:var(--red); color:#fff;}
 .btn-danger:hover{background:#d33c41;}
 
-/* ── CLEAR-ALL BUTTON ── */
+/* ── CLEAR BUTTON ── */
 .clear-all-btn{
   display:flex; align-items:center; gap:5px;
   background:none; border:none; padding:2px 0;
@@ -229,22 +265,48 @@ main{flex:1; max-width:720px; width:100%; margin:0 auto; padding:16px; padding-b
       </button>
       <div class="conn-wrap"><span class="conn-dot" id="connDot"></span><span id="connText">З'єднання…</span></div>
     </div>
+    <div class="groups-row">
+      <div class="tabs-scroll" id="groupTabs"></div>
+      <button class="tab-add" onclick="openGroupSheet()" aria-label="Додати групу">
+        <svg fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
   </div>
 </header>
 
 <main>
-  <div class="list" id="list"></div>
-  <div class="empty" id="empty" style="display:none">
-    <svg width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M1 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M22 8v6M19 11h6" stroke="var(--accent)"/></svg>
-    <div class="empty-title">Поки що нікого немає</div>
-    <div class="empty-sub">Натисніть кнопку «+», щоб додати першого учасника заходу</div>
+  <div id="groupSection">
+    <div class="group-head">
+      <div class="group-head-stats">
+        <div class="stat-pill"><b id="statGroupTotal">0</b> у групі</div>
+        <div class="stat-pill on"><b id="statGroupPresent">0</b> тут</div>
+      </div>
+      <button class="clear-all-btn" onclick="requestClearGroup()">
+        <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        Очистити групу
+      </button>
+    </div>
+    <div class="list" id="list"></div>
+    <div class="empty" id="empty">
+      <svg width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M1 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M22 8v6M19 11h6" stroke="var(--accent)"/></svg>
+      <div class="empty-title">Поки що нікого немає</div>
+      <div class="empty-sub">Натисніть кнопку «+», щоб додати першого учасника цієї групи</div>
+    </div>
+  </div>
+
+  <div class="empty" id="noGroups">
+    <svg width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="15" width="7" height="7" rx="1.5"/><rect x="14" y="15" width="7" height="7" rx="1.5" stroke="var(--accent)"/></svg>
+    <div class="empty-title">Ще немає жодної групи</div>
+    <div class="empty-sub">Створіть групу (наприклад «Група 1»), щоб почати додавати учасників</div>
+    <button class="btn btn-primary" style="flex:0 0 auto; padding:12px 22px; margin-top:4px;" onclick="openGroupSheet()">Додати групу</button>
   </div>
 </main>
 
-<button class="fab" onclick="openSheet()" aria-label="Додати учасника">
+<button class="fab" onclick="handleFabClick()" aria-label="Додати учасника">
   <svg fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 </button>
 
+<!-- ADD/EDIT PERSON SHEET -->
 <div class="overlay" id="overlay" onclick="if(event.target===this)closeSheet()">
   <div class="sheet">
     <div class="sheet-handle"></div>
@@ -271,7 +333,24 @@ main{flex:1; max-width:720px; width:100%; margin:0 auto; padding:16px; padding-b
   </div>
 </div>
 
-<!-- CONFIRM MODAL (видалення однієї людини / очищення всього списку) -->
+<!-- ADD/EDIT GROUP SHEET -->
+<div class="overlay" id="groupOverlay" onclick="if(event.target===this)closeGroupSheet()">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="groupSheetTitle">Нова група</div>
+    <div class="field">
+      <label>Назва групи</label>
+      <input type="text" id="gName" placeholder="Наприклад: Група 1" autocomplete="off">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-danger-outline" id="groupDeleteBtn" style="display:none" onclick="requestDeleteGroupFromSheet()">Видалити</button>
+      <button class="btn btn-ghost" onclick="closeGroupSheet()">Скасувати</button>
+      <button class="btn btn-primary" id="groupSaveBtn" onclick="saveGroup()">Додати</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL (спільна для видалення людини / групи / очищення) -->
 <div class="overlay" id="confirmOverlay" onclick="if(event.target===this)closeConfirm()">
   <div class="sheet confirm-sheet">
     <div class="sheet-handle"></div>
@@ -300,8 +379,10 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const ROOT = 'openDayEvent';
 
-let people = {};
-let editingId = null;
+let groups = {};          // { gid: { name, createdAt, people: { pid: {...} } } }
+let activeGroupId = null;
+let editingPersonId = null;
+let editingGroupId = null;
 let titleLocalEdit = false;
 
 // ── CONNECTION STATE ──────────────────────────────────────
@@ -325,32 +406,103 @@ titleInput.addEventListener('blur', () => {
 });
 titleInput.addEventListener('keydown', e => { if (e.key === 'Enter') titleInput.blur(); });
 
-// ── PEOPLE LIST (realtime) ───────────────────────────────
-db.ref(ROOT + '/people').on('value', snap => {
-  people = snap.val() || {};
-  render();
+// ── MIGRATION: якщо є стара структура (ROOT/people без груп) ─
+// переносимо старий список у першу групу "Група 1", щоб не втратити дані
+async function migrateLegacyIfNeeded(){
+  const snap = await db.ref(ROOT).once('value');
+  const val = snap.val() || {};
+  if (val.people && !val.groups) {
+    const gid = db.ref(`${ROOT}/groups`).push().key;
+    const updates = {};
+    updates[`${ROOT}/groups/${gid}/name`] = 'Група 1';
+    updates[`${ROOT}/groups/${gid}/createdAt`] = Date.now();
+    updates[`${ROOT}/groups/${gid}/people`] = val.people;
+    updates[`${ROOT}/people`] = null;
+    await db.ref().update(updates);
+    activeGroupId = gid;
+  }
+}
+
+// ── GROUPS LIST (realtime) ───────────────────────────────
+migrateLegacyIfNeeded().then(() => {
+  db.ref(ROOT + '/groups').on('value', snap => {
+    groups = snap.val() || {};
+    const ids = sortedGroupIds();
+    if (!activeGroupId || !groups[activeGroupId]) {
+      activeGroupId = ids[0] || null;
+    }
+    render();
+  });
 });
 
-function ini(name){
-  return (name || '').trim().split(/\s+/).map(w => w[0]).join('').slice(0,2).toUpperCase() || '?';
+function sortedGroupIds(){
+  return Object.keys(groups).sort((a, b) => (groups[a].createdAt || 0) - (groups[b].createdAt || 0));
 }
 function escH(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+// ── RENDER ────────────────────────────────────────────────
+function renderTabs(){
+  const wrap = document.getElementById('groupTabs');
+  const ids = sortedGroupIds();
+  wrap.innerHTML = ids.map(gid => {
+    const g = groups[gid];
+    const ppl = Object.values(g.people || {});
+    const total = ppl.length;
+    const present = ppl.filter(p => p.present).length;
+    const active = gid === activeGroupId;
+    return `
+      <button class="tab-chip ${active ? 'active' : ''}" onclick="selectGroup('${gid}')">
+        <span class="tab-name">${escH(g.name || 'Група')}</span>
+        <span class="tab-count">${present}/${total}</span>
+        ${active ? `<span class="tab-edit" onclick="event.stopPropagation();openGroupSheet('${gid}')" aria-label="Редагувати групу">
+          <svg fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+        </span>` : ''}
+      </button>`;
+  }).join('');
+}
+
 function render(){
-  const list = document.getElementById('list');
-  const empty = document.getElementById('empty');
-  const entries = Object.entries(people).sort((a,b) => (a[1].createdAt||0) - (b[1].createdAt||0));
+  renderTabs();
 
-  document.getElementById('statTotal').textContent = entries.length;
-  document.getElementById('statPresent').textContent = entries.filter(([,p]) => p.present).length;
+  const ids = sortedGroupIds();
+  const groupSection = document.getElementById('groupSection');
+  const noGroups = document.getElementById('noGroups');
 
-  if (entries.length === 0) {
-    list.style.display = 'none';
-    empty.style.display = 'flex';
+  // глобальна статистика по всіх групах
+  let allTotal = 0, allPresent = 0;
+  ids.forEach(gid => {
+    const ppl = Object.values(groups[gid].people || {});
+    allTotal += ppl.length;
+    allPresent += ppl.filter(p => p.present).length;
+  });
+  document.getElementById('statTotal').textContent = allTotal;
+  document.getElementById('statPresent').textContent = allPresent;
+
+  if (ids.length === 0) {
+    groupSection.style.display = 'none';
+    noGroups.classList.add('show');
     return;
   }
-  list.style.display = 'flex';
-  empty.style.display = 'none';
+  noGroups.classList.remove('show');
+  groupSection.style.display = 'block';
+
+  const g = groups[activeGroupId] || {};
+  const people = g.people || {};
+  const entries = Object.entries(people).sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0));
+
+  document.getElementById('statGroupTotal').textContent = entries.length;
+  document.getElementById('statGroupPresent').textContent = entries.filter(([, p]) => p.present).length;
+
+  const list = document.getElementById('list');
+  const empty = document.getElementById('empty');
+
+  if (entries.length === 0) {
+    list.classList.remove('show');
+    empty.classList.add('show');
+    return;
+  }
+  empty.classList.remove('show');
+  list.classList.add('show');
 
   list.innerHTML = entries.map(([id, p]) => `
     <div class="row ${p.present ? 'present' : ''}" onclick="togglePresence('${id}')">
@@ -377,22 +529,34 @@ function render(){
   `).join('');
 }
 
-// ── PRESENCE TOGGLE ──────────────────────────────────────
-function togglePresence(id){
-  const current = !!(people[id] && people[id].present);
-  db.ref(`${ROOT}/people/${id}/present`).set(!current);
+// ── GROUP SELECTION ──────────────────────────────────────
+function selectGroup(gid){
+  activeGroupId = gid;
+  render();
+}
+function handleFabClick(){
+  if (activeGroupId) openSheet();
+  else openGroupSheet();
 }
 
-// ── ADD / EDIT SHEET ──────────────────────────────────────
+// ── PRESENCE TOGGLE ──────────────────────────────────────
+function togglePresence(id){
+  if (!activeGroupId) return;
+  const p = groups[activeGroupId]?.people?.[id];
+  const current = !!(p && p.present);
+  db.ref(`${ROOT}/groups/${activeGroupId}/people/${id}/present`).set(!current);
+}
+
+// ── ADD / EDIT PERSON SHEET ───────────────────────────────
 function openSheet(id){
-  editingId = id || null;
+  editingPersonId = id || null;
   const overlay = document.getElementById('overlay');
   const sheetTitle = document.getElementById('sheetTitle');
   const saveBtn = document.getElementById('saveBtn');
   const deleteBtn = document.getElementById('deleteBtn');
+  const p = editingPersonId ? groups[activeGroupId]?.people?.[editingPersonId] : null;
 
-  if (editingId && people[editingId]) {
-    const p = people[editingId];
+  if (editingPersonId && p) {
     document.getElementById('fName').value = p.name || '';
     document.getElementById('fAge').value = p.age || '';
     document.getElementById('fPhone').value = p.phone || '';
@@ -412,9 +576,10 @@ function openSheet(id){
 }
 function closeSheet(){
   document.getElementById('overlay').classList.remove('open');
-  editingId = null;
+  editingPersonId = null;
 }
 async function savePerson(){
+  if (!activeGroupId) return;
   const name = document.getElementById('fName').value.trim();
   const age = document.getElementById('fAge').value.trim();
   const phone = document.getElementById('fPhone').value.trim();
@@ -428,17 +593,82 @@ async function savePerson(){
   const saveBtn = document.getElementById('saveBtn');
   saveBtn.disabled = true;
 
-  if (editingId) {
-    await db.ref(`${ROOT}/people/${editingId}`).update({ name, age, phone });
+  if (editingPersonId) {
+    await db.ref(`${ROOT}/groups/${activeGroupId}/people/${editingPersonId}`).update({ name, age, phone });
   } else {
-    await db.ref(`${ROOT}/people`).push({
+    await db.ref(`${ROOT}/groups/${activeGroupId}/people`).push({
       name, age, phone, present: false, createdAt: Date.now()
     });
   }
   saveBtn.disabled = false;
   closeSheet();
 }
-// ── CONFIRM MODAL (спільна для видалення 1 людини і очищення всього) ──
+
+// ── ADD / EDIT / DELETE GROUP SHEET ───────────────────────
+function openGroupSheet(gid){
+  editingGroupId = gid || null;
+  const overlay = document.getElementById('groupOverlay');
+  const title = document.getElementById('groupSheetTitle');
+  const saveBtn = document.getElementById('groupSaveBtn');
+  const deleteBtn = document.getElementById('groupDeleteBtn');
+
+  if (editingGroupId && groups[editingGroupId]) {
+    document.getElementById('gName').value = groups[editingGroupId].name || '';
+    title.textContent = 'Редагувати групу';
+    saveBtn.textContent = 'Зберегти';
+    deleteBtn.style.display = 'block';
+  } else {
+    document.getElementById('gName').value = '';
+    title.textContent = 'Нова група';
+    saveBtn.textContent = 'Додати';
+    deleteBtn.style.display = 'none';
+  }
+  overlay.classList.add('open');
+  setTimeout(() => document.getElementById('gName').focus(), 250);
+}
+function closeGroupSheet(){
+  document.getElementById('groupOverlay').classList.remove('open');
+  editingGroupId = null;
+}
+async function saveGroup(){
+  const name = document.getElementById('gName').value.trim();
+  if (!name) {
+    const inp = document.getElementById('gName');
+    inp.style.borderColor = 'var(--red)';
+    inp.focus();
+    setTimeout(() => inp.style.borderColor = '', 1200);
+    return;
+  }
+  const saveBtn = document.getElementById('groupSaveBtn');
+  saveBtn.disabled = true;
+
+  if (editingGroupId) {
+    await db.ref(`${ROOT}/groups/${editingGroupId}`).update({ name });
+  } else {
+    const ref = db.ref(`${ROOT}/groups`).push();
+    await ref.set({ name, createdAt: Date.now() });
+    activeGroupId = ref.key;
+  }
+  saveBtn.disabled = false;
+  closeGroupSheet();
+}
+function requestDeleteGroupFromSheet(){
+  const gid = editingGroupId;
+  const g = groups[gid];
+  const count = g && g.people ? Object.keys(g.people).length : 0;
+  closeGroupSheet();
+  openConfirm({
+    title: 'Видалити групу?',
+    text: `Групу «${g?.name || ''}»${count ? ` та всіх її учасників (${count})` : ''} буде остаточно видалено. Дію не можна скасувати.`,
+    actionLabel: 'Видалити',
+    onConfirm: async () => {
+      await db.ref(`${ROOT}/groups/${gid}`).remove();
+      if (activeGroupId === gid) activeGroupId = null;
+    }
+  });
+}
+
+// ── CONFIRM MODAL (спільна) ───────────────────────────────
 function openConfirm({ title, text, actionLabel, onConfirm }){
   document.getElementById('confirmTitle').textContent = title;
   document.getElementById('confirmText').textContent = text;
@@ -457,36 +687,56 @@ function closeConfirm(){
   document.getElementById('confirmOverlay').classList.remove('open');
 }
 
-// ── DELETE ONE ────────────────────────────────────────────
+// ── DELETE ONE PERSON ────────────────────────────────────
 function confirmDelete(id){
-  editingId = id;
+  editingPersonId = id;
+  const p = groups[activeGroupId]?.people?.[id];
   openConfirm({
     title: 'Видалити учасника?',
-    text: `«${people[id]?.name || 'Учасника'}» буде остаточно видалено зі списку. Дію не можна скасувати.`,
+    text: `«${p?.name || 'Учасника'}» буде остаточно видалено зі списку. Дію не можна скасувати.`,
     actionLabel: 'Видалити',
     onConfirm: deletePerson
   });
 }
 function requestDeleteFromSheet(){
-  const id = editingId;
+  const id = editingPersonId;
   closeSheet();
   confirmDelete(id);
 }
 async function deletePerson(){
-  if (!editingId) return;
-  await db.ref(`${ROOT}/people/${editingId}`).remove();
-  editingId = null;
+  if (!editingPersonId || !activeGroupId) return;
+  await db.ref(`${ROOT}/groups/${activeGroupId}/people/${editingPersonId}`).remove();
+  editingPersonId = null;
 }
 
-// ── CLEAR ALL ─────────────────────────────────────────────
-function requestClearAll(){
-  const count = Object.keys(people).length;
+// ── CLEAR CURRENT GROUP ───────────────────────────────────
+function requestClearGroup(){
+  if (!activeGroupId) return;
+  const g = groups[activeGroupId];
+  const count = g && g.people ? Object.keys(g.people).length : 0;
   if (count === 0) return;
   openConfirm({
-    title: 'Очистити весь список?',
-    text: `Буде видалено всіх учасників (${count}) та скинуто відмітки присутності. Дію не можна скасувати.`,
+    title: 'Очистити групу?',
+    text: `Буде видалено всіх учасників групи «${g.name || ''}» (${count}). Дію не можна скасувати.`,
+    actionLabel: 'Так, очистити',
+    onConfirm: async () => { await db.ref(`${ROOT}/groups/${activeGroupId}/people`).remove(); }
+  });
+}
+
+// ── CLEAR ENTIRE EVENT (всі групи) ────────────────────────
+function requestClearAll(){
+  const ids = sortedGroupIds();
+  const count = ids.reduce((sum, gid) => sum + Object.keys(groups[gid].people || {}).length, 0);
+  if (count === 0) return;
+  openConfirm({
+    title: 'Очистити весь захід?',
+    text: `Буде видалено всіх учасників з усіх груп (${count}). Групи залишаться, можна буде додавати учасників знову. Дію не можна скасувати.`,
     actionLabel: 'Так, очистити все',
-    onConfirm: async () => { await db.ref(`${ROOT}/people`).remove(); }
+    onConfirm: async () => {
+      const updates = {};
+      ids.forEach(gid => { updates[`${ROOT}/groups/${gid}/people`] = null; });
+      await db.ref().update(updates);
+    }
   });
 }
 </script>
