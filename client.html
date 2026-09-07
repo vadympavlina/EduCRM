@@ -576,6 +576,9 @@
     window.__contractsByEvent = {};
     contractsArr.forEach(c => { if (c.eventId) window.__contractsByEvent[c.eventId] = true; });
     window.__eventsCache = evArr;
+    // Загальна кількість договорів клієнта — щоб попереджати про дублювання
+    // при ручному оформленні (там немає eventId, тому по-подійна перевірка не працює)
+    window.__contractsCount = contractsArr.length;
 
     const items = [
       ...evArr.map(ev => ({ type:'event', ...ev, createdAt: ev.date
@@ -636,7 +639,7 @@
         if (st === 'completed') {
           const eventTag = item.isGroupMirror ? ('group_' + item.groupEventId + '_' + (item.participantId || '')) : eid;
           const hasContract = (window.__contractsByEvent || {})[eventTag];
-          actionBtns += `<button class="ev-btn ev-btn-contract ${hasContract ? 'active' : ''}" onclick="clientOpenContractForEvent('${eid}', '${eventTag}', '${escH(item.assignedPersonId||'')}')">
+          actionBtns += `<button class="ev-btn ev-btn-contract ${hasContract ? 'active' : ''}" onclick="clientOpenContractForEvent('${eid}', '${eventTag}', '${escH(item.assignedPersonId||'')}', ${hasContract ? 'true' : 'false'})">
             <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
             ${hasContract ? '✓ Договір оформлено' : 'Договір'}
           </button>`;
@@ -775,7 +778,8 @@
   }
 
   // Договір прив'язаний до конкретної події — вчитель береться автоматично з події
-  async function clientOpenContractForEvent(eventId, eventTag, teacherId) {
+  async function clientOpenContractForEvent(eventId, eventTag, teacherId, hasContract) {
+    if (hasContract && !confirm('На цю подію вже оформлено договір. Оформити ще один?')) return;
     if (!teacherId) {
       showToast('У цієї події не вказано вчителя', false);
       return;
@@ -806,6 +810,8 @@
 
   // Договір без прив'язки до події — вчитель обирається вручну
   async function clientOpenManualContract() {
+    const existing = window.__contractsCount || 0;
+    if (existing > 0 && !confirm(`У цього клієнта вже є договір(и) (${existing}). Оформити ще один?`)) return;
     const result = await ContractsAPI.promptCreate({
       requireTeacher: true,
       teachersMap: Object.fromEntries(Object.entries(teachersMap).map(([id, name]) => [id, { id, name }])),
