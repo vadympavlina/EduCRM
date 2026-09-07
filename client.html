@@ -801,6 +801,10 @@
     });
     if (!result) return;
 
+    console.log('[CONTRACT DEBUG phone]', {
+      phoneKey, clientDataPhone: clientData.phone,
+      willWriteUnder: clientData.phone || phoneKey
+    });
     try {
       await ContractsAPI.createForEvent(clientData.phone || phoneKey, {
         title: result.title,
