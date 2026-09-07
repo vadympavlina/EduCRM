@@ -613,8 +613,9 @@
     });
 
     // Зворотна сумісність: старі події з contractSigned:true (до міграції на нову систему договорів).
-    // Перевіряємо чи для цієї події вже є запис в новій системі, щоб не рахувати двічі.
-    const contractedEventIds = new Set(contractsFiltered.filter(c => c.eventId).map(c => c.eventId));
+    // Перевіряємо чи для цієї події вже є ЖОДЕН запис в новій системі (включно з alreadyHad),
+    // щоб не нарахувати бонус вдруге, коли договір явно позначено "вже мав раніше".
+    const contractedEventIds = new Set(allContracts.filter(c => c.eventId).map(c => c.eventId));
     completed.forEach(ev => {
       if (!ev.contractSigned) return; // не має старого договору
       if (contractedEventIds.has(ev.id)) return; // вже є в новій системі
