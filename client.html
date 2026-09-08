@@ -543,6 +543,8 @@
     const evMap = evSnap.val() || {};
     const evArr = Object.entries(evMap).map(([id, ev]) => ({ id, ...ev }));
 
+    console.log('[DEBUG3] raw contractsSnap for path', 'clients/' + phoneKey + '/contracts', '=', JSON.stringify(contractsSnap.val()));
+
     const contractsArr = [];
     if (contractsSnap.exists()) {
       contractsSnap.forEach(c => contractsArr.push({ id: c.key, ...c.val() }));
