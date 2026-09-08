@@ -79,7 +79,7 @@ const ContractsAPI = (() => {
     const ph = normalizePhone(phone);
     const snap = await db.ref('clients/' + ph + '/contracts').once('value');
     const out = [];
-    if (snap.exists()) snap.forEach(c => out.push({ id: c.key, ...c.val() }));
+    if (snap.exists()) snap.forEach(c => { out.push({ id: c.key, ...c.val() }); });
     return out;
   }
 
