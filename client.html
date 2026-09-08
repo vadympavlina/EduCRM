@@ -455,7 +455,7 @@
       renderLeft();
       renderTagsSection();
     });
-    db.ref('clientTimeline/' + phoneKey).on('value', () => loadTimeline());
+    db.ref('clientTimeline/' + phoneKey).on('value', () => loadTimeline().catch(e => console.error('Не вдалось оновити стрічку (listener)', e)));
   }
 
   // ── TAGS ──────────────────────────────────────────────────
@@ -551,10 +551,14 @@
 
     const reviewItems = [];
     await Promise.all(evArr.map(async ev => {
-      const r = await db.ref('reviews/' + ev.id).once('value');
-      if (r.exists()) {
-        const v = r.val();
-        reviewItems.push({ type:'review', id:ev.id, text:v.comment, eventTitle:v.eventTitle||ev.title, createdAt:v.createdAt });
+      try {
+        const r = await db.ref('reviews/' + ev.id).once('value');
+        if (r.exists()) {
+          const v = r.val();
+          reviewItems.push({ type:'review', id:ev.id, text:v.comment, eventTitle:v.eventTitle||ev.title, createdAt:v.createdAt });
+        }
+      } catch (e) {
+        console.error('Не вдалось завантажити відгук для події', ev.id, e);
       }
     }));
 
@@ -761,14 +765,14 @@
   async function clientConfirmEvent(id) {
     await db.ref('events/' + id).update({ status: 'confirmed', confirmedBy: currentUser });
     showToast('Подію підтверджено', true);
-    loadTimeline();
+    loadTimeline().catch(e => console.error('Не вдалось оновити стрічку після дії', e));
   }
 
   async function clientCancelEvent(id) {
     if (!confirm('Скасувати цю подію?')) return;
     await db.ref('events/' + id).update({ status: 'cancelled', cancelledBy: currentUser });
     showToast('Подію скасовано', false);
-    loadTimeline();
+    loadTimeline().catch(e => console.error('Не вдалось оновити стрічку після дії', e));
   }
 
   async function clientCompleteEvent(id) {
@@ -778,7 +782,7 @@
       completedAt: new Date().toISOString()
     });
     showToast('Проведено', true);
-    loadTimeline();
+    loadTimeline().catch(e => console.error('Не вдалось оновити стрічку після дії', e));
   }
 
   // Договір прив'язаний до конкретної події — вчитель береться автоматично з події
@@ -806,7 +810,7 @@
         alreadyHad: result.alreadyHad
       });
       showToast('Договір оформлено', true);
-      loadTimeline();
+      loadTimeline().catch(e => console.error('Не вдалось оновити стрічку після дії', e));
     } catch (err) {
       showToast('Помилка: ' + (err.message || err.code || ''), false);
     }
@@ -830,7 +834,7 @@
         alreadyHad: result.alreadyHad
       });
       showToast('Договір оформлено', true);
-      loadTimeline();
+      loadTimeline().catch(e => console.error('Не вдалось оновити стрічку після дії', e));
     } catch (err) {
       showToast('Помилка: ' + (err.message || err.code || ''), false);
     }
