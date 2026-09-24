@@ -8,7 +8,6 @@
 //   RESEND_API_KEY            — ключ Resend
 //   REPORT_FROM               — "EduCRM <reports@your-domain.com>" (домен верифікований у Resend)
 //   REPORT_RECIPIENTS         — "a@x.com, b@y.com, c@z.com"
-//   STATS_URL      (опц.)     — посилання на сторінку статистики для кнопки в листі
 //   REPORT_MONTH   (опц.)     — "2026-09"; за замовчуванням поточний місяць (Київ)
 //   FORCE=true     (опц.)     — ігнорувати перевірку дати/часу (ручний запуск)
 //   DRY_RUN=true   (опц.)     — нічого не надсилати, зберегти report-preview.html
@@ -120,10 +119,14 @@ export function computeStats({ events = {}, groupEvents = {}, people = {}, prici
   };
 
   const rows = Object.entries(byTeacher)
-    .map(([tid, d]) => ({
-      name: tid === '__none__' ? 'Не призначено' : (people[tid]?.name || 'Невідомо'),
-      ...d,
-    }))
+    .map(([tid, d]) => {
+      const p = getPricing(tid === '__none__' ? undefined : tid);
+      return {
+        name: tid === '__none__' ? 'Не призначено' : (people[tid]?.name || 'Невідомо'),
+        baseReward: p.baseReward, contractBonus: p.contractBonus,
+        ...d,
+      };
+    })
     .sort((a, b) => b.earnings - a.earnings);
 
   const totals = rows.reduce((s, r) => ({
@@ -133,101 +136,208 @@ export function computeStats({ events = {}, groupEvents = {}, people = {}, prici
   return { rows, totals, funnel };
 }
 
-// ── HTML ЛИСТА (inline-стилі — поштові клієнти не розуміють <style>/CSS-змінні) ──
+// ── HTML ЛИСТА ───────────────────────────────────────────────
+// Лише таблиці та inline-стилі: так лист однаково виглядає в Gmail, Outlook і на телефоні.
+const C = {
+  ink: '#1c2340', muted: '#6b7390', faint: '#a3a9bf', line: '#e8ebf3',
+  bg: '#f1f3f9', brand: '#4f6ef7', brandSoft: '#eef1ff',
+  green: '#0f9d6b', greenSoft: '#e6f6ef', red: '#d93a3a', redSoft: '#fdecec',
+};
+const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 const esc = s => String(s ?? '').replace(/[&<>"']/g, ch =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-const pct = (n, base) => base > 0 ? Math.round(n / base * 100) + '%' : '—';
-const uah = n => `₴${Number(n).toLocaleString('uk-UA')}`;
+const pctNum = (n, base) => base > 0 ? Math.round(n / base * 100) : null;
+const pct = (n, base) => base > 0 ? `${Math.round(n / base * 100)}%` : '—';
+const uah = n => `₴${Math.round(Number(n)).toLocaleString('uk-UA').replace(/\u00a0/g, ' ')}`;
+const plural = (n, one, few, many) => {
+  const a = Math.abs(n) % 100, b = a % 10;
+  if (a > 10 && a < 20) return many;
+  if (b === 1) return one;
+  if (b >= 2 && b <= 4) return few;
+  return many;
+};
+const MONTHS_GEN = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня',
+  'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
+const MONTHS_LOC = ['січні', 'лютому', 'березні', 'квітні', 'травні', 'червні',
+  'липні', 'серпні', 'вересні', 'жовтні', 'листопаді', 'грудні'];
 
-export function renderEmail({ rows, totals, funnel }, month, statsUrl) {
-  const avgCheck = funnel.completed > 0 ? uah(Math.round(totals.earnings / funnel.completed)) : '—';
-  const chip = (val, label, color) => `
-    <td style="padding:6px" width="33%">
-      <div style="background:#f5f7ff;border-radius:12px;padding:14px 10px;text-align:center">
-        <div style="font-size:22px;font-weight:700;color:${color}">${val}</div>
-        <div style="font-size:12px;color:#6b7280;margin-top:4px">${label}</div>
+export function prevMonthKey(key) {
+  const [y, m] = key.split('-').map(Number);
+  return m === 1 ? monthKey(y - 1, 12) : monthKey(y, m - 1);
+}
+
+// Бейдж зміни відносно минулого місяця
+function delta(cur, prev) {
+  if (prev == null) return '';
+  if (prev === 0 && cur === 0) return '';
+  if (prev === 0) return badge('нове', C.brand, C.brandSoft);
+  const d = Math.round((cur - prev) / prev * 100);
+  if (d === 0) return badge('без змін', C.muted, C.bg);
+  return d > 0 ? badge(`▲ ${d}%`, C.green, C.greenSoft) : badge(`▼ ${Math.abs(d)}%`, C.red, C.redSoft);
+}
+const badge = (text, color, bg) =>
+  `<span style="display:inline-block;padding:3px 8px;border-radius:999px;background:${bg};color:${color};font-size:12px;font-weight:600;line-height:16px;white-space:nowrap">${text}</span>`;
+
+// Горизонтальна смужка (таблицею — працює навіть в Outlook)
+function bar(percent, color, track = C.bg, height = 8) {
+  const p = Math.max(0, Math.min(100, percent || 0));
+  const fill = p > 0
+    ? `<td width="${p}%" style="background:${color};height:${height}px;line-height:${height}px;font-size:0;border-radius:${height}px">&nbsp;</td>` : '';
+  const rest = p < 100 ? `<td style="height:${height}px;line-height:${height}px;font-size:0">&nbsp;</td>` : '';
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${track};border-radius:${height}px"><tr>${fill}${rest}</tr></table>`;
+}
+
+export function renderEmail(stats, month, prev = null) {
+  const { rows, totals, funnel } = stats;
+  const [y, m] = month.split('-').map(Number);
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const prevName = MONTHS_LOC[(m + 10) % 12];
+  const avgCheck = funnel.completed > 0 ? uah(totals.earnings / funnel.completed) : '—';
+  const generatedAt = new Date().toLocaleString('uk-UA', { timeZone: TZ, day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+
+  const preheader = `${uah(totals.earnings)} до виплати, ${totals.events} ${plural(totals.events, 'заняття', 'заняття', 'занять')}, ${totals.contracts} ${plural(totals.contracts, 'договір', 'договори', 'договорів')}`;
+
+  // ── Таблиця нарахувань (для бухгалтерії)
+  const TB = '#dde2ee';            // колір ліній таблиці
+  const ZEBRA = '#f7f8fc';         // фон парних рядків
+  const PAY_BG = '#e9f7f0';        // фон колонки "До виплати"
+  const th = (t, align = 'right', extra = '') =>
+    `<th class="tc" style="padding:12px 10px;font-size:13px;font-weight:700;color:#ffffff;text-align:${align};background:${C.brand};line-height:16px;vertical-align:bottom;${extra}">${t}</th>`;
+  const cell = (v, { align = 'right', bold = false, color = C.ink, sub = '', bg = '', size = 15, extra = '' } = {}) =>
+    `<td class="tc" style="padding:13px 10px;font-size:${size}px;line-height:20px;color:${color};text-align:${align};border-bottom:1px solid ${TB};${bg ? `background:${bg};` : ''}${bold ? 'font-weight:700;' : ''}${align === 'left' ? '' : 'white-space:nowrap;'}vertical-align:top;${extra}">${v}${sub ? `<div style="font-size:12px;line-height:14px;font-weight:400;color:${C.muted};padding-top:2px">${sub}</div>` : ''}</td>`;
+
+  const tRows = rows.map((r, i) => {
+    const forEvents = r.count * r.baseReward;
+    const forContracts = r.earnings - forEvents; // включно зі старими contractSigned
+    const bg = i % 2 ? ZEBRA : '#ffffff';
+    return `<tr>
+      ${cell(esc(r.name), { align: 'left', bold: true, bg })}
+      ${cell(r.count, { bg })}
+      ${cell(uah(forEvents), { sub: `по ${uah(r.baseReward)}`, bg })}
+      ${cell(r.contracts, { bg })}
+      ${cell(uah(forContracts), { sub: `по ${uah(r.contractBonus)}`, bg })}
+      ${cell(uah(r.earnings), { bold: true, color: C.green, bg: PAY_BG, size: 16 })}
+    </tr>`;
+  }).join('');
+  const sumEvents = rows.reduce((s, r) => s + r.count * r.baseReward, 0);
+  const T = { bold: true, bg: C.brandSoft, extra: `border-top:2px solid ${C.brand};border-bottom:none;` };
+  const tfoot = `<tr>
+      ${cell('Разом', { ...T, align: 'left' })}
+      ${cell(totals.events, T)}
+      ${cell(uah(sumEvents), T)}
+      ${cell(totals.contracts, T)}
+      ${cell(uah(totals.earnings - sumEvents), T)}
+      ${cell(uah(totals.earnings), { ...T, color: C.green, size: 17, bg: '#d5f0e3' })}
+    </tr>`;
+
+  const teachersBlock = `<tr><td style="padding-top:6px">
+    <div style="border:1px solid ${TB};border-radius:12px;overflow:hidden">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
+      <thead><tr>
+        ${th('Вчитель', 'left')}${th('Занять')}${th('За заняття')}${th('Договорів')}${th('За договори')}${th('До виплати', 'right', `background:${C.green};`)}
+      </tr></thead>
+      <tbody>${rows.length ? tRows + tfoot
+        : `<tr><td colspan="6" style="padding:18px 10px;font-size:15px;color:${C.muted};text-align:center">У цьому місяці немає проведених занять</td></tr>`}</tbody>
+    </table>
+    </div>
+  </td></tr>`;
+
+  // ── Воронка
+  const steps = [
+    { label: 'Записано', n: funnel.created, note: 'усі заявки, крім скасованих', color: '#9aa8f9' },
+    { label: 'Підтверджено', n: funnel.confirmed, note: `${pct(funnel.confirmed, funnel.created)} від записаних`, color: '#7189f8' },
+    { label: 'Проведено', n: funnel.completed, note: `${pct(funnel.completed, funnel.confirmed)} від підтверджених`, color: C.brand },
+    { label: 'Уклали договір', n: funnel.contract, note: `${pct(funnel.contract, funnel.completed)} від проведених`, color: C.green },
+  ];
+  const funnelRows = steps.map((s, i) => `
+    <tr><td style="padding:${i ? 14 : 4}px 0 0">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td style="font-size:14px;color:${C.ink}"><b>${s.n}</b>&nbsp; ${s.label}</td>
+        <td align="right" style="font-size:12px;color:${C.faint}">${s.note}</td>
+      </tr><tr>
+        <td colspan="2" style="padding-top:6px">${bar(pctNum(s.n, funnel.created) ?? 0, s.color)}</td>
+      </tr></table>
+    </td></tr>`).join('');
+
+  // ── Три факти внизу
+  const fact = (value, label, color = C.ink) => `
+    <td width="33%" valign="top" style="padding:14px 8px;text-align:center">
+      <div style="font-size:18px;font-weight:700;color:${color}">${value}</div>
+      <div style="font-size:12px;color:${C.muted};padding-top:3px">${label}</div>
+    </td>`;
+
+  const kpi = (value, label, d) => `
+    <td width="50%" valign="top" style="padding:0 6px">
+      <div style="background:${C.bg};border-radius:12px;padding:14px 16px">
+        <div style="font-size:22px;font-weight:700;color:${C.ink}">${value}</div>
+        <div style="font-size:13px;color:${C.muted};padding:2px 0 8px">${label}</div>
+        ${d || '&nbsp;'}
       </div>
     </td>`;
-  const step = (label, val, sub, color) => `
-    <td style="padding:6px;text-align:center" width="25%">
-      <div style="font-size:20px;font-weight:700;color:${color}">${val}</div>
-      <div style="font-size:12px;color:#374151">${label}</div>
-      <div style="font-size:11px;color:#9ca3af;margin-top:2px">${sub}</div>
-    </td>`;
-  const td = 'padding:10px 12px;border-bottom:1px solid #eef0f4;font-size:14px;color:#111827';
-  const th = 'padding:10px 12px;background:#f3f4f6;font-size:12px;color:#6b7280;text-align:left;text-transform:uppercase;letter-spacing:.03em';
 
-  const body = rows.length
-    ? rows.map(r => `<tr>
-        <td style="${td}">${esc(r.name)}</td>
-        <td style="${td}">${r.count}</td>
-        <td style="${td}">${r.contracts}</td>
-        <td style="${td};color:#059669;font-weight:600">${uah(r.earnings)}</td>
-      </tr>`).join('')
-    : `<tr><td colspan="4" style="${td};text-align:center;color:#9ca3af">Немає завершених подій за цей місяць</td></tr>`;
+  const section = (title, inner) => `
+  <tr><td class="px" style="padding:28px 28px 0">
+    <div style="font-size:18px;font-weight:700;color:${C.ink};padding-bottom:8px">${title}</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${inner}</table>
+  </td></tr>`;
 
   return `<!doctype html>
-<html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Звіт EduCRM — ${esc(monthLabel(month))}</title></head>
-<body style="margin:0;padding:0;background:#eef1f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef1f7;padding:24px 12px">
-<tr><td align="center">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#ffffff;border-radius:16px;overflow:hidden">
-  <tr><td style="background:#4f6ef7;padding:22px 24px;color:#fff">
-    <div style="font-size:13px;opacity:.85">EduCRM · щомісячний звіт</div>
-    <div style="font-size:22px;font-weight:700;margin-top:4px">${esc(monthLabel(month))}</div>
+<html lang="uk"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light">
+<style>@media (max-width:480px){.px{padding-left:16px!important;padding-right:16px!important}.pxk{padding-left:10px!important;padding-right:10px!important}.wrap{padding:0!important}.tc{padding-left:3px!important;padding-right:3px!important;font-size:12px!important}}</style>
+<title>Звіт EduCRM за ${esc(MONTHS_UA[m - 1].toLowerCase())} ${y}</title>
+</head>
+<body style="margin:0;padding:0;background:${C.bg};font-family:${FONT};-webkit-font-smoothing:antialiased">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(preheader)}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bg}">
+<tr><td align="center" class="wrap" style="padding:28px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:660px;background:#ffffff;border-radius:18px">
+
+  <!-- Шапка -->
+  <tr><td class="px" style="padding:26px 28px 0">
+    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+      <td style="background:${C.brand};border-radius:8px;width:28px;height:28px;text-align:center;vertical-align:middle">
+        <div style="width:12px;height:2px;background:#fff;border-radius:2px;margin:0 0 3px 8px;font-size:0">&nbsp;</div>
+        <div style="width:16px;height:2px;background:#fff;border-radius:2px;margin:0 0 3px 8px;font-size:0">&nbsp;</div>
+        <div style="width:8px;height:2px;background:#fff;border-radius:2px;margin:0 0 0 8px;font-size:0">&nbsp;</div>
+      </td>
+      <td style="padding-left:10px;font-size:14px;font-weight:600;color:${C.ink}">EduCRM</td>
+    </tr></table>
+    <div style="font-size:26px;line-height:32px;font-weight:700;color:${C.ink};padding-top:22px">Підсумки за ${esc(MONTHS_UA[m - 1].toLowerCase())}</div>
+    <div style="font-size:14px;color:${C.muted};padding-top:4px">1–${lastDay} ${MONTHS_GEN[m - 1]} ${y}</div>
   </td></tr>
 
-  <tr><td style="padding:18px 18px 4px">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-      ${chip(totals.events, 'Подій', '#111827')}
-      ${chip(uah(totals.earnings), 'Заробіток', '#059669')}
-      ${chip(totals.contracts, 'Договорів', '#3b5be8')}
+  ${section('Нарахування вчителям', teachersBlock)}
+  ${section('Шлях від запису до договору', funnelRows)}
+
+  <!-- Факти -->
+  <tr><td class="px" style="padding:24px 28px 0">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${C.line};border-radius:12px"><tr>
+      ${fact(avgCheck, 'в середньому за заняття')}
+      ${fact(pct(funnel.contract, funnel.created), 'записів стали договорами', C.green)}
+      ${fact(`${funnel.cancelled}${funnel.total ? ` <span style="font-size:13px;font-weight:600;color:${C.faint}">(${pct(funnel.cancelled, funnel.total)})</span>` : ''}`, plural(funnel.cancelled, 'запис скасовано', 'записи скасовано', 'записів скасовано'), funnel.cancelled ? C.red : C.ink)}
     </tr></table>
   </td></tr>
 
-  <tr><td style="padding:14px 24px 0">
-    <div style="font-size:15px;font-weight:700;color:#111827">Конверсія</div>
-  </td></tr>
-  <tr><td style="padding:4px 18px">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-      ${step('Створено', funnel.created, '100%', '#b45309')}
-      ${step('Підтверджено', funnel.confirmed, `${pct(funnel.confirmed, funnel.created)} від створених`, '#2563eb')}
-      ${step('Проведено', funnel.completed, `${pct(funnel.completed, funnel.confirmed)} від підтв.`, '#059669')}
-      ${step('Договір', funnel.contract, `${pct(funnel.contract, funnel.completed)} від проведених`, '#4f6ef7')}
-    </tr></table>
-  </td></tr>
-  <tr><td style="padding:8px 24px 4px;font-size:13px;color:#374151">
-    Скасовано: <b style="color:#dc2626">${funnel.cancelled}</b> ${funnel.total ? `(${pct(funnel.cancelled, funnel.total)})` : ''}
-    &nbsp;·&nbsp; Середній чек: <b>${avgCheck}</b>
-    &nbsp;·&nbsp; Конверсія в договір: <b style="color:#059669">${pct(funnel.contract, funnel.created)}</b>
+  <tr><td class="px" style="padding:26px 28px 26px">
+    <div style="border-top:1px solid ${C.line};padding-top:16px;font-size:12px;line-height:18px;color:${C.faint}">
+      Дані станом на ${esc(generatedAt)} за київським часом. Цей лист EduCRM надсилає автоматично в останній день кожного місяця.
+    </div>
   </td></tr>
 
-  <tr><td style="padding:18px 24px 8px">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eef0f4;border-radius:10px;border-collapse:separate;overflow:hidden">
-      <thead><tr>
-        <th style="${th}">Вчитель</th><th style="${th}">Подій</th><th style="${th}">Договорів</th><th style="${th}">Заробіток</th>
-      </tr></thead>
-      <tbody>${body}</tbody>
-      ${rows.length ? `<tfoot><tr>
-        <td style="${td};font-weight:700;background:#fafafa">Разом</td>
-        <td style="${td};font-weight:700;background:#fafafa">${totals.events}</td>
-        <td style="${td};font-weight:700;background:#fafafa">${totals.contracts}</td>
-        <td style="${td};font-weight:700;background:#fafafa;color:#059669">${uah(totals.earnings)}</td>
-      </tr></tfoot>` : ''}
-    </table>
-  </td></tr>
-
-  ${statsUrl ? `<tr><td align="center" style="padding:12px 24px 4px">
-    <a href="${esc(statsUrl)}" style="display:inline-block;background:#4f6ef7;color:#fff;text-decoration:none;padding:11px 20px;border-radius:10px;font-size:14px;font-weight:600">Відкрити статистику</a>
-  </td></tr>` : ''}
-
-  <tr><td style="padding:16px 24px 22px;font-size:11px;color:#9ca3af;text-align:center">
-    Дані станом на ${esc(new Date().toLocaleString('uk-UA', { timeZone: TZ }))} (Київ). Лист сформовано автоматично.
-  </td></tr>
 </table>
 </td></tr></table>
 </body></html>`;
+}
+
+// Бейдж на синьому фоні головного блоку
+function deltaOnBrand(cur, prev) {
+  if (prev === 0 && cur === 0) return '';
+  if (prev === 0) return badge('нове', '#ffffff', 'rgba(255,255,255,.18)');
+  const d = Math.round((cur - prev) / prev * 100);
+  if (d === 0) return badge('як минулого місяця', '#ffffff', 'rgba(255,255,255,.18)');
+  return badge(`${d > 0 ? '▲' : '▼'} ${Math.abs(d)}%`, '#ffffff', 'rgba(255,255,255,.18)');
 }
 
 // ── RESEND ───────────────────────────────────────────────────
@@ -309,8 +419,8 @@ async function main() {
     const data = Object.fromEntries(paths.map((p, i) => [p, snaps[i].val() || undefined]));
 
     const stats = computeStats(data, month);
-    const html = renderEmail(stats, month, process.env.STATS_URL);
-    const subject = `Звіт EduCRM — ${monthLabel(month)}`;
+    const html = renderEmail(stats, month);
+    const subject = `Звіт EduCRM за ${monthLabel(month).toLowerCase()}: ${uah(stats.totals.earnings)} до виплати`;
     console.log(`Підсумок: подій ${stats.totals.events}, договорів ${stats.totals.contracts}, заробіток ₴${stats.totals.earnings}`);
 
     if (dryRun) {
