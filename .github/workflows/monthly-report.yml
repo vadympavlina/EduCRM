@@ -1,0 +1,82 @@
+name: Monthly stats report
+
+on:
+  schedule:
+    # GitHub cron працює в UTC і часто запізнюється, тому стартуємо ЗАЗДАЛЕГІДЬ,
+    # а скрипт сам чекає рівно до 18:00 за Києвом.
+    # Київ: влітку UTC+3, взимку UTC+2 → ці запуски = 15:47–17:17 за Києвом.
+    # Два запуски — страховка на випадок, якщо GitHub пропустить один (дубля не буде).
+    - cron: '47 13 28-31 * *'
+    - cron: '17 14 28-31 * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Режим ручного запуску'
+        type: choice
+        options: [dry-run, send-now]
+        default: dry-run
+      month:
+        description: 'Місяць звіту YYYY-MM (порожньо = поточний)'
+        required: false
+        default: ''
+
+concurrency:
+  group: monthly-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    defaults:
+      run:
+        working-directory: scripts/monthly-report
+
+    steps:
+      - name: Чи сьогодні останній день місяця (Київ)?
+        id: gate
+        working-directory: .
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ "$(TZ=Europe/Kyiv date -d tomorrow +%d)" = "01" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Не останній день місяця — пропускаю."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.run == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.run == 'true'
+        with:
+          node-version: 20
+
+      - name: Install
+        if: steps.gate.outputs.run == 'true'
+        run: npm install --omit=dev --no-audit --no-fund
+
+      - name: Build & send report
+        if: steps.gate.outputs.run == 'true'
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          REPORT_FROM: ${{ secrets.REPORT_FROM }}
+          REPORT_RECIPIENTS: ${{ secrets.REPORT_RECIPIENTS }}
+          STATS_URL: ${{ vars.STATS_URL }}
+          REPORT_MONTH: ${{ inputs.month }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' }}
+          DRY_RUN: ${{ inputs.mode == 'dry-run' }}
+        run: node send-report.mjs
+
+      - name: Upload preview (dry-run)
+        if: steps.gate.outputs.run == 'true' && inputs.mode == 'dry-run'
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-preview
+          path: scripts/monthly-report/report-preview.html
+          if-no-files-found: ignore
