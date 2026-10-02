@@ -399,6 +399,7 @@
   let currentUser = '';
   let clientData  = {};
   let teachersMap = {};
+  const archivedTeachers = new Set();
 
   function ini(name) {
     return (name || '').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() || '?';
@@ -439,7 +440,7 @@
     // Load teachers once
     const tSnap = await db.ref('people').once('value');
     if (tSnap.exists()) {
-      tSnap.forEach(t => { teachersMap[t.key] = t.val().name || ''; });
+      tSnap.forEach(t => { teachersMap[t.key] = t.val().name || ''; if (t.val().archived) archivedTeachers.add(t.key); });
     }
 
     // Load tags
@@ -822,7 +823,7 @@
     if (existing > 0 && !confirm(`У цього клієнта вже є договір(и) (${existing}). Оформити ще один?`)) return;
     const result = await ContractsAPI.promptCreate({
       requireTeacher: true,
-      teachersMap: Object.fromEntries(Object.entries(teachersMap).map(([id, name]) => [id, { id, name }])),
+      teachersMap: Object.fromEntries(Object.entries(teachersMap).filter(([id]) => !archivedTeachers.has(id)).map(([id, name]) => [id, { id, name }])),
       defaultTitle: ''
     });
     if (!result) return;

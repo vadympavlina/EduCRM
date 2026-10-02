@@ -114,6 +114,7 @@ const GroupEvents = (() => {
     const sel = document.getElementById('ge-teacher');
     sel.innerHTML = '<option value="">— Оберіть вчителя —</option>' +
       Object.values(teachers)
+        .filter(t => !t.archived || t.id === selectedId)
         .sort((a, b) => a.name.localeCompare(b.name, 'uk'))
         .map(t => `<option value="${t.id}">${escapeHTML(t.name)}</option>`)
         .join('');

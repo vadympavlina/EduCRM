@@ -470,7 +470,7 @@
   }
 
   function listenPricing() {
-    db.ref('pricing').on('value', snap => {
+    db.ref('pricing/config').on('value', snap => {
       if (snap.exists()) {
         const d = snap.val();
         pricing.default   = d.default   || pricing.default;

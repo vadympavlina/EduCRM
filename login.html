@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Вхід — EduCRM</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <link rel="modulepreload" href="assets/js/core/firebase.js">
+  <link rel="modulepreload" href="assets/js/core/auth.js">
+  <script type="module" src="assets/js/pages/login.js"></script>
+</head>
+<body>
+  <main class="auth-page">
+    <div class="card auth-card">
+      <div class="sb-logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg>
+      </div>
+      <h1>Вхід в EduCRM</h1>
+      <p>Увійдіть робочим Google-акаунтом</p>
+      <div id="login-alert" hidden></div>
+      <button class="btn btn-lg" id="google-btn" aria-busy="true">Перевіряємо сесію…</button>
+      <div class="auth-foot">Доступ мають лише співробітники зі списку.</div>
+    </div>
+  </main>
+</body>
+</html>

@@ -345,7 +345,7 @@
     const sel = document.getElementById('block-teacher-select');
     const cur = sel.value;
     sel.innerHTML = '<option value="">Всі (загальне блокування)</option>';
-    Object.values(teachers).sort((a,b) => a.name.localeCompare(b.name,'uk')).forEach(t => {
+    Object.values(teachers).filter(t => !t.archived).sort((a,b) => a.name.localeCompare(b.name,'uk')).forEach(t => {
       const opt = document.createElement('option');
       opt.value = t.id; opt.textContent = t.name;
       sel.appendChild(opt);

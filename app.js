@@ -924,6 +924,9 @@ const TEACHER_COLORS = [
 
 function getTeacherColor(teacherId) {
   if (!teacherId) return null;
+  // Колір, обраний на сторінці «Вчителі та ставки»
+  const own = teachers[teacherId]?.color;
+  if (own) return TEACHER_COLORS.find(c => c.bg === own) || { bg: own, border: own, text: '#fff' };
   const keys = Object.keys(teachers).sort();
   const idx  = keys.indexOf(teacherId);
   return idx >= 0 ? TEACHER_COLORS[idx % TEACHER_COLORS.length] : null;
@@ -1230,6 +1233,7 @@ function openBlockModal(startStr, endStr) {
 
   // Populate teacher select
   const teacherOptions = Object.values(teachers)
+    .filter(t => !t.archived)
     .sort((a,b) => a.name.localeCompare(b.name, 'uk'))
     .map(t => `<option value="${t.id}">${t.name.replace(/</g,'&lt;')}</option>`)
     .join('');
@@ -1525,6 +1529,7 @@ function populateTeacherSelect(selectedId) {
   const sel = document.getElementById('event-teacher');
   sel.innerHTML = '<option value="">— Оберіть вчителя —</option>';
   Object.values(teachers).forEach(t => {
+    if (t.archived && t.id !== selectedId) return; // архівних не пропонуємо для нових подій
     const opt = document.createElement('option');
     opt.value = t.id;
     opt.textContent = t.name;

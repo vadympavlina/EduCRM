@@ -414,9 +414,11 @@ async function main() {
       }
     }
 
-    const paths = ['events', 'groupEvents', 'people', 'pricing', 'clients'];
-    const snaps = await Promise.all(paths.map(p => db.ref(p).once('value')));
-    const data = Object.fromEntries(paths.map((p, i) => [p, snaps[i].val() || undefined]));
+    // Ставки зберігаються в pricing/config (так їх пише сторінка «Вчителі та ставки»)
+    const paths = { events: 'events', groupEvents: 'groupEvents', people: 'people', pricing: 'pricing/config', clients: 'clients' };
+    const keys = Object.keys(paths);
+    const snaps = await Promise.all(keys.map(k => db.ref(paths[k]).once('value')));
+    const data = Object.fromEntries(keys.map((k, i) => [k, snaps[i].val() || undefined]));
 
     const stats = computeStats(data, month);
     const html = renderEmail(stats, month);
