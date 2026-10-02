@@ -951,3 +951,37 @@ button.tag.on { background: color-mix(in srgb, var(--t) 14%, white); color: colo
   .card { box-shadow: none; break-inside: avoid; }
   body { background: #fff; }
 }
+
+/* ── Відкритий захід ──────────────────────────────────────── */
+.od-head { display: flex; align-items: center; gap: 16px; padding: 14px 18px; flex-wrap: wrap; }
+.od-title { flex: 1; min-width: 260px; border: 1px solid transparent; border-radius: var(--r-md); padding: 6px 8px; margin-left: -8px; font-size: var(--fs-xl); font-weight: 700; background: transparent; }
+.od-title:hover { border-color: var(--border); }
+.od-title:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 4px var(--brand-ring); background: var(--surface); }
+.od-stats { display: flex; gap: 8px; }
+.od-stat { padding: 6px 12px; border-radius: 999px; background: var(--surface-2); font-size: var(--fs-sm); color: var(--text-2); }
+.od-stat.on { background: var(--success-soft); color: var(--success); }
+.od-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.od-tabs:empty { display: none; }
+.od-tab { height: 32px; font-size: var(--fs-sm); }
+.od-add { display: grid; grid-template-columns: minmax(0, 2fr) 90px minmax(0, 1.2fr) auto; gap: 8px; padding: 12px 20px; border-bottom: 1px solid var(--border); background: #fcfcfd; }
+.od-list { list-style: none; margin: 0; padding: 0; }
+.od-row { display: grid; grid-template-columns: 36px 28px 28px minmax(0, 1fr) 60px 150px 90px auto; align-items: center; gap: 10px; padding: 8px 20px; border-bottom: 1px solid var(--border); transition: background .12s; }
+.od-row:last-child { border-bottom: 0; }
+.od-row:hover { background: #fafbfc; }
+.od-row.present { background: #f6fef9; }
+.od-check { width: 32px; height: 32px; border-radius: var(--r-md); border: 1.5px solid var(--border-strong); background: var(--surface); color: transparent; display: grid; place-items: center; transition: all .12s; }
+.od-check:hover { border-color: var(--success); color: var(--success-border); }
+.od-check[aria-pressed="true"] { background: var(--success); border-color: var(--success); color: #fff; }
+.od-num { color: var(--text-4); font-size: var(--fs-xs); text-align: right; }
+.od-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.od-row .row-actions { opacity: 0; }
+.od-row:hover .row-actions, .od-row:focus-within .row-actions { opacity: 1; }
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .od-add { grid-template-columns: 1fr 70px; }
+  .od-add [name="phone"], .od-add .btn { grid-column: span 2; }
+  .od-row { grid-template-columns: 40px minmax(0, 1fr) auto auto; }
+  .od-row .od-num, .od-row .avatar, .od-row .od-phone { display: none; }
+  .od-row .row-actions { opacity: 1; }
+}
