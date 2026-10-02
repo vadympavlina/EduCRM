@@ -141,6 +141,8 @@ function initCalendar() {
     eventResizableFromStart: true,
     slotEventOverlap: false,
     eventMaxStack: 3,
+    eventShortHeight: 46,
+    eventMinHeight: 22,  // нижчі за це — однорядковий вигляд (див. .fc-timegrid-event-short)
     dayMaxEvents: 3,
     eventDisplay: 'block',
     slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
@@ -239,7 +241,7 @@ function buildEvents() {
       title: ev.title || '—',
       start: `${ev.date}T${ev.startTime}`,
       ...(end ? { end: `${ev.date}T${end}` } : {}),
-      classNames: ['ev', 'ev-' + status],
+      classNames: ['ev', 'ev-' + status, ...(end && toMin(end) - toMin(ev.startTime) >= 90 ? ['ev-tall'] : [])],
       editable: status === 'pending' || status === 'confirmed',
       extendedProps: { kind: 'event', ref: ev.id, status, teacher: teacherName(ev.assignedPersonId), color: ev.assignedPersonId ? teacherColor(store.teachers, ev.assignedPersonId) : '#98a2b3' },
     });
@@ -253,7 +255,7 @@ function buildEvents() {
       title: ge.title || 'Групова подія',
       start: `${ge.date}T${ge.startTime}`,
       ...(ge.endTime && toMin(ge.endTime) > toMin(ge.startTime) ? { end: `${ge.date}T${ge.endTime}` } : {}),
-      classNames: ['ev', 'ev-group', 'ev-' + status],
+      classNames: ['ev', 'ev-group', 'ev-' + status, ...(ge.endTime && toMin(ge.endTime) - toMin(ge.startTime) >= 90 ? ['ev-tall'] : [])],
       editable: status === 'pending',
       extendedProps: { kind: 'group', ref: ge.id, status, color: '#7a5af8', teacher: teacherName(ge.assignedPersonId), coming: countComing(ge), total: Object.keys(ge.participants || {}).length },
     });
@@ -361,7 +363,7 @@ function openBusyDialog(start, end) {
       <label class="field"><span class="field-label">Для кого</span>
         <select class="select" name="bTeacher">
           <option value="">Для всіх</option>
-          ${teacherOptions().map(t => html`<option value="${t.id}">${t.name}</option>`)}
+          ${teacherOptions().map(t => html`<option value="${t.id}" data-color="${teacherColor(store.teachers, t.id)}">${t.name}</option>`)}
         </select></label>`,
     async onSubmit(form) {
       const f = form.elements;

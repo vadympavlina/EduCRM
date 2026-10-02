@@ -13,6 +13,7 @@ import {
 } from '../data/events.js';
 import { siteUrl } from '../data/telegram.js';
 import { store, ctx, teacherName, teacherOptions } from './store.js';
+import { teacherColor } from '../data/teachers.js';
 
 const hhmm = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
@@ -100,7 +101,7 @@ export function openEventDialog({ id = null, start = null, end = null, phone = '
           <select class="select" name="teacher">
             <option value="">— Оберіть вчителя —</option>
             ${teacherOptions(v.assignedPersonId).map(t => html`
-              <option value="${t.id}" ${t.id === v.assignedPersonId ? 'selected' : ''}>${t.name}${t.archived ? ' (архів)' : ''}</option>`)}
+              <option value="${t.id}" data-color="${teacherColor(store.teachers, t.id)}" ${t.id === v.assignedPersonId ? 'selected' : ''}>${t.name}${t.archived ? ' (архів)' : ''}</option>`)}
           </select>
         </label>
       </div>

@@ -6,6 +6,7 @@
 import { html, render, busy } from '../core/dom.js';
 import { icon } from './icons.js';
 import { toast } from './toast.js';
+import { enhanceSelects } from './select.js';
 
 /**
  * openDialog({
@@ -68,6 +69,7 @@ export function openDialog({
 
   document.body.append(dlg);
   dlg.showModal();
+  enhanceSelects(dlg);
   onOpen?.(form, dlg);
   // Фокус на першому полі з autofocus, інакше — на тілі вікна (а не на кнопці «Закрити»)
   const first = form.querySelector('[autofocus]');

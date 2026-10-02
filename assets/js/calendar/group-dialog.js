@@ -14,6 +14,7 @@ import {
 } from '../data/group-events.js';
 import { contractsForPhone, createContract } from '../data/contracts.js';
 import { store, ctx, teacherOptions } from './store.js';
+import { teacherColor } from '../data/teachers.js';
 
 const hhmm = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
@@ -64,7 +65,7 @@ export function openGroupDialog({ id = null, start = null, end = null } = {}) {
           <select class="select" name="gTeacher">
             <option value="">— Оберіть вчителя —</option>
             ${teacherOptions(v.assignedPersonId).map(t => html`
-              <option value="${t.id}" ${t.id === v.assignedPersonId ? 'selected' : ''}>${t.name}${t.archived ? ' (архів)' : ''}</option>`)}
+              <option value="${t.id}" data-color="${teacherColor(store.teachers, t.id)}" ${t.id === v.assignedPersonId ? 'selected' : ''}>${t.name}${t.archived ? ' (архів)' : ''}</option>`)}
           </select></label>
         <label class="field"><span class="field-label">Дата</span>
           <input class="input num" type="date" name="gDate" value="${v.date || ''}"></label>

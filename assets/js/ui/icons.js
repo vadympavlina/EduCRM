@@ -29,6 +29,7 @@ const PATHS = {
   'archive-restore': '<rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h2M20 8v11a2 2 0 0 1-2 2h-2M9 15l3-3 3 3M12 12v9"/>',
   x:             '<path d="M18 6 6 18M6 6l12 12"/>',
   'chevron-left':'<path d="m15 18-6-6 6-6"/>',
+  'chevron-down':'<path d="m6 9 6 6 6-6"/>',
   'chevron-right':'<path d="m9 18 6-6-6-6"/>',
   'chevrons-left':'<path d="m11 17-5-5 5-5M18 17l-5-5 5-5"/>',
   'message-square': '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
