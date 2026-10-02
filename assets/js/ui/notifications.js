@@ -98,7 +98,7 @@ export function initNotifications(button, staff) {
     markRead([id]);
     const snap = await get(ref(db, `events/${id}/phone`)).catch(() => null);
     const phone = phoneDigits(snap?.val());
-    if (phone) window.open('client.html?id=' + encodeURIComponent(phone), '_blank', 'noopener');
+    if (phone) window.open('client?id=' + encodeURIComponent(phone), '_blank', 'noopener');
   }
 
   function markRead(ids) {

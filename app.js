@@ -406,7 +406,7 @@ function renderNotifPanel() {
     const safeComment = (r.comment    || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const ev = events[r.id];
     const phone = ev ? normalizePhone(ev.phone) : null;
-    const clientUrl = phone ? `client.html?id=${encodeURIComponent(phone)}` : null;
+    const clientUrl = phone ? `client?id=${encodeURIComponent(phone)}` : null;
     return `
       <div class="notif-item ${isRead ? 'read' : 'unread'}"
            onmouseenter="markNotifRead('${r.id}')"
@@ -471,7 +471,7 @@ function showBrowserNotification(review) {
   const ev    = events[review.id];
   const phone = ev ? (ev.phone || '').replace(/\D/g, '') : '';
   const url   = phone.length >= 9
-    ? `${location.origin}${location.pathname.replace(/[^/]+$/, '')}client.html?id=${encodeURIComponent(phone)}`
+    ? `${location.origin}${location.pathname.replace(/[^/]+$/, '')}client?id=${encodeURIComponent(phone)}`
     : null;
 
   const notif = new Notification('EduCRM — Новий відгук', {
@@ -1363,7 +1363,7 @@ function openEventModal(eventId) {
   }
   // Кнопка копіювання посилання на відгук
   if (ev.status === 'completed') {
-    const reviewUrl = `${location.origin}${location.pathname.replace(/[^/]*$/, '')}review.html?eventId=${ev.id}`;
+    const reviewUrl = `${location.origin}${location.pathname.replace(/[^/]*$/, '')}review?eventId=${ev.id}`;
     const copyBtn = document.createElement('button');
     copyBtn.className = 'btn btn-ghost btn-sm';
     copyBtn.innerHTML = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
@@ -1446,7 +1446,7 @@ async function renderEventClientBlock(ev) {
   const phone    = ev.phone.replace(/\D/g, '');
   if (phone.length < 9) { section.innerHTML = ''; return; }
 
-  const clientUrl = `client.html?id=${encodeURIComponent(phone)}`;
+  const clientUrl = `client?id=${encodeURIComponent(phone)}`;
 
   // Show skeleton while loading
   section.innerHTML = `
@@ -1814,8 +1814,8 @@ async function sendTelegram(status, ev) {
 
   // Кнопка відгуку — тільки для підтверджених подій
   if (status === 'ПІДТВЕРДЖЕНО' && ev.id) {
-    const reviewUrl  = `${SITE_URL}/review.html?eventId=${ev.id}`;
-    const calUrl     = `${SITE_URL}/addtocal.html?eventId=${ev.id}`;
+    const reviewUrl  = `${SITE_URL}/review?eventId=${ev.id}`;
+    const calUrl     = `${SITE_URL}/addtocal?eventId=${ev.id}`;
     payload.reply_markup = {
       inline_keyboard: [[
         { text: 'Відгук', url: reviewUrl },
@@ -1852,8 +1852,8 @@ async function editTelegramMessage(status, ev) {
   };
 
   if (status === 'ПІДТВЕРДЖЕНО' && ev.id) {
-    const reviewUrl = `${SITE_URL}/review.html?eventId=${ev.id}`;
-    const calUrl    = `${SITE_URL}/addtocal.html?eventId=${ev.id}`;
+    const reviewUrl = `${SITE_URL}/review?eventId=${ev.id}`;
+    const calUrl    = `${SITE_URL}/addtocal?eventId=${ev.id}`;
     payload.reply_markup = {
       inline_keyboard: [[
         { text: 'Відгук', url: reviewUrl },
@@ -2025,7 +2025,7 @@ function renderSearchResults(evList) {
     html += '<div class="sr-section-title">Клієнти</div>';
     html += clientItems.slice(0,4).map(ev => {
       const norm = ev.phone?.replace(/\D/g,'') || '';
-      const url  = norm ? `client.html?id=${encodeURIComponent(norm)}` : '#';
+      const url  = norm ? `client?id=${encodeURIComponent(norm)}` : '#';
       return `<div class="sr-item" onclick="window.open('${url}','_blank');closeSearch()">
         <div class="sr-item-icon sr-icon-client">
           <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">

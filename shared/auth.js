@@ -56,7 +56,7 @@ function _showLoginOrRedirect() {
   if (typeof showLoginModal === 'function') {
     showLoginModal(true);
   } else {
-    window.location.href = 'index.html';
+    window.location.href = './';
   }
 }
 
@@ -92,7 +92,7 @@ async function logout() {
   }
   currentUser = currentEmail = currentPhotoURL = '';
   await auth.signOut();
-  window.location.href = 'index.html';
+  window.location.href = './';
 }
 
 document.addEventListener('DOMContentLoaded', () => {

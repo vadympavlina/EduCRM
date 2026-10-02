@@ -199,7 +199,7 @@
 
     const rows = filtered.map(c => {
       const displayName = c.clientName || c.clientCardName || '—';
-      const clientUrl = c.phone ? `client.html?id=${encodeURIComponent(c.phone)}` : null;
+      const clientUrl = c.phone ? `client?id=${encodeURIComponent(c.phone)}` : null;
       const nameCell = clientUrl
         ? `<a href="${clientUrl}" target="_blank" class="client-link">${escH(displayName)}</a>`
         : escH(displayName);

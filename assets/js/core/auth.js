@@ -27,10 +27,10 @@ export async function findStaff(email) {
 export function loginUrl(reason) {
   const next = location.pathname.split('/').pop() + location.search;
   const params = new URLSearchParams();
-  if (next && next !== 'login.html') params.set('next', next);
+  if (next && !/^login(\.html)?$/.test(next)) params.set('next', next);
   if (reason) params.set('reason', reason);
   const qs = params.toString();
-  return 'login.html' + (qs ? '?' + qs : '');
+  return 'login' + (qs ? '?' + qs : '');
 }
 
 let staffPromise = null;
@@ -89,5 +89,5 @@ export async function logout() {
   if (profile?.name) await remove(ref(db, 'presence/' + presenceKey(profile.name))).catch(() => {});
   try { sessionStorage.removeItem(CACHE_KEY); } catch {}
   await signOut(auth);
-  location.replace('login.html');
+  location.replace('login');
 }

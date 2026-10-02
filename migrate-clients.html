@@ -192,7 +192,7 @@
   </div>
 
   <div class="result-box" id="result-box"></div>
-  <a href="clients.html" class="btn-back" id="btn-back" style="display:none">
+  <a href="clients" class="btn-back" id="btn-back" style="display:none">
     → Перейти до клієнтів
   </a>
 </div>
@@ -201,14 +201,14 @@
   // ── AUTH ──────────────────────────────────────────────────
   auth.onAuthStateChanged(async firebaseUser => {
     const loader = document.getElementById('auth-loader');
-    if (!firebaseUser) { window.location.href = 'index.html'; return; }
+    if (!firebaseUser) { window.location.href = './'; return; }
     try {
       const snap = await db.ref('users').orderByChild('email')
         .equalTo(firebaseUser.email.toLowerCase()).once('value');
-      if (!snap.exists()) { await auth.signOut(); window.location.href = 'index.html'; return; }
+      if (!snap.exists()) { await auth.signOut(); window.location.href = './'; return; }
       loader.style.display = 'none';
     } catch (e) {
-      window.location.href = 'index.html';
+      window.location.href = './';
     }
   });
 

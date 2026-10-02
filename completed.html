@@ -370,7 +370,7 @@
       const hasContract = !!(contractsByEventTag[ev.id] && contractsByEventTag[ev.id].length) || !!ev.contractSigned;
       const earn = hasContract ? p.baseReward + p.contractBonus : p.baseReward;
       const rawPhone = ev.phone ? ev.phone.replace(/\D/g, '') : '';
-      const clientUrl = rawPhone ? `client.html?id=${encodeURIComponent(rawPhone)}` : null;
+      const clientUrl = rawPhone ? `client?id=${encodeURIComponent(rawPhone)}` : null;
       const phoneCell = clientUrl
         ? `<a class="phone-link" href="${clientUrl}" target="_blank" title="Відкрити картку">${escapeHTML(ev.phone)}</a>`
         : (ev.phone ? escapeHTML(ev.phone) : '—');
@@ -421,7 +421,7 @@
       // Підрядки учасників (приховані за замовчуванням)
       const participantSubRows = participants.map(pt => {
         const rawPh = (pt.phone || '').replace(/\D/g, '');
-        const clientUrl = rawPh ? `client.html?id=${encodeURIComponent(rawPh)}` : null;
+        const clientUrl = rawPh ? `client?id=${encodeURIComponent(rawPh)}` : null;
         const phoneCell = clientUrl
           ? `<a class="phone-link" href="${clientUrl}" target="_blank">${escapeHTML(pt.phone || '')}</a>`
           : (pt.phone ? escapeHTML(pt.phone) : '—');

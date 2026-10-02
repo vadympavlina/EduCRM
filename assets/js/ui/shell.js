@@ -15,22 +15,22 @@ import { initNotifications } from './notifications.js';
 
 export const NAV = [
   { group: 'Робота', items: [
-    { id: 'calendar',  href: 'index.html',     label: 'Календар',     icon: 'calendar' },
-    { id: 'confirmed', href: 'confirmed.html', label: 'Підтверджені', icon: 'check-square' },
-    { id: 'completed', href: 'completed.html', label: 'Завершені',    icon: 'check-circle' },
+    { id: 'calendar',  href: './',     label: 'Календар',     icon: 'calendar' },
+    { id: 'confirmed', href: 'confirmed', label: 'Підтверджені', icon: 'check-square' },
+    { id: 'completed', href: 'completed', label: 'Завершені',    icon: 'check-circle' },
   ]},
   { group: 'Клієнти', items: [
-    { id: 'clients',   href: 'clients.html',   label: 'Клієнти',          icon: 'users' },
-    { id: 'contracts', href: 'contracts.html', label: 'Договори',         icon: 'file-text' },
-    { id: 'openday',   href: 'openday.html',   label: 'Відкритий захід',  icon: 'sparkles' },
+    { id: 'clients',   href: 'clients',   label: 'Клієнти',          icon: 'users' },
+    { id: 'contracts', href: 'contracts', label: 'Договори',         icon: 'file-text' },
+    { id: 'openday',   href: 'openday',   label: 'Відкритий захід',  icon: 'sparkles' },
   ]},
   { group: 'Фінанси', items: [
-    { id: 'stats',     href: 'stats.html',     label: 'Статистика',   icon: 'bar-chart' },
+    { id: 'stats',     href: 'stats',     label: 'Статистика',   icon: 'bar-chart' },
   ]},
   { group: 'Налаштування', items: [
-    { id: 'teachers',  href: 'teachers.html',  label: 'Вчителі та ставки', icon: 'graduation-cap' },
-    { id: 'schedule',  href: 'schedule.html',  label: 'Графік роботи',     icon: 'clock' },
-    { id: 'tags',      href: 'tags.html',      label: 'Теги',              icon: 'tag' },
+    { id: 'teachers',  href: 'teachers',  label: 'Вчителі та ставки', icon: 'graduation-cap' },
+    { id: 'schedule',  href: 'schedule',  label: 'Графік роботи',     icon: 'clock' },
+    { id: 'tags',      href: 'tags',      label: 'Теги',              icon: 'tag' },
   ]},
 ];
 
@@ -42,7 +42,7 @@ export function initShell({ page, title, subtitle = '', actions = '' }) {
   const sidebar = document.getElementById('sidebar');
   render(sidebar, html`
     <div class="sb-head">
-      <a href="index.html" class="sb-logo" aria-label="EduCRM — на головну">${icon('graduation-cap', 18)}</a>
+      <a href="./" class="sb-logo" aria-label="EduCRM — на головну">${icon('graduation-cap', 18)}</a>
       <span class="sb-brand">EduCRM</span>
       <button class="sb-collapse" id="sb-collapse" aria-label="Згорнути меню" title="Згорнути меню">${icon('chevrons-left', 16)}</button>
     </div>

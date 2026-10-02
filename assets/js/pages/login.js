@@ -9,7 +9,7 @@ const alertEl = document.getElementById('login-alert');
 
 // Дозволяємо повертатися лише на власні сторінки (без відкритих редиректів)
 const nextParam = params.get('next') || '';
-const next = /^[a-z0-9-]+\.html(\?[^#]*)?$/i.test(nextParam) ? nextParam : 'index.html';
+const next = /^[a-z0-9-]+(\.html)?(\?[^#]*)?$/i.test(nextParam) ? nextParam : './';
 
 const MESSAGES = {
   denied: 'Цей акаунт не має доступу до EduCRM. Зверніться до адміністратора, щоб вас додали до списку.',

@@ -125,7 +125,7 @@ const Topbar = (() => {
         .replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const ev    = _events[r.id];
       const phone = ev ? _normalizePhone(ev.phone) : null;
-      const url   = phone ? ('client.html?id=' + encodeURIComponent(phone)) : null;
+      const url   = phone ? ('client?id=' + encodeURIComponent(phone)) : null;
 
       return '<div class="notif-item ' + (isRead ? 'read' : 'unread') + '"'
         + ' onmouseenter="Topbar.markRead(\'' + r.id + '\')"'

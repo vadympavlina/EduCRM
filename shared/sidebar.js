@@ -12,7 +12,7 @@ const Sidebar = (() => {
 
   const NAV_ITEMS = [
     {
-      page: 'calendar', href: 'index.html', tip: 'Календар',
+      page: 'calendar', href: './', tip: 'Календар',
       icon: `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <rect x="3" y="4" width="18" height="18" rx="2"/>
         <line x1="16" y1="2" x2="16" y2="6"/>
@@ -21,28 +21,28 @@ const Sidebar = (() => {
       </svg>`
     },
     {
-      page: 'confirmed', href: 'confirmed.html', tip: 'Підтверджені',
+      page: 'confirmed', href: 'confirmed', tip: 'Підтверджені',
       icon: `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path d="M9 11l3 3L22 4"/>
         <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
       </svg>`
     },
     {
-      page: 'schedule', href: 'schedule.html', tip: 'Графік роботи',
+      page: 'schedule', href: 'schedule', tip: 'Графік роботи',
       icon: `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <rect x="3" y="4" width="18" height="18" rx="2"/>
         <path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/>
       </svg>`
     },
     {
-      page: 'completed', href: 'completed.html', tip: 'Завершені',
+      page: 'completed', href: 'completed', tip: 'Завершені',
       icon: `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
         <polyline points="22 4 12 14.01 9 11.01"/>
       </svg>`
     },
     {
-      page: 'stats', href: 'stats.html', tip: 'Статистика',
+      page: 'stats', href: 'stats', tip: 'Статистика',
       icon: `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <line x1="18" y1="20" x2="18" y2="10"/>
         <line x1="12" y1="20" x2="12" y2="4"/>
@@ -51,14 +51,7 @@ const Sidebar = (() => {
     },
     { divider: true },
     {
-      page: 'pricing', href: 'pricing.html', tip: 'Ціноутворення',
-      icon: `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <line x1="12" y1="1" x2="12" y2="23"/>
-        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-      </svg>`
-    },
-    {
-      page: 'teachers', href: 'teachers.html', tip: 'Вчителі',
+      page: 'teachers', href: 'teachers', tip: 'Вчителі',
       icon: `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
         <circle cx="9" cy="7" r="4"/>
@@ -68,7 +61,7 @@ const Sidebar = (() => {
     },
     { divider: true },
     {
-      page: 'clients', href: 'clients.html', tip: 'Клієнти',
+      page: 'clients', href: 'clients', tip: 'Клієнти',
       icon: `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
         <circle cx="9" cy="7" r="4"/>
@@ -77,14 +70,14 @@ const Sidebar = (() => {
       </svg>`
     },
     {
-      page: 'tags', href: 'tags.html', tip: 'Теги',
+      page: 'tags', href: 'tags', tip: 'Теги',
       icon: `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
         <line x1="7" y1="7" x2="7.01" y2="7"/>
       </svg>`
     },
     {
-      page: 'contracts', href: 'contracts.html', tip: 'Договори',
+      page: 'contracts', href: 'contracts', tip: 'Договори',
       icon: `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
         <polyline points="14 2 14 8 20 8"/>
@@ -93,7 +86,7 @@ const Sidebar = (() => {
       </svg>`
     },
     {
-      page: 'openday', href: 'openday.html', tip: 'Відкритий захід',
+      page: 'openday', href: 'openday', tip: 'Відкритий захід',
       icon: `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <circle cx="12" cy="8" r="4"/>
         <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>
