@@ -8,6 +8,7 @@
 import { db, ref, onValue, push, set, update } from '../core/firebase.js';
 import { html, render, on, busy, initials } from '../core/dom.js';
 import { money } from '../core/format.js';
+import { pageReady } from '../ui/loader.js';
 import { initShell } from '../ui/shell.js';
 import { icon } from '../ui/icons.js';
 import { toast } from '../ui/toast.js';
@@ -36,6 +37,7 @@ onValue(ref(db, 'pricing/config'), snap => { pricing = normalizePricing(snap.val
 // ── РЕНДЕР ───────────────────────────────────────────────────
 function renderAll() {
   if (!teachers || !pricing) return;
+  pageReady();
   if (!page.querySelector('#rates-card')) {
     render(page, html`
       <section class="card" id="rates-card"></section>

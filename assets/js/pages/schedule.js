@@ -7,6 +7,7 @@
 import { db, ref, push, set, remove } from '../core/firebase.js';
 import { html, render, on } from '../core/dom.js';
 import { isoDate, plural, fmtDate } from '../core/format.js';
+import { pageReady } from '../ui/loader.js';
 import { initShell } from '../ui/shell.js';
 import { icon } from '../ui/icons.js';
 import { toast } from '../ui/toast.js';
@@ -90,6 +91,7 @@ function renderFilter() {
 
 // ── Рендер ───────────────────────────────────────────────────
 function renderAll() {
+  if (sync?.loaded.people && sync.loaded.blocks) pageReady();
   const blocks = Object.entries(store.blockedTimes).map(([id, b]) => ({ id, ...b })).filter(matchesWho);
   const active = blocks.filter(b => !isPast(b));
   const past = blocks.filter(isPast);

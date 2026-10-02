@@ -12,6 +12,7 @@ import { html, render, initials } from '../core/dom.js';
 import { requireStaff, cachedStaff, logout } from '../core/auth.js';
 import { icon } from './icons.js';
 import { initNotifications } from './notifications.js';
+import './loader.js';
 import { db, ref, onValue } from '../core/firebase.js';
 
 export const NAV = [

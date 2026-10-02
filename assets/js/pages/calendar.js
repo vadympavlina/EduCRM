@@ -5,6 +5,7 @@
 import { db, ref, onValue, query, orderByChild, startAt } from '../core/firebase.js';
 import { html, render, on, initials } from '../core/dom.js';
 import { isoDate, monthKey, pad, phoneDigits, plural, fmtDate } from '../core/format.js';
+import { pageReady } from '../ui/loader.js';
 import { initShell } from '../ui/shell.js';
 import { icon } from '../ui/icons.js';
 import { toast } from '../ui/toast.js';
@@ -350,6 +351,7 @@ function showSlotMenu(jsEvent, start, end) {
 // ── ПОКАЗНИКИ ────────────────────────────────────────────────
 function renderKpis() {
   if (!loaded.events) return;
+  pageReady();
   const now = new Date();
   const today = isoDate(now), month = monthKey(now), nowT = hhmm(now);
   const evs = Object.values(store.events).filter(e => !e.isGroupMirror);

@@ -14,7 +14,7 @@ const monthBefore = d => isoDate(new Date(d.getFullYear(), d.getMonth() - 1, 1))
 
 /** onChange(what) викликається після кожного оновлення: 'people' | 'groups' | 'blocks' | 'events' | 'busy' */
 export function startSync(onChange) {
-  const loaded = { people: false, groups: false, events: false };
+  const loaded = { people: false, groups: false, events: false, blocks: false };
   let from = monthBefore(new Date());
   const unsub = {};
 
@@ -24,7 +24,7 @@ export function startSync(onChange) {
     s.forEach(c => { next[c.key] = { id: c.key, ...c.val() }; });
     store.groupEvents = next; loaded.groups = true; onChange('groups');
   });
-  onValue(ref(db, 'settings/blockedTimes'), s => { store.blockedTimes = s.val() || {}; onChange('blocks'); });
+  onValue(ref(db, 'settings/blockedTimes'), s => { store.blockedTimes = s.val() || {}; loaded.blocks = true; onChange('blocks'); });
 
   function subscribeRange() {
     unsub.events?.(); unsub.busy?.();

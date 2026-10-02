@@ -4,6 +4,7 @@
 
 import { html, render, on, busy } from '../core/dom.js';
 import { isoDate, plural } from '../core/format.js';
+import { pageReady } from '../ui/loader.js';
 import { initShell } from '../ui/shell.js';
 import { icon } from '../ui/icons.js';
 import { toast } from '../ui/toast.js';
@@ -66,6 +67,7 @@ const dayTitle = date => {
 
 function renderList() {
   if (!sync?.loaded.events) return;
+  pageReady();
   const now = new Date();
   const nowKey = isoDate(now) + 'T' + now.toTimeString().slice(0, 5);
   const list = Object.values(store.events)

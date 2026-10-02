@@ -6,6 +6,7 @@
 import { db, ref, onValue, push, set, update } from '../core/firebase.js';
 import { html, render, on } from '../core/dom.js';
 import { plural } from '../core/format.js';
+import { pageReady } from '../ui/loader.js';
 import { initShell } from '../ui/shell.js';
 import { icon } from '../ui/icons.js';
 import { toast } from '../ui/toast.js';
@@ -29,6 +30,7 @@ const usage = id => Object.values(clients).filter(c => (c?.tags || []).includes(
 
 function renderList() {
   if (!tags) return;
+  pageReady();
   const list = Object.entries(tags).map(([id, t]) => ({ id, ...t, n: usage(id) })).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'uk'));
   const box = document.getElementById('list');
   if (!list.length) {

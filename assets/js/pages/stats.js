@@ -7,6 +7,7 @@
 import { db, ref, onValue } from '../core/firebase.js';
 import { html, render, on } from '../core/dom.js';
 import { money, plural } from '../core/format.js';
+import { pageReady } from '../ui/loader.js';
 import { initShell } from '../ui/shell.js';
 import { icon } from '../ui/icons.js';
 import { enhanceSelects } from '../ui/select.js';
@@ -75,6 +76,7 @@ let current = null;
 
 function renderAll() {
   if (!sync?.loaded.events || !sync.loaded.groups || !contracts || !pricingLoaded) return;
+  pageReady();
   const pay = payFor(month);
   const prev = payFor(shiftMonth(month, -1));
   current = pay;

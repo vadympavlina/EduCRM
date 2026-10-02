@@ -7,6 +7,7 @@
 import { db, ref, get, onValue, query, orderByChild, startAt, equalTo } from '../core/firebase.js';
 import { html, render, on, initials, safeUrl, busy } from '../core/dom.js';
 import { isoDate, fmtDate, fmtDateTime, fmtRelative, plural } from '../core/format.js';
+import { pageReady } from '../ui/loader.js';
 import { initShell, setPageTitle } from '../ui/shell.js';
 import { icon } from '../ui/icons.js';
 import { toast } from '../ui/toast.js';
@@ -110,7 +111,10 @@ async function loadReviews() {
 }
 
 // ── Рендер ───────────────────────────────────────────────────
-function renderAll() { renderProfile(); renderFacts(); renderTags(); renderTimeline(); }
+function renderAll() {
+  renderProfile(); renderFacts(); renderTags(); renderTimeline();
+  if (client === null || (client && eventsLoaded)) pageReady();
+}
 
 function renderProfile() {
   const box = document.getElementById('profile');

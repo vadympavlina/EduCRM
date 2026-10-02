@@ -2,31 +2,28 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Відкритий захід — EduCRM</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f7f9">
+  <title>Відкритий захід</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="assets/css/app.css">
-  <script>try{if(localStorage.getItem('educrm.sidebarCollapsed'))document.documentElement.classList.add('sb-collapsed')}catch(e){}</script>
   <link rel="modulepreload" href="assets/js/core/firebase.js">
-  <link rel="modulepreload" href="assets/js/core/auth.js">
   <link rel="modulepreload" href="assets/js/core/dom.js">
-  <link rel="modulepreload" href="assets/js/ui/shell.js">
-  <link rel="modulepreload" href="assets/js/ui/icons.js">
   <script type="module" src="assets/js/pages/openday.js"></script>
 </head>
-<body>
-  <div class="app">
-    <aside class="sidebar" id="sidebar"></aside>
-    <div class="main">
-      <header class="topbar" id="topbar"></header>
-      <main class="content" id="page">
-        <div class="page-loader"><div class="spinner"></div></div>
-      </main>
-    </div>
+<body class="od">
+  <div class="app-loader" role="status" aria-label="Завантаження">
+    <div class="app-loader-logo"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></div>
+    <div class="app-loader-bar"><span></span></div>
   </div>
+  <header class="od-top" id="od-top"></header>
+  <main class="od-main" id="od-main"></main>
+  <button class="od-fab" id="od-fab" type="button" aria-label="Додати учасника">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
 </body>
 </html>

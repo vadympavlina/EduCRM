@@ -5,6 +5,7 @@
 import { db, ref, onValue } from '../core/firebase.js';
 import { html, render, on } from '../core/dom.js';
 import { money, plural } from '../core/format.js';
+import { pageReady } from '../ui/loader.js';
 import { initShell } from '../ui/shell.js';
 import { icon } from '../ui/icons.js';
 import { toast } from '../ui/toast.js';
@@ -57,6 +58,7 @@ function renderFilter() {
 
 function renderList() {
   if (!contracts) return;
+  pageReady();
   const ql = q.toLowerCase();
   const list = contracts
     .filter(c => c.signedAt && localMonth(c.signedAt) === month)

@@ -5,6 +5,7 @@
 import { db, ref, get, set, onValue } from '../core/firebase.js';
 import { html, render, on, initials } from '../core/dom.js';
 import { fmtDate, plural, isoDate } from '../core/format.js';
+import { pageReady } from '../ui/loader.js';
 import { initShell } from '../ui/shell.js';
 import { icon } from '../ui/icons.js';
 import { toast } from '../ui/toast.js';
@@ -105,6 +106,7 @@ function rows() {
 
 function renderList() {
   if (!clients || !stats) return;
+  pageReady();
   const list = rows();
   document.getElementById('summary').textContent = `${list.length} ${plural(list.length, 'клієнт', 'клієнти', 'клієнтів')}`;
   const box = document.getElementById('list');

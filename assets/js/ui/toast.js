@@ -10,7 +10,9 @@ const ICONS = { success: 'check-circle', error: 'alert-circle', warning: 'alert-
 
 let container;
 
-export function toast(message, type = 'info', duration = 3200) {
+/** toast(msg, type, { duration, action: { label, onClick } }) — дія, напр. «Повернути» */
+export function toast(message, type = 'info', opts = 3200) {
+  const { duration = 3200, action = null } = typeof opts === 'number' ? { duration: opts } : opts;
   if (!container) {
     container = document.createElement('div');
     container.className = 'toasts';
@@ -20,10 +22,13 @@ export function toast(message, type = 'info', duration = 3200) {
   }
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
-  render(el, html`${icon(ICONS[type] || 'info', 18)}<span>${message}</span>`);
+  render(el, html`${icon(ICONS[type] || 'info', 18)}<span>${message}</span>${action ? html`<button type="button" class="toast-action">${action.label}</button>` : ''}`);
   container.append(el);
-  setTimeout(() => {
+  const leave = () => {
+    if (el.classList.contains('leaving')) return;
     el.classList.add('leaving');
     el.addEventListener('animationend', () => el.remove(), { once: true });
-  }, duration);
+  };
+  if (action) el.querySelector('.toast-action').addEventListener('click', () => { action.onClick(); leave(); });
+  setTimeout(leave, action ? Math.max(duration, 7000) : duration);
 }
