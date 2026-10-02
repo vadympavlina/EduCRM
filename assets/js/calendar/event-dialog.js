@@ -12,6 +12,8 @@ import {
   STATUS, findBlock, findTeacherOverlap, createEvent, updateEvent, setEventStatus, deleteEvent, toMin,
 } from '../data/events.js';
 import { siteUrl } from '../data/telegram.js';
+import { contractsForPhone } from '../data/contracts.js';
+import { openContractDialog } from './contract-dialog.js';
 import { store, ctx, teacherName, teacherOptions } from './store.js';
 import { teacherColor } from '../data/teachers.js';
 
@@ -64,6 +66,7 @@ export function openEventDialog({ id = null, start = null, end = null, phone = '
         <button type="button" class="btn btn-sm btn-primary" data-status="completed">${icon('check-circle', 14)} Проведено</button>
         <button type="button" class="btn btn-sm" data-status="cancelled">Скасувати</button>` : ''}
       ${st === 'completed' ? html`
+        <button type="button" class="btn btn-sm" data-action="contract" hidden>${icon('file-text', 14)} <span>Оформити договір</span></button>
         <button type="button" class="btn btn-sm" data-action="copy-review">${icon('message-square', 14)} Посилання на відгук</button>` : ''}
       ${st === 'cancelled' ? html`
         <button type="button" class="btn btn-sm" data-status="pending">Повернути в очікування</button>` : ''}
@@ -131,12 +134,22 @@ export function openEventDialog({ id = null, start = null, end = null, phone = '
       renderAlerts(form, ev);
       loadClient(form, ev);
       if (ev) loadReview(form, ev.id);
+      if (st === 'completed') loadContract(form, ev);
 
       on(form, 'click', '[data-status]', (_, btn) => applyStatus(form, btn.dataset.status, btn));
       on(form, 'click', '[data-action="copy-review"]', (_, btn) => {
         navigator.clipboard.writeText(siteUrl(`review?eventId=${encodeURIComponent(ev.id)}`))
           .then(() => toast('Посилання на відгук скопійовано', 'success'))
           .catch(() => toast('Не вдалося скопіювати', 'error'));
+      });
+      on(form, 'click', '[data-action="contract"]', async (_, btn) => {
+        const cur = store.events[ev.id] || ev;
+        if (!cur.assignedPersonId) { toast('У заняття не вказано вчителя', 'warning'); return; }
+        const done = await openContractDialog({
+          phone: cur.phone, clientName: cur.clientName || cur.title, teacherId: cur.assignedPersonId,
+          eventId: cur.id, eventTitle: cur.title, exists: btn.dataset.has === '1', staff: store.staff,
+        });
+        if (done) markContract(btn);
       });
       on(form, 'click', '[data-action="delete"]', async () => {
         const ok = await confirmDialog({
@@ -273,4 +286,19 @@ async function loadReview(form, eventId) {
         <div class="time">${fmtDateTime(r.createdAt)}</div>
       </div>`);
   } catch {}
+}
+
+// Кнопка договору для проведеного заняття: показує, чи договір уже є
+async function loadContract(form, ev) {
+  const btn = form.querySelector('[data-action="contract"]');
+  if (!btn) return;
+  const list = await contractsForPhone(ev.phone).catch(() => []);
+  if (list.some(c => c.eventId === ev.id)) markContract(btn);
+  btn.hidden = false;
+}
+
+function markContract(btn) {
+  btn.dataset.has = '1';
+  btn.style.cssText = 'color:var(--success);border-color:var(--success-border);background:var(--success-soft)';
+  btn.querySelector('span').textContent = 'Договір оформлено';
 }

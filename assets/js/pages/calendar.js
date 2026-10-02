@@ -140,7 +140,7 @@ function initCalendar() {
     editable: true,
     eventResizableFromStart: true,
     slotEventOverlap: false,
-    eventMaxStack: 3,
+    eventMaxStack: 2,      // більше двох поруч — кнопка «+N» зі списком, а не вузькі смужки
     eventShortHeight: 46,
     eventMinHeight: 22,  // нижчі за це — однорядковий вигляд (див. .fc-timegrid-event-short)
     dayMaxEvents: 3,
@@ -148,7 +148,7 @@ function initCalendar() {
     slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
     eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
     noEventsContent: 'На цей період занять немає',
-    moreLinkContent: arg => `ще ${arg.num}`,
+    moreLinkContent: arg => `+${arg.num}`,
 
     events: (_info, success) => success(buildEvents()),
 
@@ -172,7 +172,7 @@ function initCalendar() {
       }
       return { html: String(html`
         <div class="ev-inner">
-          <div class="ev-time">${arg.timeText}</div>
+          <div class="ev-time"><span>${hhmm(arg.event.start)}</span>${arg.event.end ? html`<span class="t-end"> – ${hhmm(arg.event.end)}</span>` : ''}</div>
           <div class="ev-title">${statusIcon}<span>${arg.event.title}</span>${count}</div>
           ${p.teacher ? html`<div class="ev-sub">${p.teacher}</div>` : ''}
         </div>`) };

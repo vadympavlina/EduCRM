@@ -15,6 +15,7 @@
 
 import { writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
+import { computePayroll, contractsFromClients } from '../../assets/js/data/payroll.js';
 
 const TZ = 'Europe/Kyiv';
 const SEND_HOUR = 18;                    // 18:00 за Києвом
@@ -50,89 +51,14 @@ export function monthLabel(key) {
   return `${MONTHS_UA[m - 1]} ${y}`;
 }
 
-// ── СТАТИСТИКА (та сама логіка, що й у stats.html → renderStats) ──
-export function computeStats({ events = {}, groupEvents = {}, people = {}, pricing: rawPricing, clients = {} }, month) {
-  const pricing = {
-    default: rawPricing?.default || { baseReward: 50, contractBonus: 100 },
-    overrides: rawPricing?.overrides || {},
-  };
-  const getPricing = tid => (tid && pricing.overrides[tid]) ? pricing.overrides[tid] : pricing.default;
-
-  const evList = Object.entries(events).map(([id, v]) => ({ id, ...v }));
-  const geList = Object.entries(groupEvents).map(([id, v]) => ({ id, ...v }));
-  const inMonth = d => !month || (d && String(d).startsWith(month));
-
-  const allContracts = [];
-  Object.entries(clients).forEach(([phone, c]) => {
-    if (c && c.contracts) {
-      Object.entries(c.contracts).forEach(([cid, ct]) => allContracts.push({ id: cid, phone, ...ct }));
-    }
+// ── СТАТИСТИКА — спільна формула з сайтом (assets/js/data/payroll.js) ──
+export function computeStats({ events = {}, groupEvents = {}, people = {}, pricing, clients = {} }, month) {
+  const { rows, totals, funnel } = computePayroll({
+    events, groupEvents, people, pricing, month,
+    contracts: contractsFromClients(clients),
+    // місяць договору — за київським часом (сайт рахує за часом браузера, тобто теж Київ)
+    monthOf: ts => { const p = kyivParts(new Date(ts)); return monthKey(p.year, p.month); },
   });
-
-  const completed = evList.filter(e => e.status === 'completed' && !e.isGroupMirror && inMonth(e.date));
-  const completedGroupEvents = geList.filter(ge => ge.status === 'completed' && inMonth(ge.date));
-
-  const contractsFiltered = allContracts.filter(c => {
-    if (c.alreadyHad) return false;
-    if (!c.teacherId) return false;
-    if (month) {
-      if (!c.signedAt) return false;
-      const p = kyivParts(new Date(c.signedAt)); // на сторінці — локальний час браузера (Київ)
-      if (monthKey(p.year, p.month) !== month) return false;
-    }
-    return true;
-  });
-
-  const byTeacher = {};
-  const bucket = tid => (byTeacher[tid] ||= { count: 0, contracts: 0, earnings: 0 });
-
-  completed.forEach(ev => {
-    const b = bucket(ev.assignedPersonId || '__none__');
-    b.count++; b.earnings += getPricing(ev.assignedPersonId).baseReward;
-  });
-  completedGroupEvents.forEach(ge => {
-    const b = bucket(ge.assignedPersonId || '__none__');
-    b.count++; b.earnings += getPricing(ge.assignedPersonId).baseReward;
-  });
-  contractsFiltered.forEach(c => {
-    const b = bucket(c.teacherId);
-    b.contracts++; b.earnings += getPricing(c.teacherId).contractBonus;
-  });
-
-  // Зворотна сумісність: старі події з contractSigned:true
-  const contractedEventIds = new Set(allContracts.filter(c => c.eventId).map(c => c.eventId));
-  completed.forEach(ev => {
-    if (!ev.contractSigned || contractedEventIds.has(ev.id)) return;
-    const b = bucket(ev.assignedPersonId || '__none__');
-    b.contracts++; b.earnings += getPricing(ev.assignedPersonId).contractBonus;
-  });
-
-  // Воронка
-  const allForPeriod = evList.filter(ev => inMonth(ev.date));
-  const funnel = {
-    total: allForPeriod.length,
-    created: allForPeriod.filter(e => e.status !== 'cancelled').length,
-    confirmed: allForPeriod.filter(e => ['confirmed', 'completed'].includes(e.status)).length,
-    completed: allForPeriod.filter(e => e.status === 'completed').length,
-    cancelled: allForPeriod.filter(e => e.status === 'cancelled').length,
-    contract: contractsFiltered.length,
-  };
-
-  const rows = Object.entries(byTeacher)
-    .map(([tid, d]) => {
-      const p = getPricing(tid === '__none__' ? undefined : tid);
-      return {
-        name: tid === '__none__' ? 'Не призначено' : (people[tid]?.name || 'Невідомо'),
-        baseReward: p.baseReward, contractBonus: p.contractBonus,
-        ...d,
-      };
-    })
-    .sort((a, b) => b.earnings - a.earnings);
-
-  const totals = rows.reduce((s, r) => ({
-    events: s.events + r.count, contracts: s.contracts + r.contracts, earnings: s.earnings + r.earnings,
-  }), { events: 0, contracts: 0, earnings: 0 });
-
   return { rows, totals, funnel };
 }
 

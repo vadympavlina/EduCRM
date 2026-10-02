@@ -722,3 +722,21 @@ button.kpi:hover, a.kpi:hover { border-color: var(--border-strong); box-shadow: 
 .cselect-opt svg { margin-left: auto; color: var(--brand); }
 .cselect-opt-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cselect-empty { padding: 12px; text-align: center; color: var(--text-3); font-size: var(--fs-sm); }
+
+/* Кілька занять поруч: вузька картка показує назву, а не час */
+.fc .fc-timegrid-event .fc-event-main { container-type: inline-size; }
+.fc .fc-timegrid-event-short .t-end { display: none; }
+@container (max-width: 190px) {
+  .fc .fc-timegrid-event-short .ev-time { display: none; }
+  .fc .fc-timegrid-event .t-end { display: none; }
+}
+@container (max-width: 110px) {
+  .fc .fc-timegrid-event .ev-title svg { display: none; }
+}
+.fc .fc-timegrid-more-link {
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: 6px;
+  color: var(--brand-active); font-weight: 600; font-size: 11px; box-shadow: var(--shadow-xs);
+}
+.fc .fc-timegrid-more-link:hover { background: var(--brand-soft); }
+.fc .fc-timegrid-more-link-inner { padding: 4px 6px; }
+.fc .fc-popover-body .fc-event.ev { margin-bottom: 4px; }

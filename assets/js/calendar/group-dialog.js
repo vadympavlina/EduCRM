@@ -12,7 +12,8 @@ import { findBlock, toMin } from '../data/events.js';
 import {
   GROUP_STATUS, CONFIRM, contractTag, newParticipantId, saveGroup, setGroupStatus, deleteGroup,
 } from '../data/group-events.js';
-import { contractsForPhone, createContract } from '../data/contracts.js';
+import { contractsForPhone } from '../data/contracts.js';
+import { openContractDialog } from './contract-dialog.js';
 import { store, ctx, teacherOptions } from './store.js';
 import { teacherColor } from '../data/teachers.js';
 
@@ -258,36 +259,17 @@ export function openGroupDialog({ id = null, start = null, end = null } = {}) {
     renderList(form);
   }
 
-  function openContract(form, pid) {
+  async function openContract(form, pid) {
     const p = draft[pid];
     const cur = store.groupEvents[ge.id] || ge;
     if (!p || !cur) return;
     if (!cur.assignedPersonId) { toast('Спочатку оберіть і збережіть вчителя', 'warning'); return; }
     if (!ge.participants?.[pid]) { toast('Спочатку збережіть подію з цим учасником', 'warning'); return; }
-    openDialog({
-      title: 'Оформити договір',
-      subtitle: `${p.name} · ${cur.title}`,
-      width: 440,
-      submitText: 'Оформити',
-      content: html`
-        ${p.hasContract ? html`<div class="alert alert-warning">${icon('alert-triangle', 16)}<span>На цю подію договір уже оформлено. Буде створено ще один.</span></div>` : ''}
-        <label class="field"><span class="field-label">Назва договору</span>
-          <input class="input" name="cTitle" value="Договір — ${p.name || ''}" maxlength="120" autofocus></label>
-        <label class="checkbox"><input type="checkbox" name="cAlready">
-          <span>Клієнт уже мав договір раніше — бонус вчителю не нараховується</span></label>
-        <p class="field-hint">Дата підписання — сьогодні. Оформлює: ${store.staff.name}</p>`,
-      async onSubmit(cf) {
-        const title = cf.elements.cTitle.value.trim();
-        if (!title) return fieldError(cf.elements.cTitle);
-        await createContract(p.phone, {
-          title, clientName: p.name, teacherId: cur.assignedPersonId,
-          eventId: contractTag(cur.id, pid), eventTitle: cur.title, alreadyHad: cf.elements.cAlready.checked,
-        }, store.staff);
-        p.hasContract = true;
-        renderList(form);
-        toast('Договір оформлено', 'success');
-      },
+    const done = await openContractDialog({
+      phone: p.phone, clientName: p.name, teacherId: cur.assignedPersonId,
+      eventId: contractTag(cur.id, pid), eventTitle: cur.title, exists: p.hasContract, staff: store.staff,
     });
+    if (done) { p.hasContract = true; renderList(form); }
   }
 
   // ── Збереження і статуси ────────────────────────────────────
