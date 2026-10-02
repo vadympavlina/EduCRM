@@ -35,14 +35,14 @@ const STATUS_TOAST = {
  * openEventDialog({ start, end })               — нова подія на обраний час
  * openEventDialog({ phone, imported })          — імпорт із розширення CRM
  */
-export function openEventDialog({ id = null, start = null, end = null, phone = '', imported = null } = {}) {
+export function openEventDialog({ id = null, start = null, end = null, phone = '', title = '', imported = null } = {}) {
   const ev = id ? store.events[id] : null;
   if (id && !ev) { toast('Подію не знайдено — можливо, її вже видалили', 'warning'); return; }
 
   const s = start || nextHalfHour();
   const e = end || new Date(s.getTime() + 60 * 60 * 1000);
   const v = ev || {
-    title: '', phone, description: '', assignedPersonId: '',
+    title, phone, description: '', assignedPersonId: '',
     date: isoDate(s), startTime: hhmm(s), endTime: hhmm(e),
   };
   const st = ev ? (STATUS[ev.status] ? ev.status : 'pending') : null;

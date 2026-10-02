@@ -9,6 +9,7 @@
 import { db, ref, get, update, push } from '../core/firebase.js';
 import { phoneDigits } from '../core/format.js';
 import * as tg from './telegram.js';
+import { phoneKey, resolveClientKey } from './clients.js';
 
 export const GROUP_STATUS = {
   pending:   { label: 'Очікується', badge: 'warning' },
@@ -51,7 +52,7 @@ function mirrorUpdates(gid, ge, staff, removedPids = []) {
     const mirror = {
       title: ge.title, date: ge.date, startTime: ge.startTime, endTime: ge.endTime,
       assignedPersonId: ge.assignedPersonId,
-      phone: p.phone, clientName: p.name,
+      phone: p.phone, phoneKey: phoneKey(p.phone), clientName: p.name,
       status: mirrorStatus(ge.status, p.confirmStatus),
       isGroupMirror: true, groupEventId: gid, participantId: pid,
       createdBy: ge.createdBy || staff.name,
@@ -66,11 +67,11 @@ function mirrorUpdates(gid, ge, staff, removedPids = []) {
 /** Порожню картку клієнта заповнюємо іменем учасника (не перезаписуємо наявне). */
 function fillClientCards(participants) {
   Object.values(participants || {}).forEach(async p => {
-    const key = phoneDigits(p.phone);
+    const key = await resolveClientKey(p.phone).catch(() => null);
     if (!key) return;
     try {
       const snap = await get(ref(db, 'clients/' + key));
-      if (!snap.val()?.name) await update(ref(db, 'clients/' + key), { name: p.name, age: p.age || null, phone: snap.val()?.phone || p.phone });
+      if (!snap.val()?.name) await update(ref(db, 'clients/' + key), { name: p.name, age: p.age || null, phone: snap.val()?.phone || p.phone, phoneKey: phoneKey(p.phone) });
     } catch {}
   });
 }

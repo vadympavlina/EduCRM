@@ -8,6 +8,7 @@ import { db, ref, get, set, update, push, remove } from '../core/firebase.js';
 import { phoneDigits } from '../core/format.js';
 import { safeUrl } from '../core/dom.js';
 import * as tg from './telegram.js';
+import { phoneKey, resolveClientKey } from './clients.js';
 
 export const STATUS = {
   pending:   { label: 'Очікує',       badge: 'warning', icon: 'clock' },
@@ -51,15 +52,16 @@ export function findTeacherOverlap(events, { id, date, startTime, endTime, teach
 
 // ── Клієнт і lookup ──────────────────────────────────────────
 export async function upsertClient(rawPhone, name, crmLink) {
-  const key = phoneDigits(rawPhone);
+  // наявна картка з цим номером у будь-якому форматі, інакше — нова
+  const key = await resolveClientKey(rawPhone);
   if (!key) return;
   const r = ref(db, 'clients/' + key);
   const snap = await get(r);
   const link = crmLink ? safeUrl(crmLink) || null : null;
   if (!snap.exists()) {
-    await set(r, { phone: rawPhone, name: name || '', createdAt: Date.now(), lastEventAt: Date.now(), crmLink: link });
+    await set(r, { phone: rawPhone, phoneKey: phoneKey(rawPhone), name: name || '', createdAt: Date.now(), lastEventAt: Date.now(), crmLink: link });
   } else {
-    const patch = { lastEventAt: Date.now() };
+    const patch = { lastEventAt: Date.now(), phoneKey: phoneKey(rawPhone) };
     if (link && !snap.val().crmLink) patch.crmLink = link;
     await update(r, patch);
   }
@@ -102,6 +104,7 @@ export async function createEvent(data, ctx, { crmLink } = {}) {
   const r = push(ref(db, 'events'));
   const ev = {
     ...data,
+    phoneKey: phoneKey(data.phone),
     status: 'pending',
     createdBy: ctx.staff.name,
     createdAt: new Date().toISOString(),
@@ -116,6 +119,7 @@ export async function createEvent(data, ctx, { crmLink } = {}) {
 }
 
 export async function updateEvent(prev, data, ctx, { crmLink } = {}) {
+  data = { ...data, phoneKey: phoneKey(data.phone) };
   await update(ref(db, 'events/' + prev.id), data);
   const full = { ...prev, ...data };
   tg.editEvent(full, full.status, tgCtx(ctx, full));

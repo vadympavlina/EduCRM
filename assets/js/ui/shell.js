@@ -37,7 +37,7 @@ export const NAV = [
 
 const COLLAPSE_KEY = 'educrm.sidebarCollapsed';
 
-export function initShell({ page, title, subtitle = '', actions = '' }) {
+export function initShell({ page, title, subtitle = '', actions = '', back = null }) {
   document.body.dataset.page = page;
 
   const sidebar = document.getElementById('sidebar');
@@ -71,7 +71,8 @@ export function initShell({ page, title, subtitle = '', actions = '' }) {
 
   const topbar = document.getElementById('topbar');
   render(topbar, html`
-    <div class="topbar-title">
+    ${back ? html`<a class="icon-btn topbar-back" href="${back.href}" title="${back.label}" aria-label="${back.label}">${icon('chevron-left', 18)}</a>` : ''}
+    <div class="topbar-title" id="topbar-title">
       <h1>${title}</h1>
       ${subtitle ? html`<p>${subtitle}</p>` : ''}
     </div>
@@ -103,6 +104,12 @@ export function initShell({ page, title, subtitle = '', actions = '' }) {
     watchConnection();
     return staff;
   });
+}
+
+/** Змінити заголовок сторінки після завантаження даних (напр. ім'я клієнта). */
+export function setPageTitle(title, subtitle = '') {
+  render(document.getElementById('topbar-title'), html`<h1>${title}</h1>${subtitle ? html`<p>${subtitle}</p>` : ''}`);
+  document.title = `${title} — EduCRM`;
 }
 
 function setUser({ name, email, photoURL }) {
