@@ -12,6 +12,7 @@ import { html, render, initials } from '../core/dom.js';
 import { requireStaff, cachedStaff, logout } from '../core/auth.js';
 import { icon } from './icons.js';
 import { initNotifications } from './notifications.js';
+import { db, ref, onValue } from '../core/firebase.js';
 
 export const NAV = [
   { group: 'Робота', items: [
@@ -99,6 +100,7 @@ export function initShell({ page, title, subtitle = '', actions = '' }) {
   return requireStaff().then(staff => {
     setUser(staff);
     initNotifications(document.getElementById('bell'), staff);
+    watchConnection();
     return staff;
   });
 }
@@ -109,4 +111,21 @@ function setUser({ name, email, photoURL }) {
   else av.textContent = initials(name);
   document.getElementById('sb-name').textContent = name;
   document.getElementById('sb-email').textContent = email;
+}
+
+// Плашка «Немає з'єднання» — з'являється, лише якщо зв'язку немає довше кількох секунд
+function watchConnection() {
+  let timer = null, pill = null;
+  onValue(ref(db, '.info/connected'), snap => {
+    clearTimeout(timer);
+    if (snap.val() === true) { pill?.remove(); pill = null; return; }
+    timer = setTimeout(() => {
+      if (pill) return;
+      pill = document.createElement('div');
+      pill.className = 'offline-pill';
+      pill.setAttribute('role', 'status');
+      render(pill, html`${icon('alert-triangle', 16)} Немає з'єднання — зміни збережуться, щойно зв'язок відновиться`);
+      document.body.append(pill);
+    }, 4000);
+  });
 }

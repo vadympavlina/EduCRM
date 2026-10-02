@@ -19,7 +19,8 @@ import { toast } from './toast.js';
  */
 export function openDialog({
   title, subtitle = '', content, submitText = 'Зберегти', cancelText = 'Скасувати',
-  danger = false, width = 480, extraFooter = '', onSubmit, onOpen, onClose,
+  danger = false, width = 480, extraFooter = '', hideCancel = false, hideSubmit = false,
+  onSubmit, onOpen, onClose,
 }) {
   const dlg = document.createElement('dialog');
   dlg.className = 'dialog';
@@ -38,8 +39,8 @@ export function openDialog({
       <footer class="dialog-footer">
         ${extraFooter}
         <span class="spacer"></span>
-        <button type="button" class="btn" data-dialog-close>${cancelText}</button>
-        <button type="submit" class="btn ${danger ? 'btn-danger' : 'btn-primary'}">${submitText}</button>
+        ${hideCancel ? '' : html`<button type="button" class="btn" data-dialog-close>${cancelText}</button>`}
+        ${hideSubmit ? '' : html`<button type="submit" class="btn ${danger ? 'btn-danger' : 'btn-primary'}">${submitText}</button>`}
       </footer>
     </form>`);
 
@@ -68,8 +69,10 @@ export function openDialog({
   document.body.append(dlg);
   dlg.showModal();
   onOpen?.(form, dlg);
-  const first = form.querySelector('[autofocus]') || form.querySelector('input, select, textarea');
-  first?.focus();
+  // Фокус на першому полі з autofocus, інакше — на тілі вікна (а не на кнопці «Закрити»)
+  const first = form.querySelector('[autofocus]');
+  if (first) first.focus();
+  else { const body = form.querySelector('.dialog-body'); body.tabIndex = -1; body.focus({ preventScroll: true }); }
   return dlg;
 }
 

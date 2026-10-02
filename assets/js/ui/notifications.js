@@ -28,7 +28,8 @@ export function initNotifications(button, staff) {
     reviews = [];
     snap.forEach(c => { reviews.push({ id: c.key, ...c.val() }); });
     reviews.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    if (!firstLoad && reviews.some(r => !prevIds.has(r.id) && r.createdAt > loadedAt && !reads[r.id])) chime();
+    const fresh = firstLoad ? [] : reviews.filter(r => !prevIds.has(r.id) && r.createdAt > loadedAt && !reads[r.id]);
+    if (fresh.length) { chime(); fresh.forEach(desktopNotice); }
     firstLoad = false;
     refresh();
   });
@@ -99,6 +100,14 @@ export function initNotifications(button, staff) {
     const snap = await get(ref(db, `events/${id}/phone`)).catch(() => null);
     const phone = phoneDigits(snap?.val());
     if (phone) window.open('client?id=' + encodeURIComponent(phone), '_blank', 'noopener');
+  }
+
+  function desktopNotice(r) {
+    if (!('Notification' in window) || Notification.permission !== 'granted' || document.hasFocus()) return;
+    try {
+      const n = new Notification('EduCRM — новий відгук', { body: `${r.eventTitle || 'Захід'}\n${r.comment || ''}`, icon: 'assets/favicon.svg', tag: 'educrm-review-' + r.id });
+      n.onclick = () => { window.focus(); openReview(r.id); n.close(); };
+    } catch {}
   }
 
   function markRead(ids) {
