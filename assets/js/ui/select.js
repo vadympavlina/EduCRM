@@ -5,6 +5,7 @@
 //  Нативний select лишається прихованим і зберігає значення, тому
 //  form.elements.x.value і події change працюють як раніше.
 //  <option data-color="#hex"> — показує кольорову крапку (вчителі).
+//  <option value="" data-placeholder> — сірий текст-підказка.
 // ============================================================
 
 import { html, render } from '../core/dom.js';
@@ -37,11 +38,11 @@ function enhance(native) {
 
   let pop = null, active = -1, items = [];
 
-  const options = () => [...native.options].map((o, i) => ({ i, value: o.value, text: o.textContent.trim(), color: o.dataset.color || '', disabled: o.disabled }));
+  const options = () => [...native.options].map((o, i) => ({ i, value: o.value, text: o.textContent.trim(), color: o.dataset.color || '', disabled: o.disabled, placeholder: o.dataset.placeholder !== undefined }));
 
   function paint() {
     const o = native.selectedOptions[0];
-    const empty = !o || o.value === '';
+    const empty = !o || o.dataset.placeholder !== undefined;
     render(btn, html`
       <span class="cselect-value ${empty ? 'placeholder' : ''}">
         ${o?.dataset.color ? html`<span class="dot" style="--dot:${o.dataset.color}"></span>` : ''}
@@ -83,7 +84,7 @@ function enhance(native) {
       items = all.filter(o => !query || o.text.toLowerCase().includes(query));
       active = Math.max(0, items.findIndex(o => o.value === native.value));
       render(list, items.length ? items.map((o, idx) => html`
-        <div class="cselect-opt ${o.value === native.value ? 'selected' : ''} ${idx === active ? 'active' : ''} ${o.value === '' ? 'placeholder' : ''}"
+        <div class="cselect-opt ${o.value === native.value ? 'selected' : ''} ${idx === active ? 'active' : ''} ${o.placeholder ? 'placeholder' : ''}"
              role="option" aria-selected="${String(o.value === native.value)}" data-idx="${idx}" ${o.disabled ? html`aria-disabled="true"` : ''}>
           ${o.color ? html`<span class="dot" style="--dot:${o.color}"></span>` : ''}
           <span class="cselect-opt-text">${o.text}</span>

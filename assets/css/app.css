@@ -740,3 +740,42 @@ button.kpi:hover, a.kpi:hover { border-color: var(--border-strong); box-shadow: 
 .fc .fc-timegrid-more-link:hover { background: var(--brand-soft); }
 .fc .fc-timegrid-more-link-inner { padding: 4px 6px; }
 .fc .fc-popover-body .fc-event.ev { margin-bottom: 4px; }
+
+/* ── Списки занять (Підтверджені / Завершені) ─────────────── */
+.filters { display: flex; align-items: center; gap: 12px; padding: 10px 12px; flex-wrap: wrap; }
+.filters .spacer { flex: 1; }
+.filters .cselect { width: 260px; }
+.filters .cselect-btn { height: 36px; }
+.filters .summary { font-size: var(--fs-sm); color: var(--text-3); }
+.filters .summary b { color: var(--text); }
+
+.month-picker { position: relative; display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid var(--border-strong); border-radius: var(--r-md); background: var(--surface); box-shadow: var(--shadow-xs); }
+.month-picker .icon-btn { width: 30px; height: 30px; }
+.mp-label { min-width: 150px; height: 30px; padding: 0 10px; border: 0; border-radius: var(--r-sm); background: transparent; font-weight: 600; }
+.mp-label:hover { background: var(--surface-2); }
+.mp-pop { top: calc(100% + 6px); left: 0; width: 272px; padding: 10px; }
+.mp-year { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.mp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.mp-grid button { height: 36px; border: 0; border-radius: var(--r-md); background: transparent; font-weight: 500; color: var(--text-2); }
+.mp-grid button:hover { background: var(--surface-2); color: var(--text); }
+.mp-grid button.today { color: var(--brand); font-weight: 700; }
+.mp-grid button.selected { background: var(--brand); color: #fff; }
+
+.table .day-row td { background: var(--surface-2); padding-top: 8px; padding-bottom: 8px; font-size: var(--fs-xs); font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: .04em; }
+.table .day-row.today td { color: var(--brand); }
+.table tr.overdue td { background: #fffdf7; }
+.table tr.overdue:hover td { background: #fffaeb; }
+.table .clickable { cursor: pointer; }
+.row-title { display: block; font-weight: 600; color: var(--text); }
+.row-sub { font-size: var(--fs-xs); color: var(--text-3); }
+.teacher-tag { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.table .col-time { width: 1%; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text-2); }
+.table .row-actions.always { opacity: 1; }
+.table tfoot td { font-weight: 700; background: var(--surface-2); border-top: 1px solid var(--border); border-bottom: 0; }
+.table tr.sub-row td { background: #fcfcfd; padding-top: 8px; padding-bottom: 8px; font-size: var(--fs-sm); color: var(--text-2); }
+.table tr.sub-row td:first-child { padding-left: 52px; }
+.expand { display: inline-flex; align-items: center; gap: 4px; border: 0; background: transparent; color: var(--text-3); font-size: var(--fs-xs); font-weight: 600; padding: 2px 6px; border-radius: var(--r-sm); }
+.expand:hover { background: var(--surface-2); color: var(--text); }
+.expand svg { transition: transform .15s; }
+.expand[aria-expanded="true"] svg { transform: rotate(180deg); }
+.kpis-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }

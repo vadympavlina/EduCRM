@@ -64,7 +64,7 @@ export function openGroupDialog({ id = null, start = null, end = null } = {}) {
       <div class="field-row">
         <label class="field"><span class="field-label">Вчитель</span>
           <select class="select" name="gTeacher">
-            <option value="">— Оберіть вчителя —</option>
+            <option value="" data-placeholder>— Оберіть вчителя —</option>
             ${teacherOptions(v.assignedPersonId).map(t => html`
               <option value="${t.id}" data-color="${teacherColor(store.teachers, t.id)}" ${t.id === v.assignedPersonId ? 'selected' : ''}>${t.name}${t.archived ? ' (архів)' : ''}</option>`)}
           </select></label>
