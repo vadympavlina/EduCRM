@@ -2,19 +2,20 @@
 //  Календар — головна сторінка
 // ============================================================
 
-import { db, ref, onValue, query, orderByChild, startAt, push, set, remove } from '../core/firebase.js';
+import { db, ref, onValue, query, orderByChild, startAt } from '../core/firebase.js';
 import { html, render, on, initials } from '../core/dom.js';
 import { isoDate, monthKey, pad, phoneDigits, plural, fmtDate } from '../core/format.js';
 import { initShell } from '../ui/shell.js';
 import { icon } from '../ui/icons.js';
 import { toast } from '../ui/toast.js';
-import { openDialog, confirmDialog, fieldError } from '../ui/dialog.js';
+import { openDialog } from '../ui/dialog.js';
 import { teacherColor } from '../data/teachers.js';
 import { STATUS, findBlock, findTeacherOverlap, moveEvent, toMin } from '../data/events.js';
 import { moveGroup, countComing } from '../data/group-events.js';
 import { store, ctx, teacherName, teacherOptions } from '../calendar/store.js';
 import { openEventDialog } from '../calendar/event-dialog.js';
 import { openGroupDialog } from '../calendar/group-dialog.js';
+import { openBusyDialog } from '../calendar/busy-dialog.js';
 
 const hhmm = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const VIEW_KEY = 'educrm.calendarView';
@@ -211,7 +212,7 @@ function initCalendar() {
       const p = arg.event.extendedProps;
       if (p.kind === 'event') openEventDialog({ id: p.ref });
       else if (p.kind === 'group') openGroupDialog({ id: p.ref });
-      else if (p.kind === 'busy') deleteBusy(p.ref);
+      else if (p.kind === 'busy') openBusyDialog({ id: p.ref });
     },
 
     eventDrop: onMove,
@@ -283,6 +284,7 @@ function buildEvents() {
         id: 'r:' + id,
         daysOfWeek: b.days, startTime: b.start, endTime: b.end,
         ...(endRecur ? { endRecur } : {}),
+        ...(b.from ? { startRecur: b.from } : {}),
         display: 'background',
         classNames: ['block', b.teacherId ? 'block-teacher' : 'block-global'],
         extendedProps: { kind: 'block', label: b.title || 'Зайнято', teacher: b.teacherId ? teacherName(b.teacherId) : '' },
@@ -340,59 +342,9 @@ function showSlotMenu(jsEvent, start, end) {
     close();
     if (el.dataset.slot === 'event') openEventDialog({ start, end });
     else if (el.dataset.slot === 'group') openGroupDialog({ start, end });
-    else openBusyDialog(start, end);
+    else openBusyDialog({ start, end });
   });
   menu.querySelector('.menu-item').focus();
-}
-
-// ── ЗАЙНЯТИЙ ЧАС ─────────────────────────────────────────────
-function openBusyDialog(start, end) {
-  openDialog({
-    title: 'Зайнятий час',
-    subtitle: 'Разове блокування — в цей час не можна записати заняття',
-    width: 460,
-    submitText: 'Заблокувати',
-    content: html`
-      <label class="field"><span class="field-label">Причина</span>
-        <input class="input" name="bTitle" maxlength="60" placeholder="напр. Нарада, обід" autofocus></label>
-      <div class="field-row-3">
-        <label class="field"><span class="field-label">Дата</span><input class="input num" type="date" name="bDate" value="${isoDate(start)}"></label>
-        <label class="field"><span class="field-label">Початок</span><input class="input num" type="time" name="bStart" step="300" value="${hhmm(start)}"></label>
-        <label class="field"><span class="field-label">Кінець</span><input class="input num" type="time" name="bEnd" step="300" value="${hhmm(end)}"></label>
-      </div>
-      <label class="field"><span class="field-label">Для кого</span>
-        <select class="select" name="bTeacher">
-          <option value="">Для всіх</option>
-          ${teacherOptions().map(t => html`<option value="${t.id}" data-color="${teacherColor(store.teachers, t.id)}">${t.name}</option>`)}
-        </select></label>`,
-    async onSubmit(form) {
-      const f = form.elements;
-      if (!f.bDate.value) return fieldError(f.bDate);
-      if (!f.bStart.value) return fieldError(f.bStart);
-      if (!f.bEnd.value || toMin(f.bEnd.value) <= toMin(f.bStart.value)) { toast('Кінець має бути пізніше за початок', 'warning'); return fieldError(f.bEnd); }
-      await set(push(ref(db, 'busySlots')), {
-        title: f.bTitle.value.trim() || 'Зайнято',
-        date: f.bDate.value, startTime: f.bStart.value, endTime: f.bEnd.value,
-        teacherId: f.bTeacher.value || '',
-        createdBy: store.staff.name, createdAt: Date.now(),
-      });
-      toast('Час заблоковано', 'success');
-    },
-  });
-}
-
-async function deleteBusy(id) {
-  const b = store.busySlots[id];
-  if (!b) return;
-  const ok = await confirmDialog({
-    title: 'Зняти блокування?',
-    message: `«${b.title || 'Зайнято'}» ${b.startTime}–${b.endTime}${b.teacherId ? ` (${teacherName(b.teacherId)})` : ''} буде видалено.`,
-    confirmText: 'Зняти', danger: true,
-  });
-  if (!ok) return;
-  await remove(ref(db, 'busySlots/' + id))
-    .then(() => toast('Блокування знято', 'success'))
-    .catch(() => toast('Не вдалося видалити', 'error'));
 }
 
 // ── ПОКАЗНИКИ ────────────────────────────────────────────────

@@ -29,6 +29,7 @@ export function findBlock({ date, startTime, endTime, teacherId }, blockedTimes,
   for (const b of Object.values(blockedTimes || {})) {
     if (!applies(b) || !(b.days || []).includes(weekday)) continue;
     if (b.until && date > b.until) continue;
+    if (b.from && date < b.from) continue;
     if (overlaps(s, e, toMin(b.start), toMin(b.end))) return { title: b.title || 'Зайнято', global: !b.teacherId };
   }
   for (const b of Object.values(busySlots || {})) {

@@ -7,6 +7,7 @@ import { html, render, busy } from '../core/dom.js';
 import { icon } from './icons.js';
 import { toast } from './toast.js';
 import { enhanceSelects } from './select.js';
+import { enhanceDates, upgradeTimes } from './date-picker.js';
 
 /**
  * openDialog({
@@ -69,6 +70,8 @@ export function openDialog({
 
   document.body.append(dlg);
   dlg.showModal();
+  upgradeTimes(dlg);
+  enhanceDates(dlg);
   enhanceSelects(dlg);
   onOpen?.(form, dlg);
   // Фокус на першому полі з autofocus, інакше — на тілі вікна (а не на кнопці «Закрити»)
@@ -100,8 +103,11 @@ export function confirmDialog({ title, message = '', confirmText = 'Підтве
 
 /** Позначає поле як помилкове і ставить на нього фокус. */
 export function fieldError(input) {
-  input.setAttribute('aria-invalid', 'true');
-  input.focus();
-  input.addEventListener('input', () => input.removeAttribute('aria-invalid'), { once: true });
+  // для власних списків/дат підсвічуємо видиму кнопку, а не приховане поле
+  const visible = input.closest('.cselect, .cdate')?.querySelector('.cselect-btn') || input;
+  visible.setAttribute('aria-invalid', 'true');
+  visible.focus();
+  input.addEventListener('input', () => visible.removeAttribute('aria-invalid'), { once: true });
+  input.addEventListener('change', () => visible.removeAttribute('aria-invalid'), { once: true });
   return false;
 }
