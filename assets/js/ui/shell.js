@@ -45,6 +45,7 @@ function openPalette() {
   if (document.getElementById('palette')) return;
   const items = [
     ...ALL.map(it => ({ ...it, group: 'Перейти' })),
+    { id: 'theme', label: 'Змінити тему', icon: 'moon', group: 'Вигляд', run: toggleTheme },
     { id: 'logout', label: 'Вийти з акаунта', icon: 'log-out', group: 'Акаунт', run: logout },
   ];
   const dlg = document.createElement('dialog');
@@ -88,6 +89,12 @@ function openPalette() {
   input.focus();
 }
 
+function toggleTheme() {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('educrm.theme', next); } catch {}
+}
+
 const COLLAPSE_KEY = 'educrm.sidebarCollapsed';
 
 export function initShell({ page, title, subtitle = '', actions = '', back = null }) {
@@ -121,6 +128,7 @@ export function initShell({ page, title, subtitle = '', actions = '', back = nul
           <div class="sb-user-name" id="sb-name">&nbsp;</div>
           <div class="sb-user-email" id="sb-email">&nbsp;</div>
         </div>
+        <button class="icon-btn theme-btn" id="sb-theme" aria-label="Змінити тему" title="Світла / темна тема"><span class="t-moon">${icon('moon', 17)}</span><span class="t-sun">${icon('sun', 17)}</span></button>
         <button class="icon-btn" id="sb-logout" aria-label="Вийти" title="Вийти">${icon('log-out', 17)}</button>
       </div>
     </div>`);
@@ -172,6 +180,7 @@ export function initShell({ page, title, subtitle = '', actions = '', back = nul
     try { localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : ''); } catch {}
   });
   document.getElementById('sb-logout').addEventListener('click', logout);
+  document.getElementById('sb-theme').addEventListener('click', toggleTheme);
 
   // Тінь під верхньою панеллю при прокрутці
   const onScroll = () => topbar.classList.toggle('scrolled', scrollY > 4);
