@@ -29,7 +29,7 @@ export const NAV = [
   { group: 'Фінанси', items: [
     { id: 'stats',     href: 'stats',     label: 'Статистика',   icon: 'bar-chart' },
   ]},
-  { group: 'Налаштування', items: [
+  { group: 'Налаштування', bottom: true, items: [
     { id: 'teachers',  href: 'teachers',  label: 'Вчителі та ставки', icon: 'graduation-cap' },
     { id: 'schedule',  href: 'schedule',  label: 'Графік роботи',     icon: 'clock' },
     { id: 'tags',      href: 'tags',      label: 'Теги',              icon: 'tag' },
@@ -95,6 +95,35 @@ function toggleTheme() {
   try { localStorage.setItem('educrm.theme', next); } catch {}
 }
 
+const GROUPS_KEY = 'educrm.navClosed';
+function navClosed() {
+  try { return new Set(JSON.parse(localStorage.getItem(GROUPS_KEY)) || (['Налаштування'])); } catch { return new Set(); }
+}
+
+// Підказка для згорнутого меню: окремий fixed-елемент, бо .sb-nav обрізає все, що виходить за межі
+function initNavTips(sidebar) {
+  let tip = null;
+  const hide = () => { tip?.remove(); tip = null; };
+  const show = el => {
+    if (!document.documentElement.classList.contains('sb-collapsed') || innerWidth <= 900) return;
+    hide();
+    tip = document.createElement('div');
+    tip.className = 'sb-tip';
+    tip.setAttribute('role', 'tooltip');
+    tip.textContent = el.dataset.label;
+    document.body.append(tip);
+    const r = el.getBoundingClientRect();
+    tip.style.left = r.right + 10 + 'px';
+    tip.style.top = r.top + r.height / 2 + 'px';
+  };
+  sidebar.addEventListener('mouseover', e => { const a = e.target.closest('.sb-link'); if (a) show(a); else hide(); });
+  sidebar.addEventListener('focusin', e => { const a = e.target.closest('.sb-link'); if (a) show(a); });
+  sidebar.addEventListener('mouseleave', hide);
+  sidebar.addEventListener('focusout', hide);
+  sidebar.addEventListener('click', hide);
+  sidebar.querySelector('.sb-nav').addEventListener('scroll', hide, { passive: true });
+}
+
 const COLLAPSE_KEY = 'educrm.sidebarCollapsed';
 
 export function initShell({ page, title, subtitle = '', actions = '', back = null }) {
@@ -111,15 +140,22 @@ export function initShell({ page, title, subtitle = '', actions = '', back = nul
       ${icon('search', 16)}<span>Швидкий перехід</span><kbd>${isMac ? '⌘K' : 'Ctrl K'}</kbd>
     </button>
     <nav class="sb-nav" aria-label="Розділи">
-      ${NAV.map(g => html`
-        <div class="sb-group">
-          <div class="sb-group-label">${g.group}</div>
-          ${g.items.map(it => html`
-            <a class="sb-link ${it.id === page ? 'active' : ''}" href="${it.href}" data-label="${it.label}"
-               ${it.id === page ? html`aria-current="page"` : ''}>
-              ${icon(it.icon, 18)}<span>${it.label}</span>
-            </a>`)}
-        </div>`)}
+      ${NAV.map(g => {
+        const hasActive = g.items.some(it => it.id === page);
+        const closed = !hasActive && navClosed().has(g.group);
+        return html`
+        <div class="sb-group ${g.bottom ? 'bottom' : ''} ${closed ? 'closed' : ''}" data-group="${g.group}">
+          <button class="sb-group-label" type="button" aria-expanded="${!closed}">
+            <span>${g.group}</span>${icon('chevron-down', 14)}
+          </button>
+          <div class="sb-group-items">
+            ${g.items.map(it => html`
+              <a class="sb-link ${it.id === page ? 'active' : ''}" href="${it.href}" data-label="${it.label}"
+                 ${it.id === page ? html`aria-current="page"` : ''}>
+                <span class="sb-ico">${icon(it.icon, 18)}</span><span class="sb-text">${it.label}</span>
+              </a>`)}
+          </div>
+        </div>`; })}
     </nav>
     <div class="sb-foot">
       <div class="sb-user">
@@ -171,6 +207,7 @@ export function initShell({ page, title, subtitle = '', actions = '', back = nul
   document.getElementById('sb-find').addEventListener('click', () => { closeNav(); openPalette(); });
   addEventListener('keydown', e => {
     if (e.key === 'Escape') closeNav();
+    if (e.key === '[' && !e.target.closest('input, textarea, select, [contenteditable]') && innerWidth > 900) document.getElementById('sb-collapse').click();
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); }
   });
 
@@ -180,6 +217,17 @@ export function initShell({ page, title, subtitle = '', actions = '', back = nul
     try { localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : ''); } catch {}
   });
   document.getElementById('sb-logout').addEventListener('click', logout);
+  initNavTips(sidebar);
+  sidebar.addEventListener('click', e => {
+    const label = e.target.closest('.sb-group-label');
+    if (!label) return;
+    const group = label.closest('.sb-group');
+    const closed = group.classList.toggle('closed');
+    label.setAttribute('aria-expanded', String(!closed));
+    const set = navClosed();
+    closed ? set.add(group.dataset.group) : set.delete(group.dataset.group);
+    try { localStorage.setItem(GROUPS_KEY, JSON.stringify([...set])); } catch {}
+  });
   document.getElementById('sb-theme').addEventListener('click', toggleTheme);
 
   // Тінь під верхньою панеллю при прокрутці
