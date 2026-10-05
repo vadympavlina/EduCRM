@@ -35,7 +35,7 @@ const INFO = {
 
 initShell({ page: 'extension', title: 'Розширення для CRM', subtitle: 'Помічники для робочої CRM (crm.itstep.org)' }).then(async () => {
   const items = await Promise.all(Object.keys(EXTENSIONS).map(async id => {
-    const have = installedExt(id), latest = await latestExt(id);
+    const have = installedExt(id), latest = await latestExt(id, { fresh: true });
     const state = !have ? 'none' : latest && compareVersions(have, latest) < 0 ? 'old' : 'ok';
     return { id, ...EXTENSIONS[id], ...INFO[id], have, latest, state };
   }));
@@ -60,7 +60,7 @@ initShell({ page: 'extension', title: 'Розширення для CRM', subtitl
           <ul class="xs-feats">
             ${x.features.map(([ic, t, d]) => html`<li>${icon(ic, 16)}<span><b>${t}.</b> ${d}</span></li>`)}
           </ul>
-          <a class="btn ${x.state === 'ok' ? '' : 'btn-primary'}" href="${x.zip}" download="${x.dir}.zip">
+          <a class="btn ${x.state === 'ok' ? '' : 'btn-primary'}" href="${x.zip}?v=${x.latest}" download="${x.dir}.zip">
             ${icon('download', 16)} ${x.state === 'old' ? 'Завантажити оновлення' : 'Завантажити'}${x.latest ? ` · ${x.latest}` : ''}
           </a>
         </section>`)}
@@ -77,7 +77,7 @@ initShell({ page: 'extension', title: 'Розширення для CRM', subtitl
         ${step(3, 'Увімкніть «Режим розробника»', html`Перемикач у правому верхньому куті сторінки (в Edge — ліворуч унизу).`)}
         ${step(4, 'Оновлюєте? Приберіть стару версію', html`Знайдіть розширення і натисніть <b>Видалити</b>. Або розпакуйте новий архів у ту саму папку поверх старого і натисніть ${icon('refresh-cw', 13)} <b>Оновити</b> — тоді крок 5 не потрібен.`)}
         ${step(5, 'Натисніть «Завантажити розпаковане»', html`Кнопка вгорі ліворуч. Виберіть розпаковану папку — ту, в якій лежить файл <b>manifest.json</b>.`)}
-        ${step(6, 'Готово', html`Оновіть цю сторінку — біля розширення з'явиться «Встановлено». Коли вийде нова версія, EduCRM покаже підказку, а в меню біля «Розширення» з'явиться крапка.`)}
+        ${step(6, 'Готово', html`Оновіть цю сторінку (F5) — біля розширення з'явиться «Встановлено». Коли вийде нова версія, EduCRM покаже підказку, а в меню біля «Розширення» з'явиться крапка.`)}
       </ol>
     </section>
 

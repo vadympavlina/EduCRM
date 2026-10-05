@@ -11,14 +11,21 @@ export const EXTENSIONS = {
 
 export const installedExt = (id = 'main') => document.documentElement.dataset[EXTENSIONS[id].attr] || '';
 
-/** Найновіша версія розширення на сайті (кеш на сесію). */
-export async function latestExt(id = 'main') {
+const TTL = 10 * 60e3;
+
+/**
+ * Найновіша версія розширення на сайті. Кеш — 10 хвилин (для підказок на всіх сторінках);
+ * fresh: true — завжди свіжа (сторінка «Розширення»). Параметр ?t= обходить кеш GitHub Pages.
+ */
+export async function latestExt(id = 'main', { fresh = false } = {}) {
   const key = 'educrm.extLatest.' + id;
-  try { const c = sessionStorage.getItem(key); if (c) return c; } catch {}
+  if (!fresh) {
+    try { const c = JSON.parse(sessionStorage.getItem(key)); if (c && Date.now() - c.at < TTL) return c.v; } catch {}
+  }
   try {
-    const res = await fetch(EXTENSIONS[id].dir + '/manifest.json', { cache: 'no-store' });
+    const res = await fetch(`${EXTENSIONS[id].dir}/manifest.json?t=${Date.now()}`, { cache: 'no-store' });
     const v = res.ok ? (await res.json()).version || '' : '';
-    try { if (v) sessionStorage.setItem(key, v); } catch {}
+    try { if (v) sessionStorage.setItem(key, JSON.stringify({ v, at: Date.now() })); } catch {}
     return v;
   } catch { return ''; }
 }
