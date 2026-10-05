@@ -2,9 +2,12 @@
   "manifest_version": 3,
   "name": "EduCRM — помічник для робочої CRM",
   "short_name": "EduCRM",
-  "version": "2.0.0",
-  "description": "Показує заняття клієнта з EduCRM прямо в робочій CRM і переносить клієнта в EduCRM в один клік.",
-  "permissions": ["activeTab", "scripting"],
+  "version": "2.1.0",
+  "description": "Кнопка на картці клієнта в робочій CRM: запис у EduCRM в один клік і найближче заняття клієнта.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
   "host_permissions": [
     "https://crm.itstep.org/*",
     "https://vadympavlina.github.io/EduCRM/*",
@@ -12,15 +15,32 @@
   ],
   "content_scripts": [
     {
-      "matches": ["https://crm.itstep.org/*"],
-      "js": ["shared.js", "crm-watcher.js"],
+      "matches": [
+        "https://crm.itstep.org/*"
+      ],
+      "js": [
+        "shared.js",
+        "crm-watcher.js"
+      ],
       "run_at": "document_idle"
     }
   ],
   "action": {
     "default_popup": "popup.html",
     "default_title": "EduCRM",
-    "default_icon": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png" }
+    "default_icon": {
+      "16": "icons/16.png",
+      "32": "icons/32.png",
+      "48": "icons/48.png"
+    }
   },
-  "icons": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png" }
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
 }
