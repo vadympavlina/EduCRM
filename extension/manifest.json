@@ -2,11 +2,12 @@
   "manifest_version": 3,
   "name": "EduCRM — помічник для робочої CRM",
   "short_name": "EduCRM",
-  "version": "2.2.0",
-  "description": "Кнопка на картці клієнта в робочій CRM: запис у EduCRM в один клік і найближче заняття клієнта.",
+  "version": "2.3.0",
+  "description": "Кнопка EduCRM на картці клієнта і перенесення списку заходу у Відкритий захід — з робочої CRM в один клік.",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "host_permissions": [
     "https://crm.itstep.org/*",
@@ -20,7 +21,8 @@
       ],
       "js": [
         "shared.js",
-        "crm-watcher.js"
+        "crm-watcher.js",
+        "event-import.js"
       ],
       "run_at": "document_idle"
     },
