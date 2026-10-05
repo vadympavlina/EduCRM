@@ -1148,7 +1148,7 @@ body.od { min-height: 100dvh; background: var(--bg); padding-bottom: calc(96px +
 .sb-user:hover { background: var(--surface-2); }
 
 /* Кнопки каркаса, видимі лише на малих екранах */
-.topbar-menu, .tabbar, .scrim { display: none; }
+.topbar-menu, .scrim { display: none; }
 .page-actions { display: flex; align-items: center; gap: 8px; }
 .bell-wrap { position: relative; }
 
@@ -1211,27 +1211,10 @@ body.od { min-height: 100dvh; background: var(--bg); padding-bottom: calc(96px +
 
   .topbar { padding: 0 16px; gap: 8px; }
   .topbar-menu { display: inline-grid; flex-shrink: 0; margin-left: -6px; }
-  .content { padding: 8px 16px calc(88px + env(safe-area-inset-bottom)); gap: 16px; }
+  .content { padding: 8px 16px calc(24px + env(safe-area-inset-bottom)); gap: 16px; }
 
-  /* Нижня навігація */
-  .tabbar {
-    display: grid; grid-template-columns: repeat(5, 1fr);
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 70;
-    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
-    background: rgba(255, 255, 255, .92); backdrop-filter: saturate(180%) blur(14px);
-    border-top: 1px solid var(--border);
-  }
-  .tab {
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-    min-height: 52px; border: 0; border-radius: var(--r-md); background: transparent;
-    font-size: 11px; font-weight: 600; color: var(--text-3); -webkit-tap-highlight-color: transparent;
-  }
-  .tab:hover { color: var(--text-2); }
-  .tab.active { color: var(--brand-active); }
-  .tab.active svg { color: var(--brand); }
-  .tab:active { background: var(--surface-2); }
-  .toasts { bottom: calc(76px + env(safe-area-inset-bottom)); }
-  .offline-pill { bottom: calc(76px + env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); }
+  .toasts { bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .offline-pill { bottom: calc(16px + env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); }
 
   .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .table-wrap > .table { min-width: 640px; }
@@ -1271,7 +1254,7 @@ body.od { min-height: 100dvh; background: var(--bg); padding-bottom: calc(96px +
   .table.stack .col-actions { width: auto; white-space: normal; padding-top: 8px; }
   .table.stack .col-actions.muted { display: none; }
   .table.stack .col-time { width: auto; }
-  .content { padding: 4px 12px calc(88px + env(safe-area-inset-bottom)); }
+  .content { padding: 4px 12px calc(24px + env(safe-area-inset-bottom)); }
   .search-pop { width: calc(100vw - 24px); }
 
   .kpis { gap: 8px; }
@@ -1290,7 +1273,7 @@ body.od { min-height: 100dvh; background: var(--bg); padding-bottom: calc(96px +
   .hbar-row { grid-template-columns: 110px minmax(0, 1fr); }
 
   /* Календар: компактна панель */
-  .cal-card { height: calc(100dvh - 190px); min-height: 480px; border-radius: var(--r-lg); }
+  .cal-card { height: calc(100dvh - 130px); min-height: 480px; border-radius: var(--r-lg); }
   .cal-toolbar { padding: 8px 10px; gap: 6px; }
   .cal-toolbar h2 { order: 5; flex: 1 0 100%; margin: 0; font-size: var(--fs-md); }
   .cal-toolbar .spacer { display: none; }
@@ -1318,7 +1301,7 @@ body.od { min-height: 100dvh; background: var(--bg); padding-bottom: calc(96px +
 /* Сенсорні екрани: дії в рядках видно завжди (немає наведення) */
 @media (hover: none) { .table .row-actions { opacity: 1; } }
 
-@media print { .tabbar, .scrim { display: none !important; } }
+@media print { .scrim { display: none !important; } }
 
 @media (prefers-reduced-motion: reduce) { .content > * { animation: none; } }
 

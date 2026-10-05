@@ -18,7 +18,7 @@ import { db, ref, onValue } from '../core/firebase.js';
 export const NAV = [
   { group: 'Робота', items: [
     { id: 'calendar',  href: './',     label: 'Календар',     icon: 'calendar' },
-    { id: 'confirmed', href: 'confirmed', label: 'Підтверджені', short: 'Заняття', icon: 'check-square' },
+    { id: 'confirmed', href: 'confirmed', label: 'Підтверджені', icon: 'check-square' },
     { id: 'completed', href: 'completed', label: 'Завершені',    icon: 'check-circle' },
   ]},
   { group: 'Клієнти', items: [
@@ -37,7 +37,6 @@ export const NAV = [
 ];
 
 const ALL = NAV.flatMap(g => g.items);
-const TABS = ['calendar', 'confirmed', 'clients', 'stats'];
 const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 
 // ── Швидкий перехід (Ctrl/⌘ + K) ─────────────────────────────
@@ -184,24 +183,16 @@ export function initShell({ page, title, subtitle = '', actions = '', back = nul
       </div>
     </div>`);
 
-  // Нижня навігація та шторка меню для телефона
+  // Шторка меню для телефона
   const app = document.querySelector('.app');
-  const tabs = document.createElement('nav');
-  tabs.className = 'tabbar';
-  tabs.setAttribute('aria-label', 'Основна навігація');
-  render(tabs, html`
-    ${TABS.map(id => { const it = ALL.find(x => x.id === id); return html`
-      <a class="tab ${id === page ? 'active' : ''}" href="${it.href}" ${id === page ? html`aria-current="page"` : ''}>${icon(it.icon, 22)}<span>${it.short || it.label}</span></a>`; })}
-    <button class="tab" id="tab-more" type="button" aria-label="Усі розділи">${icon('menu', 22)}<span>Меню</span></button>`);
   const scrim = document.createElement('div');
   scrim.className = 'scrim';
-  app.append(tabs, scrim);
+  app.append(scrim);
 
   const root = document.documentElement;
   const closeNav = () => root.classList.remove('nav-open');
   const openNav = () => root.classList.add('nav-open');
   document.getElementById('tb-menu').addEventListener('click', openNav);
-  document.getElementById('tab-more').addEventListener('click', openNav);
   scrim.addEventListener('click', closeNav);
   sidebar.addEventListener('click', e => { if (e.target.closest('.sb-link')) closeNav(); });
   document.getElementById('sb-find').addEventListener('click', () => { closeNav(); openPalette(); });
