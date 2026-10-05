@@ -1567,3 +1567,7 @@ html[data-theme="dark"] body:not(.od) .fc .fc-event.ev:is(.fc-timegrid-event, .f
 .block-global .bl { --bk: var(--bk-all); }
 .block-teacher .bl { --bk: var(--bk-teacher); }
 .fc-daygrid-event.ev-busy .bl { padding: 0 6px; }
+
+/* Трохи більший підпис блокувань і «Зайнято» */
+.block-label .bl, .fc .ev-busy .bl { font-size: 12px; }
+.block-label .bl svg, .fc .ev-busy .bl svg { width: 14px; height: 14px; }
