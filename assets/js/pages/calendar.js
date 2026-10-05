@@ -78,7 +78,7 @@ render(page, html`
       <span class="key"><i class="k-sw k-cancelled"></i>Скасовано</span>
       <span class="key"><i class="k-sw k-group"></i>Групова</span>
       <span class="key"><i class="k-sw k-busy"></i>Зайнято</span>
-      <span class="key"><i class="k-sw k-block"></i>Блокування для всіх</span>
+      <span class="key"><i class="k-sw k-block"></i>Блокування (всі)</span>
       <span class="key"><i class="k-sw k-block-t"></i>Блокування вчителя</span>
     </div>
     <div class="cal-body"><div id="calendar" style="height:100%"></div></div>

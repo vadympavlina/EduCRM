@@ -1430,3 +1430,83 @@ html[data-theme="dark"] body:not(.od) .ev-count { color: #0c111b; }
 .k-block { border-left-color: var(--danger); background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--danger) 25%, transparent) 0 3px, color-mix(in srgb, var(--danger) 8%, transparent) 3px 6px); }
 .k-block-t { border-left-color: var(--info); background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--info) 25%, transparent) 0 3px, color-mix(in srgb, var(--info) 8%, transparent) 3px 6px); }
 @media (max-width: 640px) { .cal-key { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 6px 12px; } .cal-card { height: calc(100dvh - 150px); } }
+
+/* ============================================================
+   10. КАЛЕНДАР — варіант «Яскраві блоки»
+   Суцільні кольори вчителів, білий текст; статус видно за
+   заливкою; блокування — нейтральні «крапки».
+   ============================================================ */
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event) {
+  background: var(--ev); color: #fff;
+  border: 0; border-radius: 8px; outline: 0;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--ev) 38%, transparent);
+  opacity: 1;
+}
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event):hover { box-shadow: 0 4px 12px color-mix(in srgb, var(--ev) 50%, transparent); filter: brightness(1.06); }
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event) .fc-event-main { color: #fff; padding: 4px 8px; }
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event) .ev-title, .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event) .ev-title span, .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event) .ev-time, .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event) .ev-title svg,
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event) .ev-inline, .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event) .ev-inline .ev-title { color: #fff; }
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event) .ev-sub { color: rgba(255, 255, 255, .85); }
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event) .ev-time { font-weight: 600; opacity: .92; }
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event) .ev-title { font-weight: 700; }
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event) .ev-title svg { opacity: .95; }
+.fc-daygrid-event.ev { padding: 1px 6px; }
+
+/* Очікує: блідіший колір і пунктир усередині — «ще не підтверджено» */
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-pending {
+  background: color-mix(in srgb, var(--ev) 38%, var(--mix));
+  outline: 2px dashed color-mix(in srgb, var(--ev) 80%, transparent); outline-offset: -3px;
+  box-shadow: none; color: var(--text);
+}
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-pending .ev-title, .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-pending .ev-title span, .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-pending .ev-title svg,
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-pending .ev-time, .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-pending .ev-inline { color: color-mix(in srgb, var(--ev) 45%, var(--text)); }
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-pending .ev-sub { color: var(--text-2); }
+html[data-theme="dark"] body:not(.od) .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-pending .ev-title,
+html[data-theme="dark"] body:not(.od) .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-pending .ev-title span,
+html[data-theme="dark"] body:not(.od) .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-pending .ev-title svg,
+html[data-theme="dark"] body:not(.od) .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-pending .ev-time { color: color-mix(in srgb, var(--ev) 35%, #fff); }
+
+/* Підтверджено — суцільний колір (за замовчуванням) */
+/* Проведено — приглушений, з галочкою */
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-completed { background: color-mix(in srgb, var(--ev) 62%, #6b7585); box-shadow: none; opacity: .92; }
+/* Скасовано — сірий і закреслений */
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-cancelled { background: var(--surface-3); box-shadow: none; opacity: .75; }
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-cancelled .ev-title, .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-cancelled .ev-title span, .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-cancelled .ev-time,
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-cancelled .ev-sub, .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-cancelled .ev-title svg, .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-cancelled .ev-inline { color: var(--text-3); }
+/* Групова */
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-group { --ev: var(--violet-solid); background: var(--ev); }
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-group.ev-pending { background: color-mix(in srgb, var(--ev) 38%, var(--mix)); }
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-group.ev-completed { background: color-mix(in srgb, var(--ev) 62%, #6b7585); }
+.ev-count { background: #fff; color: var(--violet-solid); box-shadow: 0 1px 2px rgba(16, 24, 40, .15); }
+html[data-theme="dark"] body:not(.od) .ev-count { color: var(--violet-solid); }
+/* Зайнято */
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-busy {
+  background-color: var(--surface-3); color: var(--text-2); box-shadow: none; outline: 0;
+  background-image: radial-gradient(color-mix(in srgb, var(--text-4) 55%, transparent) 1px, transparent 1px); background-size: 8px 8px;
+}
+.fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-busy .ev-title, .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-busy .ev-title span, .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-busy .ev-title svg, .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-busy .ev-time, .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-busy .ev-sub, .fc .fc-event.ev:is(.fc-timegrid-event, .fc-daygrid-event).ev-busy .ev-inline { color: var(--text-2); }
+
+/* Блокування — нейтральні крапки без кольорової смужки */
+.fc .fc-bg-event.block { box-shadow: none; border-radius: 8px; background-size: 8px 8px; margin: 0 2px; }
+.fc .fc-bg-event.block-global {
+  background-color: var(--surface-3);
+  background-image: radial-gradient(color-mix(in srgb, var(--text-4) 60%, transparent) 1px, transparent 1px);
+}
+.fc .fc-bg-event.block-teacher {
+  background-color: color-mix(in srgb, var(--info) 14%, var(--surface));
+  background-image: radial-gradient(color-mix(in srgb, var(--info) 45%, transparent) 1px, transparent 1px);
+}
+.block-global .block-label { color: var(--text-3); }
+.block-teacher .block-label { color: var(--info); }
+.block-label { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-shadow: none; }
+
+/* Умовні позначення під новий вигляд */
+.k-sw { border: 0; border-radius: 4px; width: 20px; height: 12px; background: var(--brand); box-shadow: 0 1px 3px color-mix(in srgb, var(--brand) 40%, transparent); outline: 0; }
+.k-pending { background: color-mix(in srgb, var(--brand) 38%, var(--mix)); outline: 1.5px dashed var(--brand); outline-offset: -2px; box-shadow: none; }
+.k-confirmed { background: var(--brand); }
+.k-completed { background: color-mix(in srgb, var(--brand) 62%, #6b7585); box-shadow: none; }
+.k-cancelled { background: var(--surface-3); box-shadow: none; opacity: 1; border: 1px solid var(--border-strong); }
+.k-group { background: var(--violet-solid); }
+.k-busy, .k-block { background-color: var(--surface-3); background-image: radial-gradient(color-mix(in srgb, var(--text-4) 60%, transparent) 1px, transparent 1px); background-size: 4px 4px; box-shadow: none; border: 1px solid var(--border-strong); }
+.k-block-t { background-color: color-mix(in srgb, var(--info) 16%, var(--surface)); background-image: radial-gradient(color-mix(in srgb, var(--info) 50%, transparent) 1px, transparent 1px); background-size: 4px 4px; box-shadow: none; border: 1px solid color-mix(in srgb, var(--info) 40%, transparent); }
+:root { --violet-solid: #7a5af8; }
