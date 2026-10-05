@@ -184,9 +184,7 @@ function initCalendar() {
         return { html: String(html`<span class="ev-inline"><span class="ev-time">${arg.timeText}</span><span class="ev-title"><span>${arg.event.title}</span></span>${count}</span>`) };
       }
       if (p.kind === 'busy') {
-        return { html: String(html`
-          <div class="rb">${icon('clock', 12)}<span>Зайнято</span></div>
-          <div class="rb-text">${arg.event.title}${p.teacher ? html` · ${p.teacher}` : ''}</div>`) };
+        return { html: String(html`<div class="bl">${icon('clock', 13)}<span>${arg.event.title}${p.teacher ? html` · ${p.teacher}` : ''}</span></div>`) };
       }
       return { html: String(html`
         <div class="ev-inner">
@@ -202,9 +200,7 @@ function initCalendar() {
       if (p.kind === 'block') {
         const label = document.createElement('div');
         label.className = 'block-label';
-        render(label, html`
-          <div class="rb">${icon(p.teacher ? 'user' : 'x', 12)}<span>${p.teacher ? 'Блок. вчителя' : 'Блок. (всі)'}</span></div>
-          <div class="rb-text">${p.label}${p.teacher ? html` · ${p.teacher}` : ''}</div>`);
+        render(label, html`<span class="bl">${icon(p.teacher ? 'user-x' : 'ban', 13)}<span>${p.label}${p.teacher ? html` · ${p.teacher}` : ''}</span></span>`);
         arg.el.append(label);
       }
       const time = arg.event.end ? `${hhmm(arg.event.start)}–${hhmm(arg.event.end)}` : hhmm(arg.event.start);
