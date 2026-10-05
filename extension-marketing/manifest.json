@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "EduCRM Marketing",
   "short_name": "EduCRM Mkt",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Переносить список клієнтів маркетингового заходу з робочої CRM у Відкритий захід EduCRM в один клік.",
   "permissions": [
     "storage"

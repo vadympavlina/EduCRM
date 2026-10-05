@@ -83,9 +83,27 @@
   });
 
   // ── Плашка ─────────────────────────────────────────────────
+  // Вікна CRM (Angular CDK) відкриваються у «верхньому шарі» браузера (Popover API),
+  // який перекриває будь-який z-index. Тому плашка теж стає popover і показується
+  // після вікна — так вона завжди над ним.
+  function raise(h) {
+    if (!h.showPopover) return;
+    try { if (h.matches(':popover-open')) h.hidePopover(); h.showPopover(); } catch {}
+  }
   function root() {
     let h = document.getElementById(HOST_ID);
-    if (!h) { h = document.createElement('div'); h.id = HOST_ID; h.attachShadow({ mode: 'open' }); document.documentElement.append(h); }
+    if (!h) {
+      h = document.createElement('div');
+      h.id = HOST_ID;
+      h.setAttribute('popover', 'manual');
+      h.style.cssText = 'position:fixed;inset:auto;margin:0;padding:0;border:0;background:transparent;overflow:visible;width:0;height:0;';
+      h.attachShadow({ mode: 'open' });
+    }
+    // Нативне модальне вікно робить решту сторінки неактивною — тоді плашка живе всередині нього
+    const modal = document.querySelector('dialog:modal');
+    const parent = modal || document.documentElement;
+    if (h.parentNode !== parent) parent.append(h);
+    if (!modal) raise(h);
     return h.shadowRoot;
   }
   const remove = () => document.getElementById(HOST_ID)?.remove();
@@ -160,6 +178,13 @@
     };
     wait();
   }
-  new MutationObserver(() => scan()).observe(document.documentElement, { childList: true, subtree: true });
+  let raising = 0;
+  new MutationObserver(muts => {
+    scan();
+    const h = document.getElementById(HOST_ID);
+    if (h && !document.querySelector('dialog:modal') && muts.some(m => [...m.addedNodes].some(n => n !== h && n.nodeType === 1 && (n.matches?.('[popover], dialog, .cdk-overlay-container') || n.querySelector?.('[popover], dialog'))))) {
+      cancelAnimationFrame(raising); raising = requestAnimationFrame(() => raise(h));
+    }
+  }).observe(document.documentElement, { childList: true, subtree: true });
   scan();
 })();
