@@ -13,6 +13,8 @@ import { requireStaff, cachedStaff, logout } from '../core/auth.js';
 import { icon } from './icons.js';
 import { initNotifications } from './notifications.js';
 import './loader.js';
+import { toast } from './toast.js';
+import { installedExt, latestExt, compareVersions } from './ext-version.js';
 import { db, ref, onValue } from '../core/firebase.js';
 
 export const NAV = [
@@ -33,6 +35,7 @@ export const NAV = [
     { id: 'teachers',  href: 'teachers',  label: 'Вчителі та ставки', icon: 'graduation-cap' },
     { id: 'schedule',  href: 'schedule',  label: 'Графік роботи',     icon: 'clock' },
     { id: 'tags',      href: 'tags',      label: 'Теги',              icon: 'tag' },
+    { id: 'extension', href: 'extension', label: 'Розширення', icon: 'puzzle' },
   ]},
 ];
 
@@ -233,6 +236,7 @@ export function initShell({ page, title, subtitle = '', actions = '', back = nul
     setUser(staff);
     initNotifications(document.getElementById('bell'), staff);
     watchConnection();
+    checkExtension(page);
     return staff;
   });
 }
@@ -249,6 +253,22 @@ function setUser({ name, email, photoURL }) {
   else av.textContent = initials(name);
   document.getElementById('sb-name').textContent = name;
   document.getElementById('sb-email').textContent = email;
+}
+
+// Якщо встановлене розширення застаріло — крапка в меню і одноразова підказка за сесію
+async function checkExtension(page) {
+  const have = installedExt();
+  if (!have) return;
+  const latest = await latestExt();
+  if (!latest || compareVersions(have, latest) >= 0) return;
+  const link = document.querySelector('.sb-link[href="extension"]');
+  link?.classList.add('has-update');
+  link?.closest('.sb-group')?.classList.add('has-update');
+  if (page === 'extension') return;
+  try { if (sessionStorage.getItem('educrm.extNotified')) return; sessionStorage.setItem('educrm.extNotified', '1'); } catch {}
+  toast(`Доступна нова версія розширення для CRM (${latest})`, 'info', {
+    duration: 9000, action: { label: 'Оновити', onClick: () => { location.href = 'extension'; } },
+  });
 }
 
 // Плашка «Немає з'єднання» — з'являється, лише якщо зв'язку немає довше кількох секунд

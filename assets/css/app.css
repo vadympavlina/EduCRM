@@ -1571,3 +1571,37 @@ html[data-theme="dark"] body:not(.od) .fc .fc-event.ev:is(.fc-timegrid-event, .f
 /* Трохи більший підпис блокувань і «Зайнято» */
 .block-label .bl, .fc .ev-busy .bl { font-size: 12px; }
 .block-label .bl svg, .fc .ev-busy .bl svg { width: 14px; height: 14px; }
+
+/* ── Розширення для CRM ───────────────────────────────────── */
+.sb-link.has-update::after { content: ''; position: absolute; right: 10px; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: var(--warning); box-shadow: 0 0 0 2px var(--surface); }
+.sb-group.has-update .sb-group-label > span::after { content: ''; display: inline-block; width: 6px; height: 6px; margin-left: 6px; border-radius: 50%; background: var(--warning); vertical-align: 2px; }
+.sb-collapsed .sb-link.has-update::after { right: 6px; top: 8px; margin: 0; }
+.xs-hero { display: flex; align-items: center; gap: 16px; padding: 18px 20px; }
+.xs-hero-ico { width: 46px; height: 46px; border-radius: var(--r-lg); display: grid; place-items: center; flex: none; background: var(--k-soft); color: var(--k); }
+.xs-hero-text { flex: 1; min-width: 0; }
+.xs-hero h2 { font-size: var(--fs-lg); }
+.xs-hero p { color: var(--text-3); font-size: var(--fs-sm); }
+.xs-info { --k: var(--brand); --k-soft: var(--brand-soft); }
+.xs-warning { --k: var(--warning); --k-soft: var(--warning-soft); border-color: var(--warning-border); }
+.xs-success { --k: var(--success); --k-soft: var(--success-soft); }
+.xs-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+.xs-side { display: flex; flex-direction: column; gap: 20px; }
+.xs-steps { list-style: none; margin: 0; padding: 8px 20px 20px; display: flex; flex-direction: column; }
+.xs-step { position: relative; display: flex; gap: 14px; padding: 14px 0; }
+.xs-step + .xs-step { border-top: 1px dashed var(--border); }
+.xs-num { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--brand-soft); color: var(--brand-active); font-weight: 700; font-size: var(--fs-sm); }
+.xs-step h3 { font-size: var(--fs-md); margin: 3px 0 4px; }
+.xs-body { color: var(--text-2); font-size: var(--fs-sm); }
+.xs-body .muted { display: block; margin-top: 4px; }
+.xs-body svg { vertical-align: -2px; }
+.xs-body code, .xs-copy code { font: 500 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; }
+.xs-copy { display: flex; align-items: center; gap: 8px; margin: 6px 0 2px; }
+.xs-copy code { padding: 6px 10px; font-size: 13px; }
+.xs-what h2 { font-size: var(--fs-lg); margin-bottom: 12px; }
+.xs-what ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.xs-what li { display: flex; gap: 10px; font-size: var(--fs-sm); color: var(--text-2); }
+.xs-what li svg { color: var(--brand); margin-top: 2px; }
+.xs-note { display: flex; gap: 10px; background: var(--surface-2); color: var(--text-3); font-size: var(--fs-sm); }
+.xs-note svg { color: var(--text-4); margin-top: 1px; }
+@media (max-width: 1100px) { .xs-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) { .xs-hero { flex-wrap: wrap; } .xs-hero .btn { width: 100%; } }

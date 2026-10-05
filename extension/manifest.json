@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "EduCRM — помічник для робочої CRM",
   "short_name": "EduCRM",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Кнопка на картці клієнта в робочій CRM: запис у EduCRM в один клік і найближче заняття клієнта.",
   "permissions": [
     "activeTab",
@@ -23,6 +23,15 @@
         "crm-watcher.js"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://vadympavlina.github.io/EduCRM/*"
+      ],
+      "js": [
+        "edu-bridge.js"
+      ],
+      "run_at": "document_start"
     }
   ],
   "action": {
