@@ -183,6 +183,11 @@ function initCalendar() {
       if (view === 'dayGridMonth') {
         return { html: String(html`<span class="ev-inline"><span class="ev-time">${arg.timeText}</span><span class="ev-title"><span>${arg.event.title}</span></span>${count}</span>`) };
       }
+      if (p.kind === 'busy') {
+        return { html: String(html`
+          <div class="rb">${icon('clock', 12)}<span>Зайнято</span></div>
+          <div class="rb-text">${arg.event.title}${p.teacher ? html` · ${p.teacher}` : ''}</div>`) };
+      }
       return { html: String(html`
         <div class="ev-inner">
           <div class="ev-time"><span>${hhmm(arg.event.start)}</span>${arg.event.end ? html`<span class="t-end"> – ${hhmm(arg.event.end)}</span>` : ''}</div>
@@ -197,7 +202,9 @@ function initCalendar() {
       if (p.kind === 'block') {
         const label = document.createElement('div');
         label.className = 'block-label';
-        render(label, html`${p.label}${p.teacher ? html`<small>${p.teacher}</small>` : ''}`);
+        render(label, html`
+          <div class="rb">${icon(p.teacher ? 'user' : 'x', 12)}<span>${p.teacher ? 'Блок. вчителя' : 'Блок. (всі)'}</span></div>
+          <div class="rb-text">${p.label}${p.teacher ? html` · ${p.teacher}` : ''}</div>`);
         arg.el.append(label);
       }
       const time = arg.event.end ? `${hhmm(arg.event.start)}–${hhmm(arg.event.end)}` : hhmm(arg.event.start);
