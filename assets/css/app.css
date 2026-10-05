@@ -1353,3 +1353,80 @@ body.od { min-height: 100dvh; background: var(--bg); padding-bottom: calc(96px +
   .sb-collapsed .sb-group.closed .sb-group-items { grid-template-rows: 0fr; }
   .sb-tip { display: none; }
 }
+
+/* ============================================================
+   9. КАЛЕНДАР: чіткіші події, статуси й блокування
+   ============================================================ */
+.fc {
+  --fc-today-bg-color: color-mix(in srgb, var(--brand) 7%, transparent);
+  --fc-now-indicator-color: var(--danger);
+}
+.fc .fc-timegrid-slot { border-top-color: var(--border); }
+.fc .fc-timegrid-slot-minor { border-top-color: color-mix(in srgb, var(--border) 55%, transparent); }
+.fc .fc-day-sat:not(.fc-day-today), .fc .fc-day-sun:not(.fc-day-today) { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
+.fc .fc-timegrid-now-indicator-line { border-width: 2px 0 0; box-shadow: 0 0 0 1px color-mix(in srgb, var(--danger) 20%, transparent); }
+.fc .fc-timegrid-col-events { margin: 0 3px 0 2px; }
+
+/* Події: насиченіша заливка, товста кольорова смужка, чіткий текст */
+.fc .fc-event.ev {
+  background: color-mix(in srgb, var(--ev) 22%, var(--mix));
+  border-left-width: 4px;
+  border-radius: 7px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .1), 0 0 0 1px color-mix(in srgb, var(--ev) 25%, transparent);
+}
+.fc .fc-event.ev:hover { box-shadow: var(--shadow-md), 0 0 0 1px color-mix(in srgb, var(--ev) 55%, transparent); filter: none; z-index: 5; }
+.fc .fc-event.ev .ev-title { color: var(--text); }
+.fc .fc-event.ev .ev-time { color: var(--text-2); font-weight: 500; }
+.fc .fc-event.ev .ev-sub { color: var(--text-2); }
+.ev-title svg { margin-top: 1px; width: 13px; height: 13px; }
+
+/* Очікує — штрихування й пунктирна рамка («ще не підтверджено») */
+.fc .fc-event.ev-pending {
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--ev) 16%, var(--mix)) 0 6px, color-mix(in srgb, var(--ev) 7%, var(--mix)) 6px 12px);
+  outline: 1.5px dashed color-mix(in srgb, var(--ev) 70%, transparent); outline-offset: -1.5px;
+  box-shadow: none;
+}
+/* Підтверджено — суцільна яскрава */
+.fc .fc-event.ev-confirmed { background: color-mix(in srgb, var(--ev) 26%, var(--mix)); }
+/* Проведено — спокійніша, зі «зеленою» позначкою */
+.fc .fc-event.ev-completed { background: color-mix(in srgb, var(--ev) 9%, var(--surface-2)); border-left-color: color-mix(in srgb, var(--ev) 55%, var(--success)); opacity: .9; }
+.fc .fc-event.ev-completed .ev-title span { color: var(--text-2); }
+/* Скасовано — блякла, закреслена */
+.fc .fc-event.ev-cancelled { background: var(--surface-2); border-left-color: var(--text-4); opacity: .6; box-shadow: none; }
+/* Групова — фіолетова з виразним лічильником */
+.fc .fc-event.ev-group { background: color-mix(in srgb, var(--violet) 22%, var(--mix)); }
+.ev-count { background: var(--violet); color: #fff; padding: 0 6px; }
+html[data-theme="dark"] body:not(.od) .ev-count { color: #0c111b; }
+/* Зайнятий час — сіре штрихування з рамкою */
+.fc .fc-event.ev-busy {
+  background: repeating-linear-gradient(45deg, var(--surface-3) 0 6px, var(--surface-2) 6px 12px);
+  border-left-color: var(--text-3); outline: 1px solid var(--border-strong); outline-offset: -1px;
+}
+.fc .fc-event.ev-busy .ev-title { color: var(--text-2); }
+
+/* Блокування: помітний фон, кольорова кромка зліва й підпис */
+.fc .fc-bg-event.block { box-shadow: inset 4px 0 0 var(--bk); border-radius: 0 6px 6px 0; }
+.fc .fc-bg-event.block-global {
+  --bk: var(--danger);
+  background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--danger) 20%, transparent) 0 7px, color-mix(in srgb, var(--danger) 8%, transparent) 7px 14px);
+}
+.fc .fc-bg-event.block-teacher {
+  --bk: var(--info);
+  background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--info) 20%, transparent) 0 7px, color-mix(in srgb, var(--info) 8%, transparent) 7px 14px);
+}
+.block-label { font-size: 11px; font-weight: 700; padding: 2px 6px; letter-spacing: .04em; text-shadow: 0 0 6px var(--surface), 0 0 2px var(--surface); }
+.block-global .block-label { color: var(--danger); }
+.block-teacher .block-label { color: var(--info); }
+
+/* Умовні позначення */
+.cal-key { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 8px 16px; border-bottom: 1px solid var(--border); font-size: var(--fs-xs); color: var(--text-3); }
+.cal-key .key { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.k-sw { display: inline-block; width: 20px; height: 12px; border-radius: 3px; border: 1px solid color-mix(in srgb, var(--text-4) 45%, transparent); border-left: 3px solid var(--brand); background: color-mix(in srgb, var(--brand) 24%, var(--mix)); }
+.k-pending { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--brand) 18%, var(--mix)) 0 3px, color-mix(in srgb, var(--brand) 6%, var(--mix)) 3px 6px); outline: 1px dashed var(--brand); outline-offset: -1px; border-left-width: 3px; }
+.k-completed { background: color-mix(in srgb, var(--brand) 9%, var(--surface-2)); border-left-color: var(--success); }
+.k-cancelled { background: var(--surface-2); border-left-color: var(--text-4); opacity: .6; }
+.k-group { border-left-color: var(--violet); background: color-mix(in srgb, var(--violet) 24%, var(--mix)); }
+.k-busy { border-left-color: var(--text-3); background: repeating-linear-gradient(45deg, var(--surface-3) 0 3px, var(--surface-2) 3px 6px); }
+.k-block { border-left-color: var(--danger); background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--danger) 25%, transparent) 0 3px, color-mix(in srgb, var(--danger) 8%, transparent) 3px 6px); }
+.k-block-t { border-left-color: var(--info); background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--info) 25%, transparent) 0 3px, color-mix(in srgb, var(--info) 8%, transparent) 3px 6px); }
+@media (max-width: 640px) { .cal-key { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 6px 12px; } .cal-card { height: calc(100dvh - 150px); } }

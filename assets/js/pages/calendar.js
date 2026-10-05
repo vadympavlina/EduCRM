@@ -71,6 +71,16 @@ render(page, html`
         ${VIEWS.map(([v, label]) => html`<label><input type="radio" name="view" value="${v}"><span>${label}</span></label>`)}
       </div>
     </div>
+    <div class="cal-key" aria-label="Умовні позначення">
+      <span class="key"><i class="k-sw k-pending"></i>Очікує</span>
+      <span class="key"><i class="k-sw k-confirmed"></i>Підтверджено</span>
+      <span class="key"><i class="k-sw k-completed"></i>Проведено</span>
+      <span class="key"><i class="k-sw k-cancelled"></i>Скасовано</span>
+      <span class="key"><i class="k-sw k-group"></i>Групова</span>
+      <span class="key"><i class="k-sw k-busy"></i>Зайнято</span>
+      <span class="key"><i class="k-sw k-block"></i>Блокування для всіх</span>
+      <span class="key"><i class="k-sw k-block-t"></i>Блокування вчителя</span>
+    </div>
     <div class="cal-body"><div id="calendar" style="height:100%"></div></div>
   </section>`);
 
@@ -190,7 +200,8 @@ function initCalendar() {
         render(label, html`${p.label}${p.teacher ? html`<small>${p.teacher}</small>` : ''}`);
         arg.el.append(label);
       }
-      const tip = [arg.event.title, p.teacher, p.kind === 'event' ? STATUS[p.status]?.label : ''].filter(Boolean).join(' · ');
+      const time = arg.event.end ? `${hhmm(arg.event.start)}–${hhmm(arg.event.end)}` : hhmm(arg.event.start);
+      const tip = [arg.event.title, time, p.teacher, p.kind === 'event' ? STATUS[p.status]?.label : ''].filter(Boolean).join(' · ');
       if (tip && p.kind !== 'block') arg.el.title = tip;
     },
 
