@@ -14,7 +14,7 @@ import { icon } from './icons.js';
 import { initNotifications } from './notifications.js';
 import './loader.js';
 import { toast } from './toast.js';
-import { installedExt, latestExt, compareVersions } from './ext-version.js';
+import { outdatedExtensions } from './ext-version.js';
 import { db, ref, onValue } from '../core/firebase.js';
 
 export const NAV = [
@@ -257,16 +257,15 @@ function setUser({ name, email, photoURL }) {
 
 // Якщо встановлене розширення застаріло — крапка в меню і одноразова підказка за сесію
 async function checkExtension(page) {
-  const have = installedExt();
-  if (!have) return;
-  const latest = await latestExt();
-  if (!latest || compareVersions(have, latest) >= 0) return;
+  const old = await outdatedExtensions();
+  if (!old.length) return;
   const link = document.querySelector('.sb-link[href="extension"]');
   link?.classList.add('has-update');
   link?.closest('.sb-group')?.classList.add('has-update');
   if (page === 'extension') return;
   try { if (sessionStorage.getItem('educrm.extNotified')) return; sessionStorage.setItem('educrm.extNotified', '1'); } catch {}
-  toast(`Доступна нова версія розширення для CRM (${latest})`, 'info', {
+  const what = old.map(x => `«${x.name}» (${x.latest})`).join(' і ');
+  toast(`Доступна нова версія розширення ${what}`, 'info', {
     duration: 9000, action: { label: 'Оновити', onClick: () => { location.href = 'extension'; } },
   });
 }

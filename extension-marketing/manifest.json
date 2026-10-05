@@ -1,18 +1,20 @@
 {
   "manifest_version": 3,
-  "name": "EduCRM — помічник для робочої CRM",
-  "short_name": "EduCRM",
-  "version": "2.4.0",
-  "description": "Кнопка EduCRM на картці клієнта в робочій CRM: запис у EduCRM в один клік і найближче заняття клієнта.",
+  "name": "EduCRM Marketing",
+  "short_name": "EduCRM Mkt",
+  "version": "1.0.0",
+  "description": "Переносить список клієнтів маркетингового заходу з робочої CRM у Відкритий захід EduCRM в один клік.",
   "permissions": [
-    "activeTab",
-    "scripting"
+    "storage"
   ],
   "host_permissions": [
     "https://crm.itstep.org/*",
     "https://vadympavlina.github.io/EduCRM/*",
     "https://educrm-85756-default-rtdb.firebaseio.com/*"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": [
@@ -20,7 +22,7 @@
       ],
       "js": [
         "shared.js",
-        "crm-watcher.js"
+        "event-import.js"
       ],
       "run_at": "document_idle"
     },
@@ -35,8 +37,7 @@
     }
   ],
   "action": {
-    "default_popup": "popup.html",
-    "default_title": "EduCRM",
+    "default_title": "EduCRM Marketing — відкрийте «Список клієнтів» заходу в CRM",
     "default_icon": {
       "16": "icons/16.png",
       "32": "icons/32.png",
@@ -48,8 +49,5 @@
     "32": "icons/32.png",
     "48": "icons/48.png",
     "128": "icons/128.png"
-  },
-  "background": {
-    "service_worker": "background.js"
   }
 }

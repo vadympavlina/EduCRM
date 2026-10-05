@@ -23,7 +23,7 @@
       animation: up .25s cubic-bezier(.2,.8,.2,1); }
     @keyframes up { from { opacity: 0; transform: translate(-50%, 12px); } }
     .logo { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; flex: none; color: #fff;
-      background: linear-gradient(135deg, #5b7bff, #3450d1); box-shadow: 0 2px 6px rgba(79,110,247,.35); }
+      background: linear-gradient(135deg, #a48afb, #6927da); box-shadow: 0 2px 6px rgba(105,39,218,.35); }
     .logo.ok { background: linear-gradient(135deg, #32d583, #079455); box-shadow: 0 2px 6px rgba(7,148,85,.35); }
     .logo.warn { background: linear-gradient(135deg, #fdb022, #dc6803); box-shadow: 0 2px 6px rgba(220,104,3,.35); }
     .logo.err { background: linear-gradient(135deg, #f97066, #d92d20); }
@@ -103,7 +103,7 @@
   function showStart(d) {
     const { title, people: list } = readDialog(d);
     if (!list.length) return remove();
-    bar('', 'sparkles', title || 'Захід без назви', ['Перенести ', el('b', { text: people(list.length) }), ' у Відкритий захід EduCRM'],
+    bar('', 'megaphone', title || 'Захід без назви', ['Перенести ', el('b', { text: people(list.length) }), ' у Відкритий захід EduCRM'],
       [el('button', { class: 'btn primary', onclick: () => confirmStep(d) }, icon('download', 16), 'Перенести')]);
   }
 

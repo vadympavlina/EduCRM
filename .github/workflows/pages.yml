@@ -24,8 +24,10 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Pack the CRM extension (extension.zip)
-        run: cd extension && zip -qr ../extension.zip . -x '*.DS_Store'
+      - name: Pack the CRM extensions (extension.zip, extension-marketing.zip)
+        run: |
+          (cd extension && zip -qr ../extension.zip . -x '*.DS_Store')
+          (cd extension-marketing && zip -qr ../extension-marketing.zip . -x '*.DS_Store')
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
