@@ -11,7 +11,7 @@ import { icon } from '../ui/icons.js';
 import { toast } from '../ui/toast.js';
 import { openDialog } from '../ui/dialog.js';
 import { teacherColor } from '../data/teachers.js';
-import { STATUS, findBlock, findTeacherOverlap, moveEvent, toMin } from '../data/events.js';
+import { STATUS, findBlock, findTeacherOverlap, moveEvent, toMin, syncAllLookups } from '../data/events.js';
 import { moveGroup, countComing } from '../data/group-events.js';
 import { store, ctx, teacherName, teacherOptions } from '../calendar/store.js';
 import { openEventDialog } from '../calendar/event-dialog.js';
@@ -34,6 +34,7 @@ let rangeFrom = isoDate(new Date(new Date().getFullYear(), new Date().getMonth()
 const unsub = {};
 let filter = new Set(readLS(FILTER_KEY, []));
 const loaded = { people: false, events: false };
+let lookupSynced = false;
 
 // ── КАРКАС ───────────────────────────────────────────────────
 const shellReady = initShell({
@@ -107,6 +108,7 @@ function subscribeRange() {
     const next = {};
     snap.forEach(c => { next[c.key] = { id: c.key, ...c.val() }; });
     store.events = next; loaded.events = true; refresh(); maybeImport();
+    if (!lookupSynced) { lookupSynced = true; syncAllLookups(next).catch(err => console.warn('lookup sync', err)); }
   }, err => { console.error(err); toast('Не вдалося завантажити події', 'error'); });
   unsub.busy = onValue(query(ref(db, 'busySlots'), orderByChild('date'), startAt(rangeFrom)), snap => {
     store.busySlots = snap.val() || {}; refresh();

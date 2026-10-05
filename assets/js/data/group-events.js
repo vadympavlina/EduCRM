@@ -10,6 +10,13 @@ import { db, ref, get, update, push } from '../core/firebase.js';
 import { phoneDigits } from '../core/format.js';
 import * as tg from './telegram.js';
 import { phoneKey, resolveClientKey } from './clients.js';
+import { refreshLookup } from './events.js';
+
+/** Оновити lookup (розширення в робочій CRM) для всіх учасників. */
+function refreshParticipantLookups(...lists) {
+  const phones = new Set(lists.flatMap(l => Object.values(l || {}).map(p => p?.phone).filter(Boolean)));
+  phones.forEach(phone => refreshLookup(phone).catch(() => {}));
+}
 
 export const GROUP_STATUS = {
   pending:   { label: 'Очікується', badge: 'warning' },
@@ -96,6 +103,7 @@ export async function saveGroup(prev, form, ctx) {
   Object.entries(ge).forEach(([k, v]) => { updates[`groupEvents/${id}/${k}`] = v; });
   await update(ref(db), updates);
   fillClientCards(participants);
+  refreshParticipantLookups(participants, Object.fromEntries(removed.map(pid => [pid, prev.participants[pid]])));
 
   const forTg = { ...full, participants: form.participants };
   if (prev) tg.editGroup(forTg, ctx.teacherName(full.assignedPersonId));
@@ -111,6 +119,7 @@ export async function setGroupStatus(ge, status, ctx) {
     [`groupEvents/${ge.id}/updatedBy`]: full.updatedBy,
     ...mirrorUpdates(ge.id, full, ctx.staff),
   });
+  refreshParticipantLookups(ge.participants);
   tg.postGroup(full, ctx.teacherName(ge.assignedPersonId));
   return full;
 }
@@ -120,6 +129,7 @@ export async function moveGroup(ge, times, ctx) {
   const updates = mirrorUpdates(ge.id, full, ctx.staff);
   Object.entries(times).forEach(([k, v]) => { updates[`groupEvents/${ge.id}/${k}`] = v; });
   await update(ref(db), updates);
+  refreshParticipantLookups(ge.participants);
   tg.editGroup(full, ctx.teacherName(ge.assignedPersonId));
   return full;
 }
@@ -129,5 +139,6 @@ export async function deleteGroup(ge) {
   const updates = { [`groupEvents/${ge.id}`]: null };
   Object.keys(ge.participants || {}).forEach(pid => { updates['events/' + mirrorId(ge.id, pid)] = null; });
   await update(ref(db), updates);
+  refreshParticipantLookups(ge.participants);
 }
 

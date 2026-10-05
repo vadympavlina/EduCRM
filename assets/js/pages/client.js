@@ -77,7 +77,16 @@ onValue(ref(db, 'clientTimeline/' + key), s => {
 });
 
 let subscribed = false;
+let resolved = false;
 onValue(ref(db, 'clients/' + key), async s => {
+  // Посилання з розширення може містити номер в іншому форматі — шукаємо картку за phoneKey
+  if (!s.exists() && !resolved) {
+    resolved = true;
+    const k = phoneKey(key);
+    const found = k ? await get(query(ref(db, 'clients'), orderByChild('phoneKey'), equalTo(k))).catch(() => null) : null;
+    const other = found?.exists() ? Object.keys(found.val()).find(id => id !== key) : null;
+    if (other) { location.replace('client?id=' + encodeURIComponent(other)); return; }
+  }
   client = s.exists() ? s.val() : null;
   if (client) setPageTitle(client.name || 'Без імені', client.phone || key);
   renderAll();

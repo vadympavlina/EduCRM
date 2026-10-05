@@ -8,7 +8,7 @@ import { db, ref, get, set, update, push, remove } from '../core/firebase.js';
 import { phoneDigits } from '../core/format.js';
 import { safeUrl } from '../core/dom.js';
 import * as tg from './telegram.js';
-import { phoneKey, resolveClientKey } from './clients.js';
+import { phoneKey, resolveClientKey, clientEventsQuery } from './clients.js';
 
 export const STATUS = {
   pending:   { label: 'Очікує',       badge: 'warning', icon: 'clock' },
@@ -67,33 +67,75 @@ export async function upsertClient(rawPhone, name, crmLink) {
   }
 }
 
-/**
- * lookup/{телефон} — мінімум даних про найближчу майбутню подію,
- * яку читає розширення в робочій CRM. Рахується з локального кешу подій.
- */
-export async function refreshLookup(rawPhone, events, fresh = null) {
-  const key = phoneDigits(rawPhone);
-  if (!key) return;
-  const now = Date.now();
-  const pool = { ...events };
-  if (fresh?.id) pool[fresh.id] = fresh;
+// lookup/{phoneKey} — мінімум даних про найближче майбутнє заняття клієнта
+// (індивідуальне або групове). Публічно читає розширення в робочій CRM.
+// Ключ — останні 9 цифр номера, тож +380 67…, 067… і 38067… збігаються.
+// Поки не всі оновили розширення, той самий запис дублюється під повними
+// цифрами номера (старий формат).
 
-  let soonest = null;
-  for (const ev of Object.values(pool)) {
-    if (phoneDigits(ev.phone) !== key || ev.isGroupMirror) continue;
-    if (ev.status === 'cancelled' || ev.status === 'completed' || ev._deleted) continue;
-    if (!ev.date || !ev.startTime) continue;
-    const ts = new Date(`${ev.date}T${ev.startTime}`).getTime();
-    if (ts < now) continue;
-    if (!soonest || ts < soonest.ts) soonest = { ts, ev };
+const endTs = ev => new Date(`${ev.date}T${ev.endTime || ev.startTime}`).getTime();
+const isUpcoming = (ev, now) => ev && !ev._deleted && ev.date && ev.startTime
+  && ev.status !== 'cancelled' && ev.status !== 'completed' && endTs(ev) > now;
+
+/** Запис lookup для списку занять одного клієнта (або null, якщо майбутніх немає). */
+function lookupPayload(list, now = Date.now()) {
+  const upcoming = list.filter(ev => isUpcoming(ev, now))
+    .sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime));
+  if (!upcoming.length) return null;
+  const ev = upcoming[0];
+  return {
+    hasUpcoming: true, count: upcoming.length,
+    eventId: ev.isGroupMirror ? (ev.groupEventId || ev.id) : ev.id, isGroup: !!ev.isGroupMirror,
+    date: ev.date, startTime: ev.startTime, endTime: ev.endTime || '', status: ev.status || 'pending',
+    ts: new Date(`${ev.date}T${ev.startTime}`).getTime(), updatedAt: Date.now(),
+  };
+}
+
+/** Перерахувати lookup для одного номера (читає всі заняття цього клієнта з бази). */
+export async function refreshLookup(rawPhone, events = {}, fresh = null) {
+  const key = phoneKey(rawPhone);
+  if (!key) return;
+  const pool = {};
+  const snap = await get(clientEventsQuery(rawPhone)).catch(() => null);
+  snap?.forEach(c => { pool[c.key] = { id: c.key, ...c.val() }; });
+  for (const ev of Object.values(events || {})) if (ev?.id && phoneKey(ev.phone) === key) pool[ev.id] = ev;
+  if (fresh?.id) pool[fresh.id] = fresh;
+  const list = Object.values(pool).filter(ev => phoneKey(ev.phone) === key);
+  const payload = lookupPayload(list);
+  const updates = { ['lookup/' + key]: payload };
+  const legacy = phoneDigits(rawPhone);
+  if (legacy && legacy !== key) updates['lookup/' + legacy] = payload;
+  await update(ref(db), updates);
+}
+
+/**
+ * Раз на день (перший, хто відкрив календар) перебудовує всю гілку lookup:
+ * прибирає минулі заняття і дописує записи в новому форматі.
+ * events — заняття з календаря (від минулого місяця), окремо не читаємо.
+ */
+export async function syncAllLookups(events) {
+  const today = new Date().toLocaleDateString('sv-SE');
+  const flag = await get(ref(db, 'settings/lookupSyncedOn')).catch(() => null);
+  if (flag?.val() === today) return;
+  const byKey = {}, legacyOf = {};
+  for (const ev of Object.values(events || {})) {
+    const k = phoneKey(ev.phone);
+    if (!k) continue;
+    (byKey[k] ||= []).push(ev);
+    const d = phoneDigits(ev.phone);
+    if (d && d !== k) (legacyOf[k] ||= new Set()).add(d);
   }
-  const r = ref(db, 'lookup/' + key);
-  if (soonest) {
-    const { ev } = soonest;
-    await set(r, { hasUpcoming: true, eventId: ev.id, date: ev.date, startTime: ev.startTime, status: ev.status, updatedAt: Date.now() });
-  } else {
-    await remove(r);
+  const updates = {};
+  const existing = (await get(ref(db, 'lookup')).catch(() => null))?.val() || {};
+  Object.keys(existing).forEach(k => { updates['lookup/' + k] = null; });
+  for (const [k, list] of Object.entries(byKey)) {
+    const payload = lookupPayload(list);
+    if (!payload) continue;
+    updates['lookup/' + k] = payload;
+    legacyOf[k]?.forEach(d => { updates['lookup/' + d] = payload; });
   }
+  updates['settings/lookupSyncedOn'] = today;
+  await update(ref(db), updates);
 }
 
 // ── Збереження і статуси ─────────────────────────────────────
