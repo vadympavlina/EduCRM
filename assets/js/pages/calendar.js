@@ -121,7 +121,8 @@ function refresh() {
 // ── КАЛЕНДАР ─────────────────────────────────────────────────
 function initCalendar() {
   const FC = window.FullCalendar;
-  const initialView = VIEWS.some(([v]) => v === readLS(VIEW_KEY)) ? readLS(VIEW_KEY) : 'timeGridWeek';
+  const narrow = matchMedia('(max-width: 640px)');
+  const initialView = VIEWS.some(([v]) => v === readLS(VIEW_KEY)) ? readLS(VIEW_KEY) : narrow.matches ? 'timeGridDay' : 'timeGridWeek';
 
   calendar = new FC.Calendar(document.getElementById('calendar'), {
     locale: 'uk',

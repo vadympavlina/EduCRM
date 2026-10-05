@@ -18,7 +18,7 @@ import { db, ref, onValue } from '../core/firebase.js';
 export const NAV = [
   { group: 'Робота', items: [
     { id: 'calendar',  href: './',     label: 'Календар',     icon: 'calendar' },
-    { id: 'confirmed', href: 'confirmed', label: 'Підтверджені', icon: 'check-square' },
+    { id: 'confirmed', href: 'confirmed', label: 'Підтверджені', short: 'Заняття', icon: 'check-square' },
     { id: 'completed', href: 'completed', label: 'Завершені',    icon: 'check-circle' },
   ]},
   { group: 'Клієнти', items: [
@@ -36,6 +36,58 @@ export const NAV = [
   ]},
 ];
 
+const ALL = NAV.flatMap(g => g.items);
+const TABS = ['calendar', 'confirmed', 'clients', 'stats'];
+const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+
+// ── Швидкий перехід (Ctrl/⌘ + K) ─────────────────────────────
+function openPalette() {
+  if (document.getElementById('palette')) return;
+  const items = [
+    ...ALL.map(it => ({ ...it, group: 'Перейти' })),
+    { id: 'logout', label: 'Вийти з акаунта', icon: 'log-out', group: 'Акаунт', run: logout },
+  ];
+  const dlg = document.createElement('dialog');
+  dlg.className = 'dialog palette';
+  dlg.id = 'palette';
+  render(dlg, html`
+    <div class="palette-search">${icon('search', 18)}
+      <input id="palette-q" placeholder="Куди перейти?" autocomplete="off" aria-label="Швидкий перехід"><kbd>Esc</kbd></div>
+    <div class="palette-list" id="palette-list" role="listbox"></div>`);
+  document.body.append(dlg);
+  const input = dlg.querySelector('#palette-q'), list = dlg.querySelector('#palette-list');
+  let shown = items, idx = 0;
+  const draw = () => {
+    render(list, shown.length ? shown.map((it, i) => html`
+      <button type="button" class="palette-item ${i === idx ? 'active' : ''}" data-i="${i}" role="option" aria-selected="${i === idx}">
+        ${icon(it.icon, 18)}<span>${it.label}</span><small>${it.group}</small>${i === idx ? icon('corner-down-left', 14) : ''}
+      </button>`) : html`<div class="palette-empty">Нічого не знайдено</div>`);
+    list.querySelector('.active')?.scrollIntoView({ block: 'nearest' });
+  };
+  const go = it => {
+    if (!it) return;
+    dlg.close();
+    if (it.run) it.run();
+    else if (it.id !== page) { document.documentElement.classList.add('is-leaving'); location.href = it.href; }
+  };
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    shown = items.filter(it => it.label.toLowerCase().includes(q)); idx = 0; draw();
+  });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); idx = Math.min(idx + 1, shown.length - 1); draw(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); idx = Math.max(idx - 1, 0); draw(); }
+    else if (e.key === 'Enter') { e.preventDefault(); go(shown[idx]); }
+  });
+  list.addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b) go(shown[+b.dataset.i]); });
+  list.addEventListener('mousemove', e => { const b = e.target.closest('[data-i]'); if (b && +b.dataset.i !== idx) { idx = +b.dataset.i; list.querySelectorAll('.palette-item').forEach((el, i) => el.classList.toggle('active', i === idx)); } });
+  dlg.addEventListener('mousedown', e => { if (e.target === dlg) dlg.close(); });
+  dlg.addEventListener('close', () => dlg.remove());
+  draw();
+  dlg.showModal();
+  input.focus();
+}
+
 const COLLAPSE_KEY = 'educrm.sidebarCollapsed';
 
 export function initShell({ page, title, subtitle = '', actions = '', back = null }) {
@@ -48,6 +100,9 @@ export function initShell({ page, title, subtitle = '', actions = '', back = nul
       <span class="sb-brand">EduCRM</span>
       <button class="sb-collapse" id="sb-collapse" aria-label="Згорнути меню" title="Згорнути меню">${icon('chevrons-left', 16)}</button>
     </div>
+    <button class="sb-find" id="sb-find" type="button" title="Швидкий перехід (Ctrl+K)">
+      ${icon('search', 16)}<span>Швидкий перехід</span><kbd>${isMac ? '⌘K' : 'Ctrl K'}</kbd>
+    </button>
     <nav class="sb-nav" aria-label="Розділи">
       ${NAV.map(g => html`
         <div class="sb-group">
@@ -72,17 +127,44 @@ export function initShell({ page, title, subtitle = '', actions = '', back = nul
 
   const topbar = document.getElementById('topbar');
   render(topbar, html`
+    <button class="icon-btn topbar-menu" id="tb-menu" aria-label="Меню" aria-controls="sidebar">${icon('menu', 20)}</button>
     ${back ? html`<a class="icon-btn topbar-back" href="${back.href}" title="${back.label}" aria-label="${back.label}">${icon('chevron-left', 18)}</a>` : ''}
     <div class="topbar-title" id="topbar-title">
       <h1>${title}</h1>
       ${subtitle ? html`<p>${subtitle}</p>` : ''}
     </div>
     <div class="topbar-actions">
-      <div id="page-actions" style="display:flex;gap:8px">${actions}</div>
-      <div>
+      <div id="page-actions" class="page-actions">${actions}</div>
+      <div class="bell-wrap">
         <button class="icon-btn bell" id="bell" aria-label="Сповіщення" title="Відгуки клієнтів">${icon('bell')}</button>
       </div>
     </div>`);
+
+  // Нижня навігація та шторка меню для телефона
+  const app = document.querySelector('.app');
+  const tabs = document.createElement('nav');
+  tabs.className = 'tabbar';
+  tabs.setAttribute('aria-label', 'Основна навігація');
+  render(tabs, html`
+    ${TABS.map(id => { const it = ALL.find(x => x.id === id); return html`
+      <a class="tab ${id === page ? 'active' : ''}" href="${it.href}" ${id === page ? html`aria-current="page"` : ''}>${icon(it.icon, 22)}<span>${it.short || it.label}</span></a>`; })}
+    <button class="tab" id="tab-more" type="button" aria-label="Усі розділи">${icon('menu', 22)}<span>Меню</span></button>`);
+  const scrim = document.createElement('div');
+  scrim.className = 'scrim';
+  app.append(tabs, scrim);
+
+  const root = document.documentElement;
+  const closeNav = () => root.classList.remove('nav-open');
+  const openNav = () => root.classList.add('nav-open');
+  document.getElementById('tb-menu').addEventListener('click', openNav);
+  document.getElementById('tab-more').addEventListener('click', openNav);
+  scrim.addEventListener('click', closeNav);
+  sidebar.addEventListener('click', e => { if (e.target.closest('.sb-link')) closeNav(); });
+  document.getElementById('sb-find').addEventListener('click', () => { closeNav(); openPalette(); });
+  addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeNav();
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); }
+  });
 
   // Згортання меню (стан запам'ятовується)
   document.getElementById('sb-collapse').addEventListener('click', () => {

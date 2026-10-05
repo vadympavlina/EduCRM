@@ -130,7 +130,7 @@ function renderAll() {
 
   render(box, html`
     <div class="table-wrap" style="border-radius:var(--r-lg)">
-      <table class="table">
+      <table class="table stack">
         <thead><tr>
           <th>Дата</th><th>Час</th><th>Клієнт / подія</th><th>Вчитель</th>
           <th>Договір</th><th class="col-num">Нараховано</th><th>Провів</th>

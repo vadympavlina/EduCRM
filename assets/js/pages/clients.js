@@ -118,7 +118,7 @@ function renderList() {
   }
   render(box, html`
     <div class="table-wrap" style="border-radius:var(--r-lg)">
-      <table class="table">
+      <table class="table stack">
         <thead><tr><th>Клієнт</th><th>Теги</th><th class="col-num">Занять</th><th>Заняття</th><th>Договір</th><th class="col-actions"></th></tr></thead>
         <tbody>${list.slice(0, shown).map(c => html`
           <tr class="clickable" data-go="${c.key}">

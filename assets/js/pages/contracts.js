@@ -78,7 +78,7 @@ function renderList() {
   }
   render(box, html`
     <div class="table-wrap" style="border-radius:var(--r-lg)">
-      <table class="table">
+      <table class="table stack">
         <thead><tr><th>Дата</th><th>Клієнт</th><th>Договір</th><th>Вчитель</th><th>Тип</th><th class="col-num">Бонус</th><th>Оформив</th><th class="col-actions"></th></tr></thead>
         <tbody>${list.map(c => html`
           <tr>

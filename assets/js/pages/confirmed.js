@@ -118,7 +118,7 @@ function renderList() {
   }
   render(box, html`
     <div class="table-wrap" style="border-radius:var(--r-lg)">
-      <table class="table">
+      <table class="table stack">
         <thead><tr><th>Час</th><th>Клієнт</th><th>Вчитель</th><th></th><th class="col-actions"><span class="sr-only">Дії</span></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>

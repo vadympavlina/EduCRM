@@ -1078,3 +1078,204 @@ body.od { min-height: 100dvh; background: var(--bg); padding-bottom: calc(96px +
   .toast { min-width: 0; max-width: none; }
 }
 @keyframes sheet-in { from { transform: translateY(40px); opacity: 0; } }
+
+/* ============================================================
+   7. НАВІГАЦІЯ ТА АДАПТИВНІСТЬ (каркас CRM, не стосується /openday)
+   ============================================================ */
+
+/* Швидкий перехід у меню */
+.sb-find {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 12px 8px; padding: 0 10px; height: 36px; flex-shrink: 0;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--surface-2); color: var(--text-3);
+  font-size: var(--fs-sm); text-align: left; white-space: nowrap;
+  transition: border-color .12s, background .12s, color .12s;
+}
+.sb-find:hover { border-color: var(--border-strong); background: var(--surface); color: var(--text-2); }
+.sb-find span { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.sb-find kbd, .palette-search kbd { font: 500 11px var(--font); color: var(--text-4); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; background: var(--surface); }
+.sb-collapsed .sb-find { justify-content: center; margin: 0 12px 4px; padding: 0; }
+.sb-collapsed .sb-find span, .sb-collapsed .sb-find kbd { display: none; }
+
+/* Активний пункт — з акцентною смужкою */
+.sb-link.active::before {
+  content: ''; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 3px;
+  border-radius: 0 3px 3px 0; background: var(--brand);
+}
+.sb-collapsed .sb-link.active::before { left: -12px; }
+.sb-user { transition: background .12s; }
+.sb-user:hover { background: var(--surface-2); }
+
+/* Кнопки каркаса, видимі лише на малих екранах */
+.topbar-menu, .tabbar, .scrim { display: none; }
+.page-actions { display: flex; align-items: center; gap: 8px; }
+.bell-wrap { position: relative; }
+
+/* Плавна поява вмісту сторінки */
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+.content > * { animation: rise .28s var(--ease) both; }
+.content > *:nth-child(2) { animation-delay: .04s; }
+.content > *:nth-child(3) { animation-delay: .08s; }
+.content > *:nth-child(n+4) { animation-delay: .12s; }
+
+/* Клікабельні рядки і картки реагують на наведення */
+.table .clickable:hover td { background: var(--brand-soft); }
+.card { transition: box-shadow .15s, border-color .15s; }
+
+/* Палітра швидкого переходу */
+.palette { --dw: 560px; margin-top: 12vh; overflow: visible; }
+.palette[open] { display: flex; flex-direction: column; }
+.palette-search { display: flex; align-items: center; gap: 12px; padding: 0 16px; height: 56px; border-bottom: 1px solid var(--border); color: var(--text-4); }
+.palette-search input { flex: 1; height: 100%; border: 0; outline: none; background: transparent; font-size: var(--fs-lg); color: var(--text); }
+.palette-list { max-height: 360px; overflow-y: auto; padding: 8px; }
+.palette-item { display: flex; align-items: center; gap: 12px; width: 100%; height: 44px; padding: 0 12px; border: 0; border-radius: var(--r-md); background: transparent; text-align: left; font-weight: 500; color: var(--text-2); }
+.palette-item svg { color: var(--text-3); }
+.palette-item span { flex: 1; }
+.palette-item small { color: var(--text-4); font-size: var(--fs-xs); font-weight: 500; }
+.palette-item.active { background: var(--brand-soft); color: var(--brand-active); }
+.palette-item.active svg { color: var(--brand); }
+.palette-empty { padding: 28px; text-align: center; color: var(--text-3); }
+
+/* ── Ноутбуки / планшети ──────────────────────────────────── */
+@media (max-width: 1180px) {
+  .kpis, .kpis-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats-row, .client-grid { grid-template-columns: minmax(0, 1fr); }
+  .search .input { width: 220px; }
+}
+
+/* ── Планшет і телефон: меню стає шторкою ─────────────────── */
+@media (max-width: 900px) {
+  .app, .sb-collapsed .app { grid-template-columns: minmax(0, 1fr); }
+  .sidebar, .sb-collapsed .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; z-index: 90;
+    width: min(300px, 86vw); height: 100dvh;
+    transform: translateX(-102%); transition: transform .24s var(--ease);
+    box-shadow: var(--shadow-xl); overflow: hidden;
+  }
+  .nav-open .sidebar { transform: none; }
+  .scrim { display: block; position: fixed; inset: 0; z-index: 80; background: rgba(16, 24, 40, .45); backdrop-filter: blur(2px); opacity: 0; visibility: hidden; transition: opacity .2s, visibility .2s; }
+  .nav-open .scrim { opacity: 1; visibility: visible; }
+  .nav-open { overflow: hidden; }
+  /* у шторці меню завжди повне, навіть якщо на ПК було згорнуте */
+  .sb-collapsed .sb-brand, .sb-collapsed .sb-group-label, .sb-collapsed .sb-link span,
+  .sb-collapsed .sb-user-info, .sb-collapsed .sb-find span, .sb-collapsed .sb-find kbd { display: revert; }
+  .sb-collapsed .sb-head { flex-direction: row; height: var(--topbar-h); padding: 0 16px; }
+  .sb-collapsed .sb-link { justify-content: flex-start; padding: 0 10px; }
+  .sb-collapsed .sb-find { justify-content: flex-start; padding: 0 10px; margin: 0 12px 8px; }
+  .sb-collapsed .sb-user { flex-direction: row; padding: 6px; }
+  .sb-collapsed .sb-link:hover::after { display: none; }
+  .sb-collapse { display: none; }
+  .sb-link { height: 44px; }
+  .sb-find kbd { display: none; }
+
+  .topbar { padding: 0 16px; gap: 8px; }
+  .topbar-menu { display: inline-grid; flex-shrink: 0; margin-left: -6px; }
+  .content { padding: 8px 16px calc(88px + env(safe-area-inset-bottom)); gap: 16px; }
+
+  /* Нижня навігація */
+  .tabbar {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 70;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, .92); backdrop-filter: saturate(180%) blur(14px);
+    border-top: 1px solid var(--border);
+  }
+  .tab {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    min-height: 52px; border: 0; border-radius: var(--r-md); background: transparent;
+    font-size: 11px; font-weight: 600; color: var(--text-3); -webkit-tap-highlight-color: transparent;
+  }
+  .tab:hover { color: var(--text-2); }
+  .tab.active { color: var(--brand-active); }
+  .tab.active svg { color: var(--brand); }
+  .tab:active { background: var(--surface-2); }
+  .toasts { bottom: calc(76px + env(safe-area-inset-bottom)); }
+  .offline-pill { bottom: calc(76px + env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); }
+
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-wrap > .table { min-width: 640px; }
+  .cal-toolbar h2 { min-width: 0; }
+  .notif-pop { position: fixed; left: 12px; right: 12px; top: calc(var(--topbar-h) + 4px); width: auto; }
+}
+
+/* ── Телефон ──────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  :root { --topbar-h: 56px; }
+  .topbar { height: auto; min-height: var(--topbar-h); flex-wrap: wrap; padding: 8px 12px; row-gap: 8px; }
+  .topbar-title { flex: 1; }
+  .topbar-title h1 { font-size: var(--fs-lg); }
+  .topbar-title p { display: none; }
+  .topbar-actions { display: contents; }
+  .bell-wrap { order: 2; }
+  .page-actions { order: 3; flex: 1 0 100%; flex-wrap: wrap; gap: 8px; }
+  .page-actions:empty { display: none; }
+  .page-actions .btn { flex-shrink: 0; }
+  .page-actions .search { flex: 1 1 180px; min-width: 180px; }
+  .page-actions .search .input { width: 100%; }
+  .page-actions .search kbd, .presence { display: none; }
+  .page-actions:has(.btn ~ .btn) .search { flex-basis: 100%; }
+  .page-actions .btn-primary:last-child { margin-left: auto; }
+
+  /* Таблиці-списки перетворюються на картки */
+  .table-wrap > .table.stack { min-width: 0; }
+  .table.stack thead { display: none; }
+  .table.stack, .table.stack tbody, .table.stack tr, .table.stack td { display: block; }
+  .table.stack tr { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .table.stack tr:last-child { border-bottom: 0; }
+  .table.stack td, .table.stack td:first-child { padding: 3px 0; border: 0; text-align: left; }
+  .table.stack td:empty { display: none; }
+  .table.stack tr.day-row { padding: 0; }
+  .table.stack tr.day-row td { padding: 8px 16px; }
+  .table.stack tr.sub-row td:first-child { padding-left: 0; }
+  .table.stack .col-actions { width: auto; white-space: normal; padding-top: 8px; }
+  .table.stack .col-actions.muted { display: none; }
+  .table.stack .col-time { width: auto; }
+  .content { padding: 4px 12px calc(88px + env(safe-area-inset-bottom)); }
+  .search-pop { width: calc(100vw - 24px); }
+
+  .kpis { gap: 8px; }
+  .kpi { padding: 10px 12px; gap: 10px; }
+  .kpi-icon { width: 32px; height: 32px; }
+  .kpi-value { font-size: var(--fs-lg); }
+  .kpi > :last-child { min-width: 0; }
+  .kpi-label, .kpi-text .kpi-label { white-space: normal; }
+  .card-head { padding: 14px 16px; flex-wrap: wrap; }
+  .card-body { padding: 16px; }
+  .filters { gap: 8px; padding: 10px; }
+  .filters .cselect, .filters > div { width: 100%; flex: 1 1 100%; }
+  .filters .spacer { display: none; }
+  .month-picker { width: 100%; justify-content: space-between; }
+  .rates-grid { grid-template-columns: 1fr; }
+  .hbar-row { grid-template-columns: 110px minmax(0, 1fr); }
+
+  /* Календар: компактна панель */
+  .cal-card { height: calc(100dvh - 190px); min-height: 480px; border-radius: var(--r-lg); }
+  .cal-toolbar { padding: 8px 10px; gap: 6px; }
+  .cal-toolbar h2 { order: 5; flex: 1 0 100%; margin: 0; font-size: var(--fs-md); }
+  .cal-toolbar .spacer { display: none; }
+  .legend { order: 6; flex: 1 0 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .legend::-webkit-scrollbar { display: none; }
+  .chip { flex-shrink: 0; }
+  .segmented { margin-left: auto; }
+  .segmented span { padding: 6px 8px; font-size: var(--fs-xs); }
+  .fc .fc-timegrid-slot-label-cushion { font-size: 10px; padding-right: 4px; }
+  .fc .fc-col-header-cell-cushion { padding: 0; }
+  .day-head .dnum { width: 26px; height: 26px; font-size: 14px; }
+
+  .wk { overflow-x: auto; min-width: 0; }
+  .client-grid { gap: 16px; }
+  .fact-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .timeline { padding-left: 36px; }
+  .palette { margin: 8vh 12px auto; width: auto; max-width: none; border-radius: var(--r-xl); }
+  .palette[open] { animation: dialog-in .18s var(--ease); }
+  .palette-search input { font-size: 16px; }
+  .palette-search kbd { display: none; }
+}
+
+/* Сенсорні екрани: дії в рядках видно завжди (немає наведення) */
+@media (hover: none) { .table .row-actions { opacity: 1; } }
+
+@media print { .tabbar, .scrim { display: none !important; } }
+
+@media (prefers-reduced-motion: reduce) { .content > * { animation: none; } }

@@ -1,0 +1,11 @@
+{
+  "name": "EduCRM",
+  "short_name": "EduCRM",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f7f9",
+  "theme_color": "#4f6ef7",
+  "lang": "uk",
+  "icons": [{ "src": "assets/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
