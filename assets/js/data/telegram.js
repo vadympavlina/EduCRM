@@ -87,13 +87,19 @@ function googleCalUrl({ title, date, startTime, endTime, details }) {
   return 'https://calendar.google.com/calendar/render?' + q;
 }
 
+/** Рядки кнопок календаря: спершу iPhone (Apple), потім Google та інші. */
 function calendarButtons(kind, id, item, details, teacher = '') {
   if (!id || !item.date || !item.startTime) return [];
+  const page = (open = '') => siteUrl('addtocal?' + new URLSearchParams({
+    [kind]: id, title: item.title || 'Заняття', date: item.date, start: item.startTime, end: item.endTime || '', teacher,
+    ...(open ? { open } : {}),
+  }));
   return [
-    { text: '📅 Google Календар', url: googleCalUrl({ title: item.title || 'Заняття', date: item.date, startTime: item.startTime, endTime: item.endTime, details }) },
-    { text: '🗓 Інший календар', url: siteUrl('addtocal?' + new URLSearchParams({
-      [kind]: id, title: item.title || 'Заняття', date: item.date, start: item.startTime, end: item.endTime || '', teacher,
-    })) },
+    [{ text: '🍏 Додати в Календар iPhone', url: page('ios') }],
+    [
+      { text: '📅 Google', url: googleCalUrl({ title: item.title || 'Заняття', date: item.date, startTime: item.startTime, endTime: item.endTime, details }) },
+      { text: '🗓 Outlook та інші', url: page() },
+    ],
   ];
 }
 
@@ -123,7 +129,7 @@ function eventPayload(ev, status, { teacherName, teacherTag, manager }, { edited
   const payload = { text: lines.join('\n'), parse_mode: 'HTML', link_preview_options: { is_disabled: true } };
   if (ev.id && !cancelled && status !== 'completed') {
     const details = [`Вчитель: ${teacherName || '—'}`, `Менеджер: ${manager || '—'}`, ev.description || ''].filter(Boolean).join('\n');
-    const rows = [calendarButtons('eventId', ev.id, ev, details, teacherName)];
+    const rows = calendarButtons('eventId', ev.id, ev, details, teacherName);
     if (status === 'confirmed') rows.push([{ text: '💬 Посилання на відгук', url: siteUrl(`review?eventId=${encodeURIComponent(ev.id)}`) }]);
     payload.reply_markup = { inline_keyboard: rows.filter(r => r.length) };
   } else if (ev.id && status === 'completed') {
@@ -190,8 +196,8 @@ function groupPayload(ge, teacherName, teacherTag, { edited = false } = {}) {
 
   const payload = { text: lines.join('\n'), parse_mode: 'HTML', link_preview_options: { is_disabled: true } };
   const details = [`Групове заняття · вчитель: ${teacherName || '—'}`, `Учасників: ${people.length}`, ge.description || ''].filter(Boolean).join('\n');
-  const row = !cancelled && ge.status !== 'completed' ? calendarButtons('groupId', ge.id, { ...ge, title: ge.title || 'Групове заняття' }, details, teacherName) : [];
-  payload.reply_markup = { inline_keyboard: row.length ? [row] : [] };
+  const rows = !cancelled && ge.status !== 'completed' ? calendarButtons('groupId', ge.id, { ...ge, title: ge.title || 'Групове заняття' }, details, teacherName) : [];
+  payload.reply_markup = { inline_keyboard: rows };
   return payload;
 }
 

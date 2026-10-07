@@ -2,7 +2,8 @@
 //  Додати в календар — публічна сторінка з кнопки в Telegram.
 //  addtocal?eventId=<id>  — індивідуальне заняття
 //  addtocal?groupId=<id>  — групове заняття
-//  Google Календар — одним дотиком; Apple / Outlook / інші — файл .ics.
+//  Пріоритет — Календар iPhone (data:text/calendar), далі Google і файл .ics.
+//  ?open=ios — на iPhone одразу відкриває вікно «Додати в Календар».
 // ============================================================
 
 import { db, ref, get } from '../core/firebase.js';
@@ -33,7 +34,7 @@ function googleUrl(it) {
   });
 }
 
-function icsFile(it, uid) {
+function icsText(it, uid) {
   const icsEsc = s => String(s || '').replace(/[\\,;]/g, '\\$&').replace(/\r?\n/g, '\\n');
   const dt = (date, time) => `${date.replace(/-/g, '')}T${time.replace(':', '')}00`;
   const now = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
@@ -49,8 +50,10 @@ function icsFile(it, uid) {
     'BEGIN:VALARM', 'TRIGGER:-PT1H', 'ACTION:DISPLAY', `DESCRIPTION:${icsEsc(it.title)}`, 'END:VALARM',
     'END:VEVENT', 'END:VCALENDAR',
   ].filter(Boolean).join('\r\n');
-  return URL.createObjectURL(new Blob([body], { type: 'text/calendar;charset=utf-8' }));
+  return body;
 }
+
+const isApple = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 
 async function load() {
   if (!eventId && !groupId) return fail('У посиланні не вказано заняття.');
@@ -79,6 +82,10 @@ async function load() {
   const cancelled = v.status === 'cancelled';
   const fileName = it.title.replace(/[^\p{L}\p{N}]+/gu, '_').slice(0, 40) + '.ics';
   document.title = `${it.title} — додати в календар`;
+  const ics = icsText(it, path.replace('/', '-'));
+  // iPhone/iPad відкривають data:text/calendar одразу у вікні «Додати в Календар»
+  const appleHref = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+  const fileHref = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
 
   render(box, html`
     <div class="cal-add-ico">${icon(groupId ? 'users' : 'calendar', 26)}</div>
@@ -90,10 +97,16 @@ async function load() {
     </div>
     ${cancelled ? html`<div class="alert alert-danger">${icon('alert-triangle', 16)}<span>Це заняття скасовано.</span></div>` : ''}
     <div class="cal-add-btns">
-      <a class="btn btn-primary btn-lg" href="${googleUrl(it)}" target="_blank" rel="noopener">${icon('calendar', 18)} Google Календар</a>
-      <a class="btn btn-lg" href="${icsFile(it, path.replace('/', '-'))}" download="${fileName}">${icon('download', 18)} Apple, Outlook та інші (.ics)</a>
+      ${isApple()
+        ? html`<a class="btn btn-primary btn-lg" href="${appleHref}">${icon('calendar', 18)} Додати в Календар iPhone</a>`
+        : html`<a class="btn btn-primary btn-lg" href="${fileHref}" download="${fileName}">${icon('calendar', 18)} Календар Apple (Mac, iPhone)</a>`}
+      <a class="btn btn-lg" href="${googleUrl(it)}" target="_blank" rel="noopener">${icon('calendar', 18)} Google Календар</a>
+      <a class="btn btn-lg" href="${fileHref}" download="${fileName}">${icon('download', 18)} Outlook та інші (.ics)</a>
     </div>
-    <p class="cal-add-hint">Нагадування за годину до початку додається автоматично (у файлі .ics).</p>`);
+    <p class="cal-add-hint">Нагадування за годину до початку додається автоматично (iPhone, Outlook).</p>`);
+
+  // Кнопка «Календар iPhone» з Telegram: на iPhone одразу відкриваємо додавання
+  if (params.get('open') === 'ios' && isApple() && !cancelled) setTimeout(() => { location.href = appleHref; }, 300);
 }
 
 load().catch(() => fail('Перевірте інтернет і спробуйте ще раз.'));
