@@ -1603,3 +1603,16 @@ html[data-theme="dark"] body:not(.od) .fc .fc-event.ev:is(.fc-timegrid-event, .f
 .xs-copy code { padding: 6px 10px; font-size: 13px; }
 @media (max-width: 900px) { .xs-cards { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 640px) { .xs-ext .btn { align-self: stretch; } }
+
+/* ── Додати в календар (addtocal) ─────────────────────────── */
+.cal-add { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.cal-add h1 { font-size: var(--fs-xl); line-height: 1.25; }
+.cal-add-ico { width: 56px; height: 56px; border-radius: var(--r-lg); display: grid; place-items: center; color: #fff;
+  background: linear-gradient(135deg, #5b7bff, var(--brand-active)); box-shadow: 0 8px 24px rgba(79, 110, 247, .35); }
+.cal-add-ico.err { background: linear-gradient(135deg, #f97066, var(--danger)); box-shadow: 0 8px 24px rgba(217, 45, 32, .3); }
+.cal-add-when { width: 100%; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: var(--r-lg); background: var(--surface-2); text-align: left; }
+.cal-add-when div { display: flex; align-items: center; gap: 10px; font-weight: 500; color: var(--text-2); }
+.cal-add-when svg { color: var(--brand); }
+.cal-add-btns { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.cal-add-hint { font-size: var(--fs-xs); color: var(--text-4); }
+.cal-add .alert { width: 100%; text-align: left; }

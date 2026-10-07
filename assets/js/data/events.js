@@ -178,8 +178,10 @@ export async function setEventStatus(ev, status, ctx) {
   if (status === 'completed') Object.assign(patch, { completedBy: ctx.staff.name, completedAt: new Date().toISOString(), contractSigned: false });
   await update(ref(db, 'events/' + ev.id), patch);
   const full = { ...ev, ...patch };
-  // Як і раніше: «Проведено» повідомлення в чаті не змінює (щоб лишилась кнопка відгуку)
+  // Підтвердження і скасування — нове повідомлення (зі сповіщенням);
+  // «Проведено» — тихо оновлює наявне (кнопка відгуку лишається)
   if (status === 'confirmed' || status === 'cancelled') tg.postEvent(full, status, tgCtx(ctx, full));
+  else tg.editEvent(full, status, tgCtx(ctx, full));
   refreshLookup(ev.phone, ctx.events, full).catch(() => {});
   return full;
 }
