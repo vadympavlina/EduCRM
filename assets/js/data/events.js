@@ -139,8 +139,8 @@ export async function syncAllLookups(events) {
 }
 
 // ── Збереження і статуси ─────────────────────────────────────
-// ctx: { staff, events, teacherName(id) }
-const tgCtx = (ctx, ev) => ({ teacherName: ctx.teacherName(ev.assignedPersonId), manager: ctx.staff.name });
+// ctx: { staff, events, teacherName(id), teacherTag(id) }
+const tgCtx = (ctx, ev) => ({ teacherName: ctx.teacherName(ev.assignedPersonId), teacherTag: ctx.teacherTag?.(ev.assignedPersonId) || '', manager: ctx.staff.name });
 
 export async function createEvent(data, ctx, { crmLink } = {}) {
   const r = push(ref(db, 'events'));

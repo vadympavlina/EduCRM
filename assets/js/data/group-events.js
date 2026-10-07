@@ -83,7 +83,7 @@ function fillClientCards(participants) {
   });
 }
 
-// ctx: { staff, teacherName(id) }
+// ctx: { staff, teacherName(id), teacherTag(id) }
 export async function saveGroup(prev, form, ctx) {
   const id = prev?.id || push(ref(db, 'groupEvents')).key;
   const participants = cleanParticipants(form.participants);
@@ -106,8 +106,8 @@ export async function saveGroup(prev, form, ctx) {
   refreshParticipantLookups(participants, Object.fromEntries(removed.map(pid => [pid, prev.participants[pid]])));
 
   const forTg = { ...full, participants: form.participants };
-  if (prev) tg.editGroup(forTg, ctx.teacherName(full.assignedPersonId));
-  else tg.postGroup(forTg, ctx.teacherName(full.assignedPersonId));
+  if (prev) tg.editGroup(forTg, ctx.teacherName(full.assignedPersonId), ctx.teacherTag?.(full.assignedPersonId));
+  else tg.postGroup(forTg, ctx.teacherName(full.assignedPersonId), ctx.teacherTag?.(full.assignedPersonId));
   return full;
 }
 
@@ -120,7 +120,7 @@ export async function setGroupStatus(ge, status, ctx) {
     ...mirrorUpdates(ge.id, full, ctx.staff),
   });
   refreshParticipantLookups(ge.participants);
-  tg.postGroup(full, ctx.teacherName(ge.assignedPersonId));
+  tg.postGroup(full, ctx.teacherName(ge.assignedPersonId), ctx.teacherTag?.(ge.assignedPersonId));
   return full;
 }
 
@@ -130,7 +130,7 @@ export async function moveGroup(ge, times, ctx) {
   Object.entries(times).forEach(([k, v]) => { updates[`groupEvents/${ge.id}/${k}`] = v; });
   await update(ref(db), updates);
   refreshParticipantLookups(ge.participants);
-  tg.editGroup(full, ctx.teacherName(ge.assignedPersonId));
+  tg.editGroup(full, ctx.teacherName(ge.assignedPersonId), ctx.teacherTag?.(ge.assignedPersonId));
   return full;
 }
 

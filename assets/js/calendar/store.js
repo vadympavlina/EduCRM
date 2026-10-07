@@ -16,6 +16,7 @@ export const ctx = () => ({
   staff: store.staff,
   events: store.events,
   teacherName: id => store.teachers[id]?.name || '',
+  teacherTag: id => store.teachers[id]?.telegram || '',
 });
 
 export const teacherName = id => store.teachers[id]?.name || '';

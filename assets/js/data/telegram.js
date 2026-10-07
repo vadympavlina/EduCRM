@@ -63,6 +63,14 @@ function fmtTime(start, end) {
   return `${start}–${end} · ${[h ? `${h} год` : '', m ? `${m} хв` : ''].filter(Boolean).join(' ')}`;
 }
 
+/** Рядок вчителя: «Олена Коваль · @olena» (тег → сповіщення в Telegram) або лише ім'я. */
+function teacherLine(name, tag) {
+  const clean = String(tag || '').replace(/^@+/, '');
+  const handle = /^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(clean) ? `@${clean}` : '';
+  if (!name) return handle ? `👩‍🏫 ${handle}` : '👩‍🏫 Вчителя не призначено';
+  return `👩‍🏫 ${esc(name)}${handle ? ` · ${handle}` : ''}`;
+}
+
 const updatedLine = () => { const n = new Date(); return `<i>✏️ Оновлено о ${pad(n.getHours())}:${pad(n.getMinutes())}</i>`; };
 
 // ── Кнопки «додати в календар» ───────────────────────────────
@@ -97,7 +105,7 @@ const EVENT_HEAD = {
   cancelled: '🔴 <b>ЗАНЯТТЯ СКАСОВАНО</b>',
 };
 
-function eventPayload(ev, status, { teacherName, manager }, { edited = false } = {}) {
+function eventPayload(ev, status, { teacherName, teacherTag, manager }, { edited = false } = {}) {
   const cancelled = status === 'cancelled';
   const strike = s => cancelled ? `<s>${s}</s>` : s;
   const lines = [
@@ -106,7 +114,7 @@ function eventPayload(ev, status, { teacherName, manager }, { edited = false } =
     `👤 <b>${esc(ev.title || 'Клієнт')}</b>`,
     `📅 ${strike(esc(fmtDay(ev.date)))}`,
     `🕐 ${strike(esc(fmtTime(ev.startTime, ev.endTime)))}`,
-    `👩‍🏫 ${esc(teacherName || 'Вчителя не призначено')}`,
+    teacherLine(teacherName, teacherTag),
   ];
   if (ev.description) lines.push('', `<blockquote>${esc(ev.description)}</blockquote>`);
   lines.push('', `<i>Менеджер: ${esc(manager || '—')}</i>`);
@@ -147,7 +155,7 @@ const GROUP_HEAD = {
   cancelled: '👥 <b>ГРУПОВЕ ЗАНЯТТЯ</b> · 🔴 скасовано',
 };
 
-function groupPayload(ge, teacherName, { edited = false } = {}) {
+function groupPayload(ge, teacherName, teacherTag, { edited = false } = {}) {
   const people = Object.values(ge.participants || {});
   const coming = people.filter(p => p.confirmStatus === 'coming').length;
   const notComing = people.filter(p => p.confirmStatus === 'not_coming').length;
@@ -172,7 +180,7 @@ function groupPayload(ge, teacherName, { edited = false } = {}) {
     `📌 <b>${esc(ge.title || 'Групове заняття')}</b>`,
     `📅 ${strike(esc(fmtDay(ge.date)))}`,
     `🕐 ${strike(esc(fmtTime(ge.startTime, ge.endTime)))}`,
-    `👩‍🏫 ${esc(teacherName || 'Вчителя не призначено')}`,
+    teacherLine(teacherName, teacherTag),
     '',
     `<b>Учасники (${people.length})</b>${summary ? ` · ${summary}` : ''}`,
     list,
@@ -187,14 +195,14 @@ function groupPayload(ge, teacherName, { edited = false } = {}) {
   return payload;
 }
 
-export async function postGroup(ge, teacherName) {
+export async function postGroup(ge, teacherName, teacherTag = '') {
   if (ge.telegramMessageId) await deleteMessage(ge.telegramMessageId);
-  const data = await call('sendMessage', groupPayload(ge, teacherName));
+  const data = await call('sendMessage', groupPayload(ge, teacherName, teacherTag));
   const messageId = data?.ok && data.result?.message_id;
   if (messageId && ge.id) await update(ref(db, 'groupEvents/' + ge.id), { telegramMessageId: messageId }).catch(() => {});
 }
 
-export async function editGroup(ge, teacherName) {
+export async function editGroup(ge, teacherName, teacherTag = '') {
   if (!ge.telegramMessageId) return;
-  await call('editMessageText', { message_id: ge.telegramMessageId, ...groupPayload(ge, teacherName, { edited: true }) });
+  await call('editMessageText', { message_id: ge.telegramMessageId, ...groupPayload(ge, teacherName, teacherTag, { edited: true }) });
 }

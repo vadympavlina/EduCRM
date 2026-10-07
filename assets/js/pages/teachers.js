@@ -151,7 +151,7 @@ function teacherRow(t) {
       <td>
         <div class="teacher-cell">
           <span class="avatar" style="--av:${teacherColor(teachers, t.id)}">${initials(t.name)}</span>
-          <span class="teacher-name">${t.name || 'Без імені'}</span>
+          <span><span class="teacher-name">${t.name || 'Без імені'}</span>${t.telegram ? html`<span class="row-sub" style="display:block">@${t.telegram}</span>` : ''}</span>
           ${t.archived ? html`<span class="badge">В архіві</span>` : ''}
         </div>
       </td>
@@ -193,6 +193,12 @@ function openTeacherDialog(id = null) {
       <label class="field">
         <span class="field-label">Ім'я та прізвище</span>
         <input class="input" name="teacherName" maxlength="80" autocomplete="off" value="${t?.name || ''}" autofocus>
+      </label>
+      <label class="field">
+        <span class="field-label">Логін у Telegram <span class="muted">(не обов'язково)</span></span>
+        <span class="input-group"><span class="input-prefix">@</span>
+          <input class="input" name="telegram" maxlength="40" autocomplete="off" spellcheck="false" placeholder="username" value="${t?.telegram || ''}"></span>
+        <span class="field-hint">У повідомленнях про заняття вчителя буде позначено через @ — Telegram надішле йому сповіщення. Порожньо — лише ім'я.</span>
       </label>
       <div class="field">
         <span class="field-label">Колір у календарі</span>
@@ -241,6 +247,13 @@ function openTeacherDialog(id = null) {
         tid !== id && !x.archived && (x.name || '').toLowerCase() === name.toLowerCase());
       if (duplicate) { toast('Вчитель з таким іменем уже є', 'warning'); return fieldError(form.teacherName); }
 
+      // @username, t.me/username або username → username (5–32 символи: латиниця, цифри, _)
+      const tgRaw = form.telegram.value.trim().replace(/^(https?:\/\/)?(t\.me\/|telegram\.me\/)/i, '').replace(/^@+/, '');
+      if (tgRaw && !/^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(tgRaw)) {
+        toast('Логін Telegram: 5–32 символи — латинські літери, цифри та _', 'warning');
+        return fieldError(form.telegram);
+      }
+
       const custom = form.mode.value === 'custom';
       let override = null;
       if (custom) {
@@ -255,6 +268,7 @@ function openTeacherDialog(id = null) {
       await update(ref(db), {
         [`people/${tid}/name`]: name,
         [`people/${tid}/color`]: form.color.value,
+        [`people/${tid}/telegram`]: tgRaw || null,
         [`pricing/config/overrides/${tid}`]: override,
       });
       toast(id ? 'Зміни збережено' : `${name} — додано`, 'success');
