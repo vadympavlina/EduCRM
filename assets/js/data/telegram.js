@@ -73,34 +73,13 @@ function teacherLine(name, tag) {
 
 const updatedLine = () => { const n = new Date(); return `<i>✏️ Оновлено о ${pad(n.getHours())}:${pad(n.getMinutes())}</i>`; };
 
-// ── Кнопки «додати в календар» ───────────────────────────────
-// Google Календар — шаблон події одним дотиком; «Інший календар» — сторінка з файлом .ics
-function googleCalUrl({ title, date, startTime, endTime, details }) {
-  const d = String(date || '').replace(/-/g, '');
-  const t = x => String(x || '').replace(':', '') + '00';
-  let end = endTime && toMin(endTime) > toMin(startTime) ? endTime : null;
-  if (!end) { const m = toMin(startTime) + 60; end = `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`; }
-  const q = new URLSearchParams({
-    action: 'TEMPLATE', text: title, dates: `${d}T${t(startTime)}/${d}T${t(end)}`,
-    ctz: 'Europe/Kyiv', details: details || '',
-  });
-  return 'https://calendar.google.com/calendar/render?' + q;
-}
-
-/** Рядки кнопок календаря: спершу iPhone (Apple), потім Google та інші. */
-function calendarButtons(kind, id, item, details, teacher = '') {
-  if (!id || !item.date || !item.startTime) return [];
-  const page = (open = '') => siteUrl('addtocal?' + new URLSearchParams({
-    [kind]: id, title: item.title || 'Заняття', date: item.date, start: item.startTime, end: item.endTime || '', teacher,
-    ...(open ? { open } : {}),
-  }));
-  return [
-    [{ text: '🍏 Додати в Календар iPhone', url: page('ios') }],
-    [
-      { text: '📅 Google', url: googleCalUrl({ title: item.title || 'Заняття', date: item.date, startTime: item.startTime, endTime: item.endTime, details }) },
-      { text: '🗓 Outlook та інші', url: page() },
-    ],
-  ];
+// ── Кнопка «додати в календар» ──────────────────────────────
+/** Кнопка «В календар»: сторінка addtocal — на iPhone одразу відкриває додавання, далі Google та інші. */
+function calendarButton(kind, id, item, teacher = '') {
+  if (!id || !item.date || !item.startTime) return null;
+  return { text: '📅 Додати в календар', url: siteUrl('addtocal?' + new URLSearchParams({
+    [kind]: id, title: item.title || 'Заняття', date: item.date, start: item.startTime, end: item.endTime || '', teacher, open: 'ios',
+  })) };
 }
 
 // ── Індивідуальні заняття ────────────────────────────────────
@@ -127,16 +106,13 @@ function eventPayload(ev, status, { teacherName, teacherTag, manager }, { edited
   if (edited) lines.push(updatedLine());
 
   const payload = { text: lines.join('\n'), parse_mode: 'HTML', link_preview_options: { is_disabled: true } };
-  if (ev.id && !cancelled && status !== 'completed') {
-    const details = [`Вчитель: ${teacherName || '—'}`, `Менеджер: ${manager || '—'}`, ev.description || ''].filter(Boolean).join('\n');
-    const rows = calendarButtons('eventId', ev.id, ev, details, teacherName);
-    if (status === 'confirmed') rows.push([{ text: '💬 Посилання на відгук', url: siteUrl(`review?eventId=${encodeURIComponent(ev.id)}`) }]);
-    payload.reply_markup = { inline_keyboard: rows.filter(r => r.length) };
-  } else if (ev.id && status === 'completed') {
-    payload.reply_markup = { inline_keyboard: [[{ text: '💬 Посилання на відгук', url: siteUrl(`review?eventId=${encodeURIComponent(ev.id)}`) }]] };
-  } else {
-    payload.reply_markup = { inline_keyboard: [] };
-  }
+  // Одна кнопка календаря (поки заняття попереду) + відгук (після підтвердження)
+  const review = { text: '💬 Відгук', url: siteUrl(`review?eventId=${encodeURIComponent(ev.id || '')}`) };
+  const row = [
+    !cancelled && status !== 'completed' ? calendarButton('eventId', ev.id, ev, teacherName) : null,
+    ev.id && (status === 'confirmed' || status === 'completed') ? review : null,
+  ].filter(Boolean);
+  payload.reply_markup = { inline_keyboard: row.length ? [row] : [] };
   return payload;
 }
 
@@ -195,9 +171,8 @@ function groupPayload(ge, teacherName, teacherTag, { edited = false } = {}) {
   if (edited) lines.push('', updatedLine());
 
   const payload = { text: lines.join('\n'), parse_mode: 'HTML', link_preview_options: { is_disabled: true } };
-  const details = [`Групове заняття · вчитель: ${teacherName || '—'}`, `Учасників: ${people.length}`, ge.description || ''].filter(Boolean).join('\n');
-  const rows = !cancelled && ge.status !== 'completed' ? calendarButtons('groupId', ge.id, { ...ge, title: ge.title || 'Групове заняття' }, details, teacherName) : [];
-  payload.reply_markup = { inline_keyboard: rows };
+  const cal = !cancelled && ge.status !== 'completed' ? calendarButton('groupId', ge.id, { ...ge, title: ge.title || 'Групове заняття' }, teacherName) : null;
+  payload.reply_markup = { inline_keyboard: cal ? [[cal]] : [] };
   return payload;
 }
 
