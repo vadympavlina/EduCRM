@@ -40,8 +40,20 @@ export function safeUrl(url) {
   } catch { return ''; }
 }
 
+// Що востаннє намалювали в елемент: { src — розмітка, яку передали, out — що стало в DOM }
+const painted = new WeakMap();
+
+/**
+ * Малює розмітку в елемент. Якщо розмітка та сама, що й минулого разу, і DOM
+ * відтоді ніхто не змінював — нічого не робить: дані з бази часто приходять
+ * повторно без змін, і так не збиваються прокрутка, фокус і відкриті списки.
+ */
 export function render(el, content) {
-  el.innerHTML = serialize(content);
+  const src = serialize(content);
+  const prev = painted.get(el);
+  if (prev && prev.src === src && el.innerHTML === prev.out) return;
+  el.innerHTML = src;
+  painted.set(el, { src, out: el.innerHTML });
 }
 
 export const $  = (sel, root = document) => root.querySelector(sel);
@@ -66,4 +78,25 @@ export async function busy(button, fn) {
 export function initials(name) {
   const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
   return (parts.length > 1 ? parts[0][0] + parts[1][0] : (parts[0] || '?').slice(0, 2)).toUpperCase();
+}
+
+/**
+ * Об'єднує часті виклики в один кадр: кілька оновлень з бази поспіль
+ * (статус, Telegram, lookup…) дають одне перемальовування, а не 3–4.
+ */
+export function batched(fn) {
+  let frame = 0;
+  return () => {
+    if (frame) return;
+    frame = requestAnimationFrame(() => { frame = 0; fn(); });
+  };
+}
+
+const sigs = new Map();
+/** true, якщо дані для блоку key змінились з минулого разу (щоб не перемальовувати фільтри даремно). */
+export function changed(key, value) {
+  const sig = typeof value === 'string' ? value : JSON.stringify(value);
+  if (sigs.get(key) === sig) return false;
+  sigs.set(key, sig);
+  return true;
 }

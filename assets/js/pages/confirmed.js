@@ -2,7 +2,7 @@
 //  Підтверджені — заняття, які треба провести або відмітити
 // ============================================================
 
-import { html, render, on, busy } from '../core/dom.js';
+import { html, render, on, busy, batched, changed } from '../core/dom.js';
 import { isoDate, plural } from '../core/format.js';
 import { pageReady } from '../ui/loader.js';
 import { initShell } from '../ui/shell.js';
@@ -39,13 +39,16 @@ monthPicker(document.getElementById('month'), {
 });
 
 store.staff = await shellReady;
+const scheduleList = batched(() => renderList());
 sync = startSync(what => {
   if (what === 'people') renderTeacherFilter();
-  if (what === 'events' || what === 'people') renderList();
+  if (what === 'events' || what === 'people') scheduleList();
 });
 
 // ── Фільтр вчителя ───────────────────────────────────────────
 function renderTeacherFilter() {
+  // перемальовуємо фільтр, лише якщо змінився список вчителів (інакше закривається відкритий список)
+  if (!changed('teacher-filter', Object.entries(store.teachers).map(([id, t]) => [id, t.name, t.color, t.archived]))) return;
   const box = document.getElementById('teacher-filter');
   render(box, html`
     <select class="select" id="teacher-select" aria-label="Вчитель">

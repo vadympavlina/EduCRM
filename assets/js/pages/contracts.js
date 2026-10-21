@@ -3,7 +3,7 @@
 // ============================================================
 
 import { db, ref, onValue } from '../core/firebase.js';
-import { html, render, on } from '../core/dom.js';
+import { html, render, on, batched, changed } from '../core/dom.js';
 import { money, plural } from '../core/format.js';
 import { pageReady } from '../ui/loader.js';
 import { initShell } from '../ui/shell.js';
@@ -41,11 +41,14 @@ render(page, html`
 monthPicker(document.getElementById('month'), { value: month, onChange: v => { month = v; renderList(); } });
 
 await shellReady;
-onValue(ref(db, 'people'), s => { store.teachers = s.val() || {}; renderFilter(); renderList(); });
-onValue(ref(db, 'pricing/config'), s => { pricing = normalizePricing(s.val()); renderList(); });
-onValue(ref(db, 'clients'), s => { contracts = contractsFromClients(s.val() || {}); renderList(); });
+const scheduleList = batched(() => renderList());
+onValue(ref(db, 'people'), s => { store.teachers = s.val() || {}; renderFilter(); scheduleList(); });
+onValue(ref(db, 'pricing/config'), s => { pricing = normalizePricing(s.val()); scheduleList(); });
+onValue(ref(db, 'clients'), s => { contracts = contractsFromClients(s.val() || {}); scheduleList(); });
 
 function renderFilter() {
+  // перемальовуємо фільтр, лише якщо змінився список вчителів (інакше закривається відкритий список)
+  if (!changed('teacher-filter', Object.entries(store.teachers).map(([id, t]) => [id, t.name, t.color, t.archived]))) return;
   const box = document.getElementById('teacher-filter');
   render(box, html`
     <select class="select" aria-label="Вчитель">

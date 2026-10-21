@@ -5,7 +5,7 @@
 // ============================================================
 
 import { db, ref, onValue } from '../core/firebase.js';
-import { html, render, on } from '../core/dom.js';
+import { html, render, on, batched, changed } from '../core/dom.js';
 import { money, plural } from '../core/format.js';
 import { pageReady } from '../ui/loader.js';
 import { initShell } from '../ui/shell.js';
@@ -52,15 +52,18 @@ monthPicker(document.getElementById('month'), {
 });
 
 store.staff = await shellReady;
+const scheduleAll = batched(() => renderAll());
 sync = startSync(what => {
   if (what === 'people') renderFilter();
-  if (['events', 'groups', 'people'].includes(what)) renderAll();
+  if (['events', 'groups', 'people'].includes(what)) scheduleAll();
 });
 sync.ensure(monthStart(shiftMonth(month, -5)));   // для графіка динаміки
-onValue(ref(db, 'pricing/config'), s => { pricing = s.val(); pricingLoaded = true; renderAll(); });
-onValue(ref(db, 'clients'), s => { contracts = contractsFromClients(s.val() || {}); renderAll(); });
+onValue(ref(db, 'pricing/config'), s => { pricing = s.val(); pricingLoaded = true; scheduleAll(); });
+onValue(ref(db, 'clients'), s => { contracts = contractsFromClients(s.val() || {}); scheduleAll(); });
 
 function renderFilter() {
+  // перемальовуємо фільтр, лише якщо змінився список вчителів (інакше закривається відкритий список)
+  if (!changed('teacher-filter', Object.entries(store.teachers).map(([id, t]) => [id, t.name, t.color, t.archived]))) return;
   const box = document.getElementById('teacher-filter');
   render(box, html`
     <select class="select" aria-label="Вчитель">

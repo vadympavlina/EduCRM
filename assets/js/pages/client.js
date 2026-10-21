@@ -5,7 +5,7 @@
 // ============================================================
 
 import { db, ref, get, onValue, query, orderByChild, startAt, equalTo } from '../core/firebase.js';
-import { html, render, on, initials, safeUrl, busy } from '../core/dom.js';
+import { html, render, on, initials, safeUrl, busy, batched } from '../core/dom.js';
 import { isoDate, fmtDate, fmtDateTime, fmtRelative, plural } from '../core/format.js';
 import { pageReady } from '../ui/loader.js';
 import { initShell, setPageTitle } from '../ui/shell.js';
@@ -65,15 +65,15 @@ store.staff = await shellReady;
 document.getElementById('note-author').textContent = `Від імені: ${store.staff.name}`;
 
 // ── Дані ─────────────────────────────────────────────────────
-onValue(ref(db, 'people'), s => { store.teachers = s.val() || {}; renderAll(); });
-onValue(ref(db, 'groupEvents'), s => { const n = {}; s.forEach(c => { n[c.key] = { id: c.key, ...c.val() }; }); store.groupEvents = n; renderAll(); });
+onValue(ref(db, 'people'), s => { store.teachers = s.val() || {}; scheduleAll(); });
+onValue(ref(db, 'groupEvents'), s => { const n = {}; s.forEach(c => { n[c.key] = { id: c.key, ...c.val() }; }); store.groupEvents = n; scheduleAll(); });
 onValue(ref(db, 'settings/blockedTimes'), s => { store.blockedTimes = s.val() || {}; });
 onValue(query(ref(db, 'busySlots'), orderByChild('date'), startAt(isoDate(new Date()))), s => { store.busySlots = s.val() || {}; });
-onValue(ref(db, 'tags'), s => { tags = s.val() || {}; renderTags(); });
+onValue(ref(db, 'tags'), s => { tags = s.val() || {}; scheduleAll(); });
 onValue(ref(db, 'clientTimeline/' + key), s => {
   comments = [];
   s.forEach(c => { comments.push({ id: c.key, ...c.val() }); });
-  renderTimeline();
+  scheduleAll();
 });
 
 let subscribed = false;
@@ -89,7 +89,7 @@ onValue(ref(db, 'clients/' + key), async s => {
   }
   client = s.exists() ? s.val() : null;
   if (client) setPageTitle(client.name || 'Без імені', client.phone || key);
-  renderAll();
+  scheduleAll();
   if (!subscribed) {
     subscribed = true;
     await ensurePhoneKeys().catch(err => console.error(err));
@@ -99,12 +99,12 @@ onValue(ref(db, 'clients/' + key), async s => {
       es.forEach(c => { n[c.key] = { id: c.key, ...c.val() }; });
       store.events = n; eventsLoaded = true;
       loadReviews();
-      renderAll();
+      scheduleAll();
     });
     const k = client?.phoneKey || phoneKey(phone);
     if (k) get(query(ref(db, 'clients'), orderByChild('phoneKey'), equalTo(k))).then(d => {
       others = []; d.forEach(c => { if (c.key !== key) others.push({ key: c.key, ...c.val() }); });
-      renderProfile();
+      scheduleAll();
     }).catch(() => {});
   }
 });
@@ -116,10 +116,12 @@ async function loadReviews() {
     const r = await get(ref(db, 'reviews/' + id)).catch(() => null);
     reviews[id] = r?.exists() ? r.val() : null;
   }));
-  renderTimeline();
+  if (ids.length) scheduleAll();
 }
 
 // ── Рендер ───────────────────────────────────────────────────
+// Оновлення з кількох підписок за один кадр → одне перемальовування
+const scheduleAll = batched(() => renderAll());
 function renderAll() {
   renderProfile(); renderFacts(); renderTags(); renderTimeline();
   if (client === null || (client && eventsLoaded)) pageReady();

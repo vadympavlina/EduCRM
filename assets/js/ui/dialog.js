@@ -74,8 +74,10 @@ export function openDialog({
   enhanceDates(dlg);
   enhanceSelects(dlg);
   onOpen?.(form, dlg);
-  // Фокус на першому полі з autofocus, інакше — на тілі вікна (а не на кнопці «Закрити»)
-  const first = form.querySelector('[autofocus]');
+  // Фокус на першому полі з autofocus, інакше — на тілі вікна (а не на кнопці «Закрити»).
+  // На сенсорних екранах поле не фокусуємо: інакше клавіатура вискакує посеред
+  // анімації появи, і вікно «стрибає». Людина сама торкнеться потрібного поля.
+  const first = matchMedia('(pointer: coarse)').matches ? null : form.querySelector('[autofocus]');
   if (first) first.focus();
   else { const body = form.querySelector('.dialog-body'); body.tabIndex = -1; body.focus({ preventScroll: true }); }
   return dlg;

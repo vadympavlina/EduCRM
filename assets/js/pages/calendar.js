@@ -143,6 +143,9 @@ function initCalendar() {
     initialView,
     height: '100%',
     allDaySlot: false,
+    // Перебудовуємо календар лише при зміні ширини: відкриття клавіатури на телефоні
+    // змінює тільки висоту — і раніше змушувало перемальовувати весь календар за вікном
+    handleWindowResize: false,
     slotMinTime: '08:00:00',
     slotMaxTime: '22:00:00',
     slotDuration: '00:30:00',
@@ -244,6 +247,13 @@ function initCalendar() {
     },
   });
   calendar.render();
+  let lastWidth = innerWidth, resizeTimer = 0;
+  addEventListener('resize', () => {
+    if (innerWidth === lastWidth) return;
+    lastWidth = innerWidth;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => calendar.updateSize(), 150);
+  }, { passive: true });
 }
 
 function buildEvents() {

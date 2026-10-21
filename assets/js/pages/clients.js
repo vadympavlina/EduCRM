@@ -3,7 +3,7 @@
 // ============================================================
 
 import { db, ref, get, set, onValue } from '../core/firebase.js';
-import { html, render, on, initials } from '../core/dom.js';
+import { html, render, on, initials, batched, changed } from '../core/dom.js';
 import { fmtDate, plural, isoDate } from '../core/format.js';
 import { pageReady } from '../ui/loader.js';
 import { initShell } from '../ui/shell.js';
@@ -61,11 +61,13 @@ evSnap.forEach(c => {
   else if (!s.next || e.date < s.next) s.next = e.date;
 });
 
-onValue(ref(db, 'tags'), s => { tags = s.val() || {}; renderFilters(); renderList(); });
-onValue(ref(db, 'clients'), s => { clients = s.val() || {}; renderList(); });
+const scheduleList = batched(() => renderList());
+onValue(ref(db, 'tags'), s => { tags = s.val() || {}; renderFilters(); scheduleList(); });
+onValue(ref(db, 'clients'), s => { clients = s.val() || {}; scheduleList(); });
 
 // ── Фільтри ──────────────────────────────────────────────────
 function renderFilters() {
+  if (!changed('tag-filter', tags)) return;   // теги не змінились — не чіпаємо відкритий список
   render(document.getElementById('tag-filter'), html`
     <select class="select" aria-label="Тег">
       <option value="">Усі теги</option>

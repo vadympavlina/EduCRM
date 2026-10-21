@@ -1153,12 +1153,6 @@ body.od { min-height: 100dvh; background: var(--bg); padding-bottom: calc(96px +
 .page-actions { display: flex; align-items: center; gap: 8px; }
 .bell-wrap { position: relative; }
 
-/* Плавна поява вмісту сторінки */
-@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
-.content > * { animation: rise .28s var(--ease) both; }
-.content > *:nth-child(2) { animation-delay: .04s; }
-.content > *:nth-child(3) { animation-delay: .08s; }
-.content > *:nth-child(n+4) { animation-delay: .12s; }
 
 /* Клікабельні рядки і картки реагують на наведення */
 .table .clickable:hover td { background: var(--brand-soft); }
@@ -1274,7 +1268,7 @@ body.od { min-height: 100dvh; background: var(--bg); padding-bottom: calc(96px +
   .hbar-row { grid-template-columns: 110px minmax(0, 1fr); }
 
   /* Календар: компактна панель */
-  .cal-card { height: calc(100dvh - 130px); min-height: 480px; border-radius: var(--r-lg); }
+  .cal-card { height: calc(100vh - 130px); height: calc(100svh - 130px); min-height: 480px; border-radius: var(--r-lg); }
   .cal-toolbar { padding: 8px 10px; gap: 6px; }
   .cal-toolbar h2 { order: 5; flex: 1 0 100%; margin: 0; font-size: var(--fs-md); }
   .cal-toolbar .spacer { display: none; }
@@ -1304,7 +1298,6 @@ body.od { min-height: 100dvh; background: var(--bg); padding-bottom: calc(96px +
 
 @media print { .scrim { display: none !important; } }
 
-@media (prefers-reduced-motion: reduce) { .content > * { animation: none; } }
 
 /* ── Меню: сворачувані групи, іконки в плитках, підказки ───── */
 .sb-group.bottom { margin-top: auto; padding-top: 12px; }
@@ -1430,7 +1423,7 @@ html[data-theme="dark"] body:not(.od) .ev-count { color: #0c111b; }
 .k-busy { border-left-color: var(--text-3); background: repeating-linear-gradient(45deg, var(--surface-3) 0 3px, var(--surface-2) 3px 6px); }
 .k-block { border-left-color: var(--danger); background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--danger) 25%, transparent) 0 3px, color-mix(in srgb, var(--danger) 8%, transparent) 3px 6px); }
 .k-block-t { border-left-color: var(--info); background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--info) 25%, transparent) 0 3px, color-mix(in srgb, var(--info) 8%, transparent) 3px 6px); }
-@media (max-width: 640px) { .cal-key { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 6px 12px; } .cal-card { height: calc(100dvh - 150px); } }
+@media (max-width: 640px) { .cal-key { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 6px 12px; } .cal-card { height: calc(100vh - 150px); height: calc(100svh - 150px); } }
 
 /* ============================================================
    10. КАЛЕНДАР — варіант «Яскраві блоки»
@@ -1616,3 +1609,16 @@ html[data-theme="dark"] body:not(.od) .fc .fc-event.ev:is(.fc-timegrid-event, .f
 .cal-add-btns { width: 100%; display: flex; flex-direction: column; gap: 10px; }
 .cal-add-hint { font-size: var(--fs-xs); color: var(--text-4); }
 .cal-add .alert { width: 100%; text-align: left; }
+
+/* ── Продуктивність ───────────────────────────────────────── */
+/* Схований завантажувач не анімуємо (інакше він крутиться у фоні весь час) */
+.is-ready:not(.is-leaving) .app-loader { content-visibility: hidden; }
+.is-ready:not(.is-leaving) .app-loader-logo, .is-ready:not(.is-leaving) .app-loader-bar span { animation: none; }
+
+/* Телефони й планшети: без розмиття фону (дуже важке для GPU при прокрутці й відкритті вікон) */
+@media (max-width: 900px), (pointer: coarse) {
+  .topbar { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--bg); }
+  .dialog::backdrop, .scrim { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .dialog::backdrop { background: rgba(16, 24, 40, .55); }
+  .card { transition: none; }
+}

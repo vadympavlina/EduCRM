@@ -6,7 +6,7 @@
 // ============================================================
 
 import { db, ref, onValue, push, set, update } from '../core/firebase.js';
-import { html, render, on, busy, initials } from '../core/dom.js';
+import { html, render, on, busy, initials, batched } from '../core/dom.js';
 import { money } from '../core/format.js';
 import { pageReady } from '../ui/loader.js';
 import { initShell } from '../ui/shell.js';
@@ -31,8 +31,9 @@ await initShell({
   actions: html`<button class="btn btn-primary" data-action="add">${icon('plus', 16)} Додати вчителя</button>`,
 });
 
-onValue(ref(db, 'people'), snap => { teachers = snap.val() || {}; renderAll(); });
-onValue(ref(db, 'pricing/config'), snap => { pricing = normalizePricing(snap.val()); renderAll(); });
+const scheduleAll = batched(() => renderAll());
+onValue(ref(db, 'people'), snap => { teachers = snap.val() || {}; scheduleAll(); });
+onValue(ref(db, 'pricing/config'), snap => { pricing = normalizePricing(snap.val()); scheduleAll(); });
 
 // ── РЕНДЕР ───────────────────────────────────────────────────
 function renderAll() {
